@@ -135,6 +135,7 @@ class FT_Demo_Importer {
 				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ftdi' ); ?></li>
 				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ftdi' ); ?></li>
 				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ftdi' ); ?></li>
+                <li><?php esc_html_e( 'If your site already has content, please make sure you backup your database and WordPress files before import.', 'ftdi' ); ?></li>
 			</ul>
         </div>
 
