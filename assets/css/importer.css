@@ -1,0 +1,40 @@
+.ft-import-box {
+    background: #fff none repeat scroll 0 0;
+    box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    line-height: 2.1em;
+    margin-bottom: 25px;
+    overflow: auto;
+    padding: 0px 12px 0px 12px;
+    position: relative;
+    max-width: 1050px;
+}
+.ft-import-box.ft-import-welcome {
+    padding: 0px 20px 10px 25px;
+}
+.ft-import-box h3 {
+    font-size: 22px;
+    font-weight: 500;
+}
+.ft-import-box li {
+    margin: 0px;
+    padding-left: 15px;
+    list-style: inside;
+}
+.ft-export-config {
+    left: 20px;
+    position: relative;
+    top: 10px;
+}
+.ft-import-action {
+    margin-bottom: 25px;
+}
+.ft-import-theme {
+    border-left: 4px solid #0085ba;
+}
+.ft-import-success {
+    border-left-color: #46b450;
+}
+.ft-import-error {
+    border-left-color: #dc3232;
+}

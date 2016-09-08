@@ -2,7 +2,7 @@
 /*
 Plugin Name: FameTheme Demo Importer
 Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
-Description: Import demo data for famethemes's themes.
+Description: Demo data import tool for FameThemes's themes.
 Author: famethemes
 Author URI:  http://www.famethemes.com/
 Version: 1.0.0
@@ -119,9 +119,39 @@ class FT_Demo_Importer {
         $this->js();
 
         ?>
-        <h3>Import demo content</h3>
-        <a class="button button-primary ft-demo-import-now" data-download="<?php echo esc_url( $download_url ); ?>" data-import="<?php echo esc_url( $import_url ); ?>" href="#"><?php esc_html_e( 'Import Now', 'ftdi' ); ?></a>
-        <a class="button button-secondary" href="<?php echo esc_url( $import_export_config_url ); ?>"><?php esc_html_e( 'Export Config', 'ftdi' ); ?></a>
+        <div class="ft-import-box ft-import-welcome">
+            <h3>Welcome to FameThemes Demo Importer!</h3>
+            <p>
+				<?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'pt-ocdi' ); ?>
+			</p>
+			<ul>
+				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'pt-ocdi' ); ?></li>
+				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'pt-ocdi' ); ?></li>
+				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'pt-ocdi' ); ?></li>
+			</ul>
+        </div>
+
+        <div class="ft-import-box ft-import-theme">
+            <p><strong>Notice:</strong> No FameThemes's themes detected, please make sure you are using one of our theme.</p>
+        </div>
+
+        <div class="ft-import-box ft-import-theme">
+            <p>You are ready to import demo data for <strong>Screenr</strong></p>
+        </div>
+
+        <div class="ft-import-action">
+            <a class="button button-primary button-hero ft-demo-import-now" data-download="<?php echo esc_url( $download_url ); ?>" data-import="<?php echo esc_url( $import_url ); ?>" href="#"><?php esc_html_e( 'Import Demo Data', 'ftdi' ); ?></a>
+            <a class="button button-secondary ft-export-config" href="<?php echo esc_url( $import_export_config_url ); ?>"><?php esc_html_e( 'Export Config', 'ftdi' ); ?></a>
+        </div>
+
+        <div class="ft-import-box ft-import-theme ft-import-success">
+            <p>The demo import has finished. Please check your <a target="_blank" href="<?php echo esc_url( home_url( '/' ) ); ?>">front page</a> and make sure that everything has imported correctly. If it did, you can deactivate the FameThemes Demo Importer plugin, because it has done its job.</p>
+        </div>
+
+        <div class="ft-import-box ft-import-theme ft-import-error">
+            <p>Demo data import failed, please <a target="_blank" href="https://www.famethemes.com/contact">contact us</a> to get help.</p>
+        </div>
+
         <?php
 
     }
