@@ -275,7 +275,6 @@ class FT_Demo_Content {
         if ( ! is_array( $data ) ) {
             return false;
         }
-
         // Loop through the mods.
         foreach ( $data as $key => $val ) {
             // Save the mod.

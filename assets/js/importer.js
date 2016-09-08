@@ -51,10 +51,12 @@ jQuery( document ).ready( function( $ ){
                        url: url,
                        dataType: 'html',
                        success: function( res ){
-                           btn.removeClass( 'disabled' );
+                           //btn.removeClass( 'disabled' );
                            btn.removeClass( 'updating-message' );
                            doc.close();
                            btn.html( FT_IMPORT_DEMO.imported );
+                           btn.removeClass( 'button-primary' );
+                           btn.addClass( 'button-secondary' );
 
                            var msg = $( '<div class="ft-import-box ft-import-theme"></div>' );
                            if ( res.indexOf( 'demo_imported' ) > -1 ) {
