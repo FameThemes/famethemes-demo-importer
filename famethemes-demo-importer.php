@@ -122,12 +122,12 @@ class FT_Demo_Importer {
         <div class="ft-import-box ft-import-welcome">
             <h3>Welcome to FameThemes Demo Importer!</h3>
             <p>
-				<?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'pt-ocdi' ); ?>
+				<?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'ft-demo-importer' ); ?>
 			</p>
 			<ul>
-				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'pt-ocdi' ); ?></li>
-				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'pt-ocdi' ); ?></li>
-				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'pt-ocdi' ); ?></li>
+				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ft-demo-importer' ); ?></li>
+				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ft-demo-importer' ); ?></li>
+				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ft-demo-importer' ); ?></li>
 			</ul>
         </div>
 
