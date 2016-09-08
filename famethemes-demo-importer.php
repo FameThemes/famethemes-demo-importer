@@ -26,8 +26,11 @@ class FT_Demo_Importer {
         //add_action( 'ft_import_after_imported', array( $this, 'setup_demo' ), 66 );
         add_action( 'screenr_more_tabs_details', array( $this, 'display_import' ) );
 
-
         add_action( 'customize_controls_print_footer_scripts', array( $this, 'update_customizer_keys' ) );
+        if ( is_admin() ) {
+            add_action( 'admin_enqueue_scripts', array( $this, 'css' ) );
+        }
+
     }
 
     function update_customizer_keys(){
@@ -132,6 +135,10 @@ class FT_Demo_Importer {
             'import_again' => esc_html__( 'Import Again.', 'ftid' ),
             'imported' => esc_html__( 'Demo Data Imported.', 'ftid' ),
         ) );
+    }
+
+    function css( ){
+        wp_enqueue_style( 'ft-demo-importer', $this->url . 'assets/css/importer.css', false );
     }
 
     /**
