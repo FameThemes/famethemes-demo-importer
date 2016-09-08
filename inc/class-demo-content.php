@@ -575,7 +575,6 @@ class FT_Demo_Content {
             'widgets' => array(),
             'customizer_keys' => array()
         ) );
-
         $this->import_customize( $this->config_data['theme_mods'] );
         $this->import_widgets( $this->config_data['widgets'] );
 
@@ -590,7 +589,7 @@ class FT_Demo_Content {
             if ( is_array( $this->config_data['pages'] ) ) {
                 foreach ( $this->config_data['pages'] as $k => $post_id ) {
                     if ( $post_id ) {
-                        $id = isset( $wp_import->processed_posts[ $post_id ] ) ? $wp_import->processed_posts[ $post_id ] : false;
+                        $id = isset( $wp_import->processed_posts[ $post_id ] ) ? $wp_import->processed_posts[ $post_id ] : $post_id;
                         update_option( $k, $id );
                     }
                 }
@@ -600,16 +599,18 @@ class FT_Demo_Content {
             $nav_menu_locations = get_theme_mod( 'nav_menu_locations' );
             foreach ( ( array ) $this->config_data['menus'] as $k => $menu_id ) {
                 if ( $menu_id ) {
-                    $id = isset( $wp_import->processed_terms[ $menu_id ] ) ? $wp_import->processed_terms[ $menu_id ] : false;
+                    $id = isset( $wp_import->processed_terms[ $menu_id ] ) ? $wp_import->processed_terms[ $menu_id ] : $menu_id;
                     $nav_menu_locations[ $k ] = $id;
                 }
             }
             set_theme_mod( 'nav_menu_locations', $nav_menu_locations );
 
             // Update menu links
-            if ( ! $this->config_data['home_url'] ) {
+            if ( $this->config_data['home_url'] ) {
+
                 $demo_url = trailingslashit( $this->config_data['home_url'] );
                 $home_url = site_url('/');
+
                 global $wpdb;
 
                 $sql = $wpdb->prepare(
@@ -617,7 +618,9 @@ class FT_Demo_Content {
                     $demo_url,
                     $home_url
                 );
+
                 $wpdb->query($sql);
+
             }
 
             // Re-setup meta keys

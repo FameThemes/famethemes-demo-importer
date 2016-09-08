@@ -21,6 +21,7 @@ class FT_Demo_Importer {
 
         require_once $this->dir.'inc/class-demo-content.php';
         add_action( 'wp_ajax_ft_demo_import_content', array( $this, 'ajax_import' ) );
+        add_action( 'wp_ajax_ft_demo_import_download', array( $this, 'ajax_download' ) );
         add_action( 'wp_ajax_ft_demo_export', array( $this, 'ajax_export' ) );
         //add_action( 'ft_import_after_imported', array( $this, 'setup_demo' ), 66 );
         add_action( 'screenr_more_tabs_details', array( $this, 'display_import' ) );
@@ -99,6 +100,12 @@ class FT_Demo_Importer {
             'data'      => $current_item
         ), $url );
 
+        $download_url = add_query_arg( array(
+            '_nonce'    => $nonce,
+            'action'    => 'ft_demo_import_download',
+            'data'      => $current_item
+        ), $url );
+
         $import_export_config_url = add_query_arg( array(
             '_nonce'    => $nonce,
             'action'    => 'ft_demo_export',
@@ -110,8 +117,7 @@ class FT_Demo_Importer {
 
         ?>
         <h3>Import demo content</h3>
-        <a class="button button-primary ft-demo-import-now" href="<?php echo esc_url( $import_url ); ?>"><?php esc_html_e( 'Import Now', 'ftdi' ); ?></a>
-
+        <a class="button button-primary ft-demo-import-now" data-download="<?php echo esc_url( $download_url ); ?>" data-import="<?php echo esc_url( $import_url ); ?>" href="#"><?php esc_html_e( 'Import Now', 'ftdi' ); ?></a>
         <a class="button button-secondary" href="<?php echo esc_url( $import_export_config_url ); ?>"><?php esc_html_e( 'Export Config', 'ftdi' ); ?></a>
         <?php
 
@@ -119,6 +125,13 @@ class FT_Demo_Importer {
 
     function js(){
         wp_enqueue_script( 'ft-demo-importer', $this->url.'assets/js/importer.js', array( 'jquery' ) );
+        wp_localize_script( 'ft-demo-importer', 'FT_IMPORT_DEMO', array(
+            'downloading' => esc_html__( 'Downloading...', 'ftid' ),
+            'importing' => esc_html__( 'Importing...', 'ftid' ),
+            'import' => esc_html__( 'Import Now', 'ftid' ),
+            'import_again' => esc_html__( 'Import Again.', 'ftid' ),
+            'imported' => esc_html__( 'Demo Data Imported.', 'ftid' ),
+        ) );
     }
 
     /**
@@ -154,14 +167,6 @@ class FT_Demo_Importer {
         $title = preg_replace('/\.[^.]+$/', '', basename($file));
         $content = '';
 
-        // Use image exif/iptc data for title and caption defaults if possible.
-        if ( $image_meta = @wp_read_image_metadata($file) ) {
-            if ( trim( $image_meta['title'] ) && ! is_numeric( sanitize_title( $image_meta['title'] ) ) )
-                $title = $image_meta['title'];
-            if ( trim( $image_meta['caption'] ) )
-                $content = $image_meta['caption'];
-        }
-
         if ( isset( $desc ) )
             $title = $desc;
 
@@ -179,8 +184,6 @@ class FT_Demo_Importer {
 
         // Save the attachment metadata
         $id = wp_insert_attachment($attachment, $file, $post_id);
-        if ( !is_wp_error($id) )
-            wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $file ) );
 
         return $id;
     }
@@ -204,13 +207,13 @@ class FT_Demo_Importer {
 
         // If error storing temporarily, return the error.
         if ( empty( $file_array['tmp_name'] ) || is_wp_error( $file_array['tmp_name'] ) ) {
-            //return $file_array['tmp_name'];
             return false;
         }
 
         if ( $name ) {
             $file_array['name'] = $name;
         }
+        print_r( $file_array );
         // Do the validation and storage stuff.
         $id = self::media_handle_sideload( $file_array, 0 );
 
@@ -231,7 +234,7 @@ class FT_Demo_Importer {
         $downloaded_file = array();
         foreach ( $files as $k => $ext ) {
             $file = $item_name.'-'.$k.'.'.$ext;
-            $file_id = self::download_file( 'https://raw.githubusercontent.com/FameThemes/famethemes-xml-demos/master/'.$item_name.'/'.$k.'.xml', $file );
+            $file_id = self::download_file( 'https://raw.githubusercontent.com/FameThemes/famethemes-xml-demos/master/'.$item_name.'/'.$k.'.'.$ext, $file );
             if ( $file_id ) {
                 $downloaded_file[ $k ] = get_attached_file( $file_id );
             } else {
@@ -242,23 +245,41 @@ class FT_Demo_Importer {
         return $downloaded_file;
     }
 
-    function ajax_import(){
+    function ajax_download(){
+        $nonce = $_REQUEST['_nonce'];
+        if ( ! wp_verify_nonce( $nonce, 'ft_demo_import' ) ) {
+            die( 'Security check' );
+        }
 
+        $item = wp_strip_all_tags( $_REQUEST['data'] );
+        delete_transient( 'ft_demo_import_downloaded_'.$item );
+        $import_files = $this->download_dummy_files( $item );
+        set_transient( 'ft_demo_import_downloaded_'.$item, $import_files, 3 * HOUR_IN_SECONDS );
+
+        wp_die('downloaded');
+
+    }
+
+
+    function ajax_import(){
 
         $nonce = $_REQUEST['_nonce'];
         if ( ! wp_verify_nonce( $nonce, 'ft_demo_import' ) ) {
             die( 'Security check' );
-        } else {
-            // Do stuff here.
         }
 
-        $import_files = $this->download_dummy_files( 'screenr' );
+        $item = wp_strip_all_tags( $_REQUEST['data'] );
+        $import_files = get_transient( 'ft_demo_import_downloaded_'.$item );
 
-        $import = new FT_Demo_Content( $import_files );
-        $import->import();
-
-        die( 'done' );
+        if ( $import_files ) {
+            $import = new FT_Demo_Content( $import_files );
+            $import->import();
+            die( 'done' );
+        } else {
+            die( 'no_data' );
+        }
     }
+
 
     function ajax_export(){
         $type = $_REQUEST['type'];

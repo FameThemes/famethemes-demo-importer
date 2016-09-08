@@ -19,14 +19,36 @@ jQuery( document ).ready( function( $ ){
             doc = frame[0].document;
         }
         doc.open();
+
+        // Download url first
+        url = btn.attr( 'data-download' );
+        btn.html( FT_IMPORT_DEMO.downloading );
         $.ajax( {
             url: url,
             success: function( res ){
-                btn.removeClass( 'disabled' );
-                btn.removeClass( 'updating-message' );
-                doc.close();
+               // btn.removeClass( 'disabled' );
+                //btn.removeClass( 'updating-message' );
+                //doc.close();
+
+                // Import
+               setTimeout( function(){
+                   btn.html( FT_IMPORT_DEMO.importing );
+                   url = btn.attr( 'data-import' );
+                   $.ajax( {
+                       url: url,
+                       success: function( res ){
+                           btn.removeClass( 'disabled' );
+                           btn.removeClass( 'updating-message' );
+                           doc.close();
+                           btn.html( FT_IMPORT_DEMO.imported );
+                       }
+                   } );
+               }, 1000 );
+
             }
         } );
+
+
 
     } );
 } );
