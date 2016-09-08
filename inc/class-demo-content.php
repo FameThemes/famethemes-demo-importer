@@ -555,6 +555,8 @@ class FT_Demo_Content {
             'customizer_keys' => $regen_keys
         );
 
+        $config = apply_filters( 'ft_demo_generate_config', $config );
+
         return json_encode( $config );
     }
 
@@ -630,11 +632,11 @@ class FT_Demo_Content {
 
         }
 
-        do_action( 'ft_import_after_imported', $this->processed_posts );
+        do_action( 'ft_import_after_imported', $wp_import );
     }
 
 
-    function resetup_repeater_page_ids( $theme_mod_name, $list_keys, $processed_posts = array(), $url ='' ){
+    function resetup_repeater_page_ids( $theme_mod_name, $list_keys, $processed_posts = array(), $url ='', $option_type = 'theme_mod' ){
         // Setup service
         $data = get_theme_mod( $theme_mod_name );
         if ( is_string( $data ) ) {
@@ -684,7 +686,12 @@ class FT_Demo_Content {
             }
         }
 
-        set_theme_mod( $theme_mod_name , $data );
+        if ( $option_type == 'option' ) {
+            update_option( $theme_mod_name , $data );
+        } else {
+            set_theme_mod( $theme_mod_name , $data );
+        }
+
 
     }
 
