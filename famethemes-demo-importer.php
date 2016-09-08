@@ -14,6 +14,7 @@ License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2
 class FT_Demo_Importer {
     public $dir;
     public $url;
+    public $git_repo = 'https://raw.githubusercontent.com/FameThemes/famethemes-xml-demos/master/';
     function __construct( ){
 
         $this->url = trailingslashit( plugins_url('', __FILE__) );
@@ -23,8 +24,9 @@ class FT_Demo_Importer {
         add_action( 'wp_ajax_ft_demo_import_content', array( $this, 'ajax_import' ) );
         add_action( 'wp_ajax_ft_demo_import_download', array( $this, 'ajax_download' ) );
         add_action( 'wp_ajax_ft_demo_export', array( $this, 'ajax_export' ) );
-        //add_action( 'ft_import_after_imported', array( $this, 'setup_demo' ), 66 );
-        add_action( 'screenr_more_tabs_details', array( $this, 'display_import' ) );
+
+        $theme_slug = get_option( 'stylesheet' );
+        add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
 
         add_action( 'customize_controls_print_footer_scripts', array( $this, 'update_customizer_keys' ) );
         if ( is_admin() ) {
@@ -97,6 +99,11 @@ class FT_Demo_Importer {
             $current_item = get_option( 'stylesheet' );
             $current_item = untrailingslashit( $current_item );
         }
+
+        $current_item_name = str_replace( array( '-', '_' ), ' ', $current_item );
+        $current_item_name = ucwords( $current_item_name );
+
+
         $import_url = add_query_arg( array(
             '_nonce'    => $nonce,
             'action'    => 'ft_demo_import_content',
@@ -120,37 +127,37 @@ class FT_Demo_Importer {
 
         ?>
         <div class="ft-import-box ft-import-welcome">
-            <h3>Welcome to FameThemes Demo Importer!</h3>
+            <h3><?php esc_html_e( 'Welcome to FameThemes Demo Importer!', 'ftdi' ); ?></h3>
             <p>
-				<?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'ft-demo-importer' ); ?>
+				<?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'ftdi' ); ?>
 			</p>
 			<ul>
-				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ft-demo-importer' ); ?></li>
-				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ft-demo-importer' ); ?></li>
-				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ft-demo-importer' ); ?></li>
+				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ftdi' ); ?></li>
+				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ftdi' ); ?></li>
+				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ftdi' ); ?></li>
 			</ul>
         </div>
 
-        <div class="ft-import-box ft-import-theme">
-            <p><strong>Notice:</strong> No FameThemes's themes detected, please make sure you are using one of our theme.</p>
-        </div>
 
-        <div class="ft-import-box ft-import-theme">
-            <p>You are ready to import demo data for <strong>Screenr</strong></p>
-        </div>
+        <?php if ( $this->check_data_exists( $current_item ) ){ ?>
+            <div class="ft-import-box ft-import-theme">
+                <p><?php printf( esc_html__( 'You are ready to import demo data for %1$s', 'ftdi' ), '<strong>'.esc_html( $current_item_name ).'</strong>' ); ?></p>
+            </div>
 
-        <div class="ft-import-action">
-            <a class="button button-primary button-hero ft-demo-import-now" data-download="<?php echo esc_url( $download_url ); ?>" data-import="<?php echo esc_url( $import_url ); ?>" href="#"><?php esc_html_e( 'Import Demo Data', 'ftdi' ); ?></a>
-            <a class="button button-secondary ft-export-config" href="<?php echo esc_url( $import_export_config_url ); ?>"><?php esc_html_e( 'Export Config', 'ftdi' ); ?></a>
-        </div>
+            <div class="ft-import-action">
+                <a class="button button-primary button-hero ft-demo-import-now" data-download="<?php echo esc_url( $download_url ); ?>" data-import="<?php echo esc_url( $import_url ); ?>" href="#"><?php esc_html_e( 'Import Demo Data', 'ftdi' ); ?></a>
+                <?php if ( isset( $_REQUEST['export'] ) ) { ?>
+                    <a class="button button-secondary ft-export-config" href="<?php echo esc_url( $import_export_config_url ); ?>"><?php esc_html_e( 'Export Config', 'ftdi' ); ?></a>
+                <?php } ?>
+            </div>
+            <div class="ft-ajax-notice"></div>
 
-        <div class="ft-import-box ft-import-theme ft-import-success">
-            <p>The demo import has finished. Please check your <a target="_blank" href="<?php echo esc_url( home_url( '/' ) ); ?>">front page</a> and make sure that everything has imported correctly. If it did, you can deactivate the FameThemes Demo Importer plugin, because it has done its job.</p>
-        </div>
+        <?php } else { ?>
+            <div class="ft-import-box ft-import-theme">
+                <p><strong><?php esc_html_e( 'Notice:', 'ftdi' ); ?></strong> <?php esc_html_e( "No FameThemes's themes data detected, please make sure you are using one of our theme.", 'ftdi' ); ?></p>
+            </div>
+        <?php } ?>
 
-        <div class="ft-import-box ft-import-theme ft-import-error">
-            <p>Demo data import failed, please <a target="_blank" href="https://www.famethemes.com/contact">contact us</a> to get help.</p>
-        </div>
 
         <?php
 
@@ -164,6 +171,12 @@ class FT_Demo_Importer {
             'import' => esc_html__( 'Import Now', 'ftid' ),
             'import_again' => esc_html__( 'Import Again.', 'ftid' ),
             'imported' => esc_html__( 'Demo Data Imported.', 'ftid' ),
+            'confirm_leave' => esc_html__( 'Importing script is running, do you want to stop it ?', 'ftid' ),
+            'demo_imported' => sprintf( esc_html__( 'The demo import has finished. Please check your %1$s and make sure that everything has imported correctly. If it did, you can deactivate the FameThemes Demo Importer plugin, because it has done its job.', 'ftdi' ),
+                                '<a target="_blank" href="'.esc_url( home_url( '/' ) ).'">'.esc_html__( 'front page', 'ftdi' ).'</a>' ),
+            'no_data_found' => esc_html__( 'No data found.', 'ftid' ),
+            'demo_import_failed' => sprintf( esc_html__( 'Demo data import failed, please %1$s to get help.', 'ftdi' ), '<a target="_blank" href="https://www.famethemes.com/contact">'.esc_html__( 'contact us', 'ftdi' ).'</a>' ),
+
         ) );
     }
 
@@ -271,7 +284,7 @@ class FT_Demo_Importer {
         $downloaded_file = array();
         foreach ( $files as $k => $ext ) {
             $file = $item_name.'-'.$k.'.'.$ext;
-            $file_id = self::download_file( 'https://raw.githubusercontent.com/FameThemes/famethemes-xml-demos/master/'.$item_name.'/'.$k.'.'.$ext, $file );
+            $file_id = self::download_file( $this->git_repo.$item_name.'/'.$k.'.'.$ext, $file );
             if ( $file_id ) {
                 $downloaded_file[ $k ] = get_attached_file( $file_id );
             } else {
@@ -297,6 +310,17 @@ class FT_Demo_Importer {
 
     }
 
+    function check_data_exists( $item_name ){
+        $file =  $this->git_repo.$item_name.'/dummy-data.xml';
+        $response = wp_remote_get( $file );
+        $response_code = wp_remote_retrieve_response_code( $response );
+        if ( 200 != $response_code ) {
+            return false;
+        }
+
+        return true;
+    }
+
 
     function ajax_import(){
 
@@ -311,10 +335,11 @@ class FT_Demo_Importer {
         if ( $import_files ) {
             $import = new FT_Demo_Content( $import_files );
             $import->import();
-            die( 'done' );
         } else {
-            die( 'no_data' );
+            echo 'no_data_found';
         }
+
+        die();
     }
 
 

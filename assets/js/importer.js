@@ -1,3 +1,12 @@
+var ft_import_running = false;
+window.onbeforeunload = function() {
+    if ( ft_import_running ) {
+        return FT_IMPORT_DEMO.confirm_leave;
+    }
+};
+
+
+
 jQuery( document ).ready( function( $ ){
 
     $( '.ft-demo-import-now').on( 'click', function( e ){
@@ -23,6 +32,10 @@ jQuery( document ).ready( function( $ ){
         // Download url first
         url = btn.attr( 'data-download' );
         btn.html( FT_IMPORT_DEMO.downloading );
+        var notice =  $( '.ft-ajax-notice' );
+        notice.html( );
+
+        ft_import_running = true;
         $.ajax( {
             url: url,
             success: function( res ){
@@ -36,11 +49,28 @@ jQuery( document ).ready( function( $ ){
                    url = btn.attr( 'data-import' );
                    $.ajax( {
                        url: url,
+                       dataType: 'html',
                        success: function( res ){
                            btn.removeClass( 'disabled' );
                            btn.removeClass( 'updating-message' );
                            doc.close();
                            btn.html( FT_IMPORT_DEMO.imported );
+
+                           var msg = $( '<div class="ft-import-box ft-import-theme"></div>' );
+                           if ( res.indexOf( 'demo_imported' ) > -1 ) {
+                               msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
+                           } else if ( res.indexOf( 'no_data_found' ) > -1 ){
+                               msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.no_data_found+'</p>' );
+                           } else if ( res.indexOf( 'demo_import_failed' ) > -1 ){
+                               msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.demo_import_failed+'</p>' );
+                           } else {
+                               msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
+                           }
+
+                           notice.html( msg );
+
+                           ft_import_running = false;
+
                        }
                    } );
                }, 1000 );

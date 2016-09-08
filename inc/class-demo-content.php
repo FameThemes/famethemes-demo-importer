@@ -630,6 +630,9 @@ class FT_Demo_Content {
                 $this->resetup_repeater_page_ids( $k , $replace_keys, $wp_import->processed_posts, $this->config_data['home_url'] );
             }
 
+            echo 'demo_imported';
+        } else {
+            echo 'demo_import_failed';
         }
 
         do_action( 'ft_import_after_imported', $wp_import );
