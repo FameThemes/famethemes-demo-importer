@@ -880,9 +880,16 @@ if ( class_exists( 'WP_Importer' ) ) {
                 $menu_id = is_array( $menu_id ) ? $menu_id['term_id'] : $menu_id;
             }
 
-            foreach ( $item['postmeta'] as $meta )
-                $$meta['key'] = $meta['value'];
-
+            if ( version_compare( PHP_VERSION, '7.0' )  >= 0 ) {
+                foreach ( $item['postmeta'] as $meta ) {
+                    ${$meta['key']} = $meta['value'];
+                }
+            } else {
+                foreach ( $item['postmeta'] as $meta ) {
+                    $$meta['key'] = $meta['value'];
+                }
+            }
+            
             if ( 'taxonomy' == $_menu_item_type && isset( $this->processed_terms[intval($_menu_item_object_id)] ) ) {
                 $_menu_item_object_id = $this->processed_terms[intval($_menu_item_object_id)];
             } else if ( 'post_type' == $_menu_item_type && isset( $this->processed_posts[intval($_menu_item_object_id)] ) ) {
