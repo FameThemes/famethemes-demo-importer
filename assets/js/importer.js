@@ -15,6 +15,12 @@ jQuery( document ).ready( function( $ ){
         if ( btn.hasClass( 'disabled' ) ) {
             return ;
         }
+        // Make sure user want to import
+        var c = confirm( FT_IMPORT_DEMO.confirm_import );
+        if ( ! c ) {
+            return;
+        }
+
         btn.addClass( 'disabled' );
         btn.addClass( 'updating-message' );
 
