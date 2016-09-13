@@ -135,7 +135,6 @@ class FT_Demo_Importer {
 				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ftdi' ); ?></li>
 				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ftdi' ); ?></li>
 				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ftdi' ); ?></li>
-
 			</ul>
             <p><?php esc_html_e( 'Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'ftdi' ); ?></p>
         </div>
@@ -159,8 +158,6 @@ class FT_Demo_Importer {
                 <p><strong><?php esc_html_e( 'Notice:', 'ftdi' ); ?></strong> <?php esc_html_e( "No FameThemes's themes data detected, please make sure you are using one of our theme.", 'ftdi' ); ?></p>
             </div>
         <?php } ?>
-
-
         <?php
 
     }
@@ -187,6 +184,17 @@ class FT_Demo_Importer {
         wp_enqueue_style( 'ft-demo-importer', $this->url . 'assets/css/importer.css', false );
     }
 
+    function check_data_exists( $item_name ){
+        $file =  $this->git_repo.$item_name.'/dummy-data.xml';
+        $response = wp_remote_get( $file );
+        $response_code = wp_remote_retrieve_response_code( $response );
+        if ( 200 != $response_code ) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Handles a side-loaded file in the same way as an uploaded file is handled by media_handle_upload().
      *
@@ -198,7 +206,7 @@ class FT_Demo_Importer {
      * @param array  $post_data  Optional. Post data to override. Default empty array.
      * @return int|object The ID of the attachment or a WP_Error on failure.
      */
-    static function media_handle_sideload( $file_array, $post_id, $desc = null, $post_data = array() ) {
+    static function media_handle_sideload( $file_array, $post_id, $desc = null, $post_data = array(), $save_attachment = true ) {
         $overrides = array(
             'test_form'=>false,
             'test_type'=>false
@@ -220,25 +228,30 @@ class FT_Demo_Importer {
         $title = preg_replace('/\.[^.]+$/', '', basename($file));
         $content = '';
 
-        if ( isset( $desc ) )
-            $title = $desc;
+        if ( $save_attachment ) {
+            if (isset($desc)) {
+                $title = $desc;
+            }
 
-        // Construct the attachment array.
-        $attachment = array_merge( array(
-            'post_mime_type' => $type,
-            'guid' => $url,
-            'post_parent' => $post_id,
-            'post_title' => $title,
-            'post_content' => $content,
-        ), $post_data );
+            // Construct the attachment array.
+            $attachment = array_merge(array(
+                'post_mime_type' => $type,
+                'guid' => $url,
+                'post_parent' => $post_id,
+                'post_title' => $title,
+                'post_content' => $content,
+            ), $post_data);
 
-        // This should never be set as it would then overwrite an existing attachment.
-        unset( $attachment['ID'] );
+            // This should never be set as it would then overwrite an existing attachment.
+            unset($attachment['ID']);
 
-        // Save the attachment metadata
-        $id = wp_insert_attachment($attachment, $file, $post_id);
+            // Save the attachment metadata
+            $id = wp_insert_attachment($attachment, $file, $post_id);
 
-        return $id;
+            return $id;
+        } else {
+            return $file;
+        }
     }
 
     /**
@@ -246,7 +259,7 @@ class FT_Demo_Importer {
      *
      * @return bool
      */
-    static function download_file( $url, $name = '' ){
+    static function download_file( $url, $name = '', $save_attachment = true ){
         if ( ! $url || empty ( $url ) ) {
             return false;
         }
@@ -266,17 +279,16 @@ class FT_Demo_Importer {
         if ( $name ) {
             $file_array['name'] = $name;
         }
-        print_r( $file_array );
         // Do the validation and storage stuff.
-        $id = self::media_handle_sideload( $file_array, 0 );
+        $file_path_or_id = self::media_handle_sideload( $file_array, 0, null, null, $save_attachment );
 
         // If error storing permanently, unlink.
-        if ( is_wp_error( $id ) ) {
+        if ( is_wp_error( $file_path_or_id ) ) {
             @unlink( $file_array['tmp_name'] );
             return false;
         }
 
-        return $id;
+        return $file_path_or_id;
     }
 
     function download_dummy_files( $item_name ){
@@ -287,43 +299,61 @@ class FT_Demo_Importer {
         $downloaded_file = array();
         foreach ( $files as $k => $ext ) {
             $file = $item_name.'-'.$k.'.'.$ext;
-            $file_id = self::download_file( $this->git_repo.$item_name.'/'.$k.'.'.$ext, $file );
-            if ( $file_id ) {
-                $downloaded_file[ $k ] = get_attached_file( $file_id );
-            } else {
-                $downloaded_file[ $k ] = false;
-            }
+            $file_path = self::download_file( $this->git_repo.$item_name.'/'.$k.'.'.$ext, $file, false );
+            echo $file_path;
+            $downloaded_file[ $k ] = $file_path;
         }
 
         return $downloaded_file;
     }
+
+
+
+    function data_dir( $param ){
+
+        $siteurl = get_option( 'siteurl' );
+        $upload_path = trim( get_option( 'upload_path' ) );
+
+        if ( empty( $upload_path ) || 'wp-content/uploads' == $upload_path ) {
+            $dir = WP_CONTENT_DIR . '/uploads';
+        } elseif ( 0 !== strpos( $upload_path, ABSPATH ) ) {
+            // $dir is absolute, $upload_path is (maybe) relative to ABSPATH
+            $dir = path_join( ABSPATH, $upload_path );
+        } else {
+            $dir = $upload_path;
+        }
+
+        if ( !$url = get_option( 'upload_url_path' ) ) {
+            if ( empty($upload_path) || ( 'wp-content/uploads' == $upload_path ) || ( $upload_path == $dir ) )
+                $url = WP_CONTENT_URL . '/uploads';
+            else
+                $url = trailingslashit( $siteurl ) . $upload_path;
+        }
+
+
+        $param['path']  = $dir . '/ft-dummy-data';
+        $param['url']   = $url . '/ft-dummy-data';
+
+        return $param;
+    }
+
 
     function ajax_download(){
         $nonce = $_REQUEST['_nonce'];
         if ( ! wp_verify_nonce( $nonce, 'ft_demo_import' ) ) {
             die( 'Security check' );
         }
+        add_filter('upload_dir', array( $this, 'data_dir' ), 99 );
 
         $item = wp_strip_all_tags( $_REQUEST['data'] );
         delete_transient( 'ft_demo_import_downloaded_'.$item );
         $import_files = $this->download_dummy_files( $item );
         set_transient( 'ft_demo_import_downloaded_'.$item, $import_files, 3 * HOUR_IN_SECONDS );
 
+        remove_filter('upload_dir', array( $this, 'data_dir' ), 99 );
+
         wp_die('downloaded');
-
     }
-
-    function check_data_exists( $item_name ){
-        $file =  $this->git_repo.$item_name.'/dummy-data.xml';
-        $response = wp_remote_get( $file );
-        $response_code = wp_remote_retrieve_response_code( $response );
-        if ( 200 != $response_code ) {
-            return false;
-        }
-
-        return true;
-    }
-
 
     function ajax_import(){
 
@@ -341,6 +371,15 @@ class FT_Demo_Importer {
         } else {
             echo 'no_data_found';
         }
+
+        // Remove data files
+        /*
+        foreach ( $import_files as $k => $f ) {
+            if ( file_exists( $f ) ) {
+                @unlink( $f );
+            }
+        }
+        */
 
         die();
     }
