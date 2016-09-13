@@ -1,6 +1,6 @@
-### Support Theme and Plugins
-* Screenr
-* Screenr Plus
-* Boston
-* Boston Pro
+### Support Themes and Plugins
+- [x] Screenr
+- [x] Screenr Plus
+- [x] Boston
+- [x] Boston Pro
 
