@@ -5,6 +5,7 @@
 - [x] Boston Pro
 - [ ] OnePress
 - [ ] OnePress Plus
+- [ ] Coupon WP
 - [ ] Techone
 - [ ] Codilight
 - [ ] Inspirin
