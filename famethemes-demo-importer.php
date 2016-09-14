@@ -280,7 +280,7 @@ class FT_Demo_Importer {
             $file_array['name'] = $name;
         }
         // Do the validation and storage stuff.
-        $file_path_or_id = self::media_handle_sideload( $file_array, 0, null, null, $save_attachment );
+        $file_path_or_id = self::media_handle_sideload( $file_array, 0, null, array(), $save_attachment );
 
         // If error storing permanently, unlink.
         if ( is_wp_error( $file_path_or_id ) ) {

@@ -325,7 +325,7 @@ class FT_Demo_Content {
              esc_html_e( "Error load importer.", 'ftdi');
         } else {
             $wp_import = new WP_Import();
-            $wp_import->fetch_attachments = true; // download attachemts
+            $wp_import->fetch_attachments = true; // download attachment
             $wp_import->import( $file );
             $this->processed_posts = $wp_import->processed_posts;
             do_action( 'ft_import_after_xml_imported', $wp_import );
