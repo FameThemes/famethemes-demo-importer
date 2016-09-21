@@ -436,3 +436,24 @@ if ( is_admin() ) {
     }
     add_action( 'plugins_loaded', 'ft_demo_importer' );
 }
+
+
+/**
+ * Redirect to demo import tab
+ */
+function ft_demo_importer_plugin_activate() {
+    if( ! isset($_GET['activate-multi']) )
+    {
+        $template_slug = get_option( 'template' );
+        $url = add_query_arg(
+            array(
+                'page' => 'ft_'.$template_slug,
+                'tab'  => 'demo-data-importer',
+            ),
+            admin_url( 'themes.php' )
+        );
+        wp_redirect( $url );
+        die();
+    }
+}
+register_activation_hook( __FILE__ , 'ft_demo_importer_plugin_activate');
