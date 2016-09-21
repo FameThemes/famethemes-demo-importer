@@ -437,25 +437,25 @@ if ( is_admin() ) {
     add_action( 'plugins_loaded', 'ft_demo_importer' );
 }
 
-
 /**
- * Redirect to demo import tab
+ * Redirect to import page
+ *
+ * @param $plugin
+ * @param bool|false $network_wide
  */
-function ft_demo_importer_plugin_activate( $plugin , $network_wide = false ) {
-    if( ! isset($_GET['activate-multi']) )
-    {
-        if ( ! $network_wide && $plugin == plugin_basename( __FILE__ ) ) {
-            $template_slug = get_option('template');
-            $url = add_query_arg(
-                array(
-                    'page' => 'ft_' . $template_slug,
-                    'tab' => 'demo-data-importer',
-                ),
-                admin_url('themes.php')
-            );
-            wp_redirect($url);
-            die();
-        }
+function ft_demo_importer_plugin_activate( $plugin, $network_wide = false ) {
+    if ( ! $network_wide &&  $plugin == plugin_basename( __FILE__ ) ) {
+        $template_slug = get_option('template');
+        $url = add_query_arg(
+            array(
+                'page' => 'ft_' . $template_slug,
+                'tab' => 'demo-data-importer',
+            ),
+            admin_url('themes.php')
+        );
+        wp_redirect($url);
+        die();
     }
 }
-add_action( 'activated_plugin', 'ft_demo_importer_plugin_activate', 10, 2 );
+add_action( 'activated_plugin', 'ft_demo_importer_plugin_activate', 90, 2 );
+
