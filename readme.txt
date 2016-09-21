@@ -12,7 +12,7 @@ FameThemes Demo importer
 
 == Description ==
 
-Import demo fame theme demo content with one click.
+Import demo content for FameThemes’s themes with just one click.
 
 Working with themes:
 

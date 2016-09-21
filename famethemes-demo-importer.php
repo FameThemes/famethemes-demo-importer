@@ -25,8 +25,15 @@ class FT_Demo_Importer {
         add_action( 'wp_ajax_ft_demo_import_download', array( $this, 'ajax_download' ) );
         add_action( 'wp_ajax_ft_demo_export', array( $this, 'ajax_export' ) );
 
+        $template_slug = get_option( 'template' );
         $theme_slug = get_option( 'stylesheet' );
-        add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
+        // child theme active
+        if ( $template_slug != $theme_slug ) {
+            add_action( $template_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
+        } else {
+            add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
+        }
+
 
         add_action( 'customize_controls_print_footer_scripts', array( $this, 'update_customizer_keys' ) );
         if ( is_admin() ) {
@@ -94,9 +101,11 @@ class FT_Demo_Importer {
         $nonce = wp_create_nonce( 'ft_demo_import' );
         $url = admin_url('admin-ajax.php');
         $url = remove_query_arg( array( '_nonce', 'action' ) , $url );
+
         $current_item = apply_filters( 'ft_demo_import_current_item',  false );
+
         if ( ! $current_item ) {
-            $current_item = get_option( 'stylesheet' );
+            $current_item = get_option( 'template' );
             $current_item = untrailingslashit( $current_item );
         }
 
