@@ -641,6 +641,20 @@ class FT_Demo_Content {
     function resetup_repeater_page_ids( $theme_mod_name, $list_keys, $processed_posts = array(), $url ='', $option_type = 'theme_mod' ){
         // Setup service
         $data = get_theme_mod( $theme_mod_name );
+        if (  is_string( $list_keys ) ) {
+            switch( $list_keys ) {
+                case 'media':
+                    $new_data = $processed_posts[ $data ];
+                    if ( $option_type == 'option' ) {
+                        update_option( $theme_mod_name , $new_data );
+                    } else {
+                        set_theme_mod( $theme_mod_name , $new_data );
+                    }
+                    break;
+            }
+            return;
+        }
+
         if ( is_string( $data ) ) {
             $data = json_decode( $data, true );
         }
@@ -657,27 +671,28 @@ class FT_Demo_Content {
 
         $home = home_url('/');
 
-        foreach( $list_keys as $key_info ) {
-            if ( $key_info['type'] == 'post' || $key_info['type'] == 'page' ) {
-                foreach ( $data as $k => $item ) {
-                    if ( isset( $item[ $key_info['key'] ] ) && isset ( $processed_posts[ $item[ $key_info['key'] ] ] ) ) {
-                        $data[ $k ][ $key_info['key'] ] =  $processed_posts[ $item[ $key_info['key'] ] ];
+
+        foreach ($list_keys as $key_info) {
+            if ($key_info['type'] == 'post' || $key_info['type'] == 'page') {
+                foreach ($data as $k => $item) {
+                    if (isset($item[$key_info['key']]) && isset ($processed_posts[$item[$key_info['key']]])) {
+                        $data[$k][$key_info['key']] = $processed_posts[$item[$key_info['key']]];
                     }
                 }
-            } elseif ( $key_info['type'] == 'media' ) {
+            } elseif ($key_info['type'] == 'media') {
 
                 $main_key = $key_info['key'];
                 $sub_key_id = 'id';
                 $sub_key_url = 'url';
-                if ( $main_key ) {
+                if ($main_key) {
 
-                    foreach ( $data as $k => $item ) {
-                        if ( isset( $item[ $sub_key_id ] ) && is_array( $item[ $sub_key_id ] ) ) {
-                            if ( isset ( $item[ $main_key ][ $sub_key_id ] ) ) {
-                                $data[ $item ][ $main_key ][ $sub_key_id ] =  $processed_posts[ $item[ $main_key ][ $sub_key_id ] ];
+                    foreach ($data as $k => $item) {
+                        if (isset($item[$sub_key_id]) && is_array($item[$sub_key_id])) {
+                            if (isset ($item[$main_key][$sub_key_id])) {
+                                $data[$item][$main_key][$sub_key_id] = $processed_posts[$item[$main_key][$sub_key_id]];
                             }
-                            if ( isset ( $item[ $main_key ][ $sub_key_url ] ) ) {
-                                $data[ $item ][ $main_key ][ $sub_key_url ] =  str_replace( $url, $home, $item[ $main_key ][ $sub_key_url ]  );
+                            if (isset ($item[$main_key][$sub_key_url])) {
+                                $data[$item][$main_key][$sub_key_url] = str_replace($url, $home, $item[$main_key][$sub_key_url]);
                             }
                         }
                     }
@@ -687,6 +702,7 @@ class FT_Demo_Content {
 
             }
         }
+
 
         if ( $option_type == 'option' ) {
             update_option( $theme_mod_name , $data );

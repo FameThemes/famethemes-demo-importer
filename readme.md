@@ -3,8 +3,8 @@
 - [x] Screenr Plus
 - [x] Boston
 - [x] Boston Pro
-- [ ] OnePress
-- [ ] OnePress Plus
+- [x] OnePress
+- [x] OnePress Plus
 - [ ] Coupon WP
 - [ ] Techone
 - [ ] Codilight

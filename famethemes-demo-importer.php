@@ -54,7 +54,7 @@ class FT_Demo_Content_Importer {
 
         $pages           = get_pages();
         $option_pages    = array();
-        $option_pages[0] = esc_html__( 'Select page', 'screenr' );
+        $option_pages[0] = esc_html__( 'Select page', 'ftdi' );
         foreach( $pages as $p ){
             $option_pages[ $p->ID ] = $p->post_title;
         }
@@ -91,6 +91,8 @@ class FT_Demo_Content_Importer {
 
                 $data[ $theme_slug ][ $k ] = $keys;
 
+            } else  if ( $c->type == 'media' ) { // wp media
+                $data[ $theme_slug ][ $k ] = $c->type;
             }
 
         }
