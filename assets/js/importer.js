@@ -54,62 +54,63 @@ jQuery( document ).ready( function( $ ){
                 console.log( 'download_error' );
             },
             success: function( res ){
-               // btn.removeClass( 'disabled' );
+                // btn.removeClass( 'disabled' );
                 //btn.removeClass( 'updating-message' );
                 //doc.close();
 
                 // Import
-               setTimeout( function(){
-                   btn.html( FT_IMPORT_DEMO.importing );
-                   url = btn.attr( 'data-import' );
-                   $.ajax( {
-                       url: url,
-                       dataType: 'html',
-                       error: function( jqXHR, status, errorThrown ){
+                setTimeout( function(){
+                    btn.html( FT_IMPORT_DEMO.importing );
+                    url = btn.attr( 'data-import' );
+                    $.ajax( {
+                        url: url,
+                        dataType: 'html',
+                        error: function( jqXHR, status, errorThrown ){
 
-                           btn.removeClass( 'updating-message' );
-                           doc.close();
-                           btn.html( FT_IMPORT_DEMO.import_error );
-                           btn.removeClass( 'button-primary' );
-                           btn.addClass( 'button-secondary' );
-                           var msg = $( '<div class="ft-import-box ft-import-theme"></div>' );
-                           var err = jqXHR.statusText + ' ('+jqXHR.status+')';
-                           msg.addClass( 'ft-import-error').html( '<p>'+err+'</p>' );
-                           notice.html( msg );
+                            btn.removeClass( 'updating-message' );
+                            doc.close();
+                            btn.html( FT_IMPORT_DEMO.import_error );
+                            btn.removeClass( 'button-primary' );
+                            btn.addClass( 'button-secondary' );
+                            var msg = $( '<div class="ft-import-box ft-import-theme"></div>' );
+                            var err = jqXHR.statusText + ' ('+jqXHR.status+')';
+                            msg.addClass( 'ft-import-error').html( '<p>'+err+'</p>' );
+                            msg.append( '<p>'+FT_IMPORT_DEMO.import_error_msg+'</p>' );
+                            notice.html( msg );
 
-                           ft_import_running = false;
+                            ft_import_running = false;
 
-                       },
-                       success: function( res ){
-                           //btn.removeClass( 'disabled' );
-                           btn.removeClass( 'updating-message' );
-                           doc.close();
-                           btn.html( FT_IMPORT_DEMO.imported );
-                           btn.removeClass( 'button-primary' );
-                           btn.addClass( 'button-secondary' );
+                        },
+                        success: function( res ){
+                            //btn.removeClass( 'disabled' );
+                            btn.removeClass( 'updating-message' );
+                            doc.close();
+                            btn.html( FT_IMPORT_DEMO.imported );
+                            btn.removeClass( 'button-primary' );
+                            btn.addClass( 'button-secondary' );
 
-                           var msg = $( '<div class="ft-import-box ft-import-theme"></div>' );
-                           if ( res.indexOf( 'demo_imported' ) > -1  ) {
-                               res = res.replace(/demo_imported/i, '');
-                               msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
-                               msg.append( '<div class="import_log">'+res+'</div>' );
-                           } else if ( res.indexOf( 'no_data_found' ) > -1 ){
-                               msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.no_data_found+'</p>' );
-                           } else if ( res.indexOf( 'demo_import_failed' ) > -1 ){
-                               msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.demo_import_failed+'</p>' );
-                           } else {
-                               res = res.replace(/demo_imported/i, '');
-                               msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
-                               msg.append( '<div class="import_log">'+res+'</div>' );
-                           }
+                            var msg = $( '<div class="ft-import-box ft-import-theme"></div>' );
+                            if ( res.indexOf( 'demo_imported' ) > -1  ) {
+                                res = res.replace(/demo_imported/i, '');
+                                msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
+                                msg.append( '<div class="import_log">'+res+'</div>' );
+                            } else if ( res.indexOf( 'no_data_found' ) > -1 ){
+                                msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.no_data_found+'</p>' );
+                            } else if ( res.indexOf( 'demo_import_failed' ) > -1 ){
+                                msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.demo_import_failed+'</p>' );
+                            } else {
+                                res = res.replace(/demo_imported/i, '');
+                                msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
+                                msg.append( '<div class="import_log">'+res+'</div>' );
+                            }
 
-                           notice.html( msg );
+                            notice.html( msg );
 
-                           ft_import_running = false;
+                            ft_import_running = false;
 
-                       }
-                   } );
-               }, 1000 );
+                        }
+                    } );
+                }, 1000 );
 
             }
         } );
