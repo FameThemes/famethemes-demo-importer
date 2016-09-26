@@ -192,7 +192,7 @@ class FT_Demo_Content_Importer {
 
         ) );
     }
-    
+
     function css( ){
         wp_enqueue_style( 'ft-demo-importer', $this->url . 'assets/css/importer.css', false );
     }

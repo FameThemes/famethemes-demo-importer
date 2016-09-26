@@ -95,7 +95,9 @@ jQuery( document ).ready( function( $ ){
                                 msg.addClass( 'ft-import-success').html( '<p>'+FT_IMPORT_DEMO.demo_imported+'</p>' );
                                 msg.append( '<div class="import_log">'+res+'</div>' );
                             } else if ( res.indexOf( 'no_data_found' ) > -1 ){
+                                res = res.replace(/no_data_found/i, '');
                                 msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.no_data_found+'</p>' );
+                                msg.append( '<div class="import_log">'+res+'</div>' );
                             } else if ( res.indexOf( 'demo_import_failed' ) > -1 ){
                                 msg.addClass( 'ft-import-error').html( '<p>'+FT_IMPORT_DEMO.demo_import_failed+'</p>' );
                             } else {
