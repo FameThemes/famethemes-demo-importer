@@ -11,7 +11,7 @@ License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2
 */
 
 
-class FT_Demo_Content_Importer {
+class FT_Demo_Importer {
     public $dir;
     public $url;
     public $git_repo = 'https://raw.githubusercontent.com/FameThemes/famethemes-xml-demos/master/';
@@ -25,15 +25,8 @@ class FT_Demo_Content_Importer {
         add_action( 'wp_ajax_ft_demo_import_download', array( $this, 'ajax_download' ) );
         add_action( 'wp_ajax_ft_demo_export', array( $this, 'ajax_export' ) );
 
-        $template_slug = get_option( 'template' );
         $theme_slug = get_option( 'stylesheet' );
-        // child theme active
-        if ( $template_slug != $theme_slug ) {
-            add_action( $template_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
-        } else {
-            add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
-        }
-
+        add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
 
         add_action( 'customize_controls_print_footer_scripts', array( $this, 'update_customizer_keys' ) );
         if ( is_admin() ) {
@@ -54,7 +47,7 @@ class FT_Demo_Content_Importer {
 
         $pages           = get_pages();
         $option_pages    = array();
-        $option_pages[0] = esc_html__( 'Select page', 'ftdi' );
+        $option_pages[0] = esc_html__( 'Select page', 'screenr' );
         foreach( $pages as $p ){
             $option_pages[ $p->ID ] = $p->post_title;
         }
@@ -91,8 +84,6 @@ class FT_Demo_Content_Importer {
 
                 $data[ $theme_slug ][ $k ] = $keys;
 
-            } else  if ( $c->type == 'media' ) { // wp media
-                $data[ $theme_slug ][ $k ] = $c->type;
             }
 
         }
@@ -103,11 +94,9 @@ class FT_Demo_Content_Importer {
         $nonce = wp_create_nonce( 'ft_demo_import' );
         $url = admin_url('admin-ajax.php');
         $url = remove_query_arg( array( '_nonce', 'action' ) , $url );
-
         $current_item = apply_filters( 'ft_demo_import_current_item',  false );
-
         if ( ! $current_item ) {
-            $current_item = get_option( 'template' );
+            $current_item = get_option( 'stylesheet' );
             $current_item = untrailingslashit( $current_item );
         }
 
@@ -140,13 +129,13 @@ class FT_Demo_Content_Importer {
         <div class="ft-import-box ft-import-welcome">
             <h3><?php esc_html_e( 'Welcome to FameThemes Demo Importer!', 'ftdi' ); ?></h3>
             <p>
-                <?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'ftdi' ); ?>
-            </p>
-            <ul>
-                <li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ftdi' ); ?></li>
-                <li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ftdi' ); ?></li>
-                <li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ftdi' ); ?></li>
-            </ul>
+				<?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'ftdi' ); ?>
+			</p>
+			<ul>
+				<li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'ftdi' ); ?></li>
+				<li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'ftdi' ); ?></li>
+				<li><?php esc_html_e( 'Please click "Import Demo Data" button only once and wait, it can take a couple of minutes.', 'ftdi' ); ?></li>
+			</ul>
             <p><?php esc_html_e( 'Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'ftdi' ); ?></p>
         </div>
 
@@ -181,10 +170,11 @@ class FT_Demo_Content_Importer {
             'import' => esc_html__( 'Import Now', 'ftid' ),
             'import_again' => esc_html__( 'Import Again.', 'ftid' ),
             'imported' => esc_html__( 'Demo Data Imported !', 'ftid' ),
+            'import_error' => esc_html__( 'Demo Data Import Error', 'ftid' ),
             'confirm_import' => esc_html__( 'Are you sure ?', 'ftid' ),
             'confirm_leave' => esc_html__( 'Importing script is running, do you want to stop it ?', 'ftid' ),
             'demo_imported' => sprintf( esc_html__( 'The demo import has finished. Please check your %1$s and make sure that everything has imported correctly. If it did, you can deactivate the FameThemes Demo Importer plugin, because it has done its job.', 'ftdi' ),
-                '<a target="_blank" href="'.esc_url( home_url( '/' ) ).'">'.esc_html__( 'front page', 'ftdi' ).'</a>' ),
+                                '<a target="_blank" href="'.esc_url( home_url( '/' ) ).'">'.esc_html__( 'front page', 'ftdi' ).'</a>' ),
             'no_data_found' => esc_html__( 'No data found.', 'ftid' ),
             'demo_import_failed' => sprintf( esc_html__( 'Demo data import failed, please %1$s to get help.', 'ftdi' ), '<a target="_blank" href="https://www.famethemes.com/contact">'.esc_html__( 'contact us', 'ftdi' ).'</a>' ),
 
@@ -434,30 +424,7 @@ class FT_Demo_Content_Importer {
 
 if ( is_admin() ) {
     function ft_demo_importer(){
-        new FT_Demo_Content_Importer();
+        new FT_Demo_Importer();
     }
     add_action( 'plugins_loaded', 'ft_demo_importer' );
 }
-
-/**
- * Redirect to import page
- *
- * @param $plugin
- * @param bool|false $network_wide
- */
-function ft_demo_importer_plugin_activate( $plugin, $network_wide = false ) {
-    if ( ! $network_wide &&  $plugin == plugin_basename( __FILE__ ) ) {
-        $template_slug = get_option('template');
-        $url = add_query_arg(
-            array(
-                'page' => 'ft_' . $template_slug,
-                'tab' => 'demo-data-importer',
-            ),
-            admin_url('themes.php')
-        );
-        wp_redirect($url);
-        die();
-    }
-}
-add_action( 'activated_plugin', 'ft_demo_importer_plugin_activate', 90, 2 );
-
