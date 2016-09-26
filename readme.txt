@@ -16,9 +16,9 @@ Import demo content for FameThemes’s themes with just one click.
 
 Working with themes:
 
-Screenr: https://wordpress.org/themes/screenr/
-Boston: https://wordpress.org/themes/boston/
-OnePress: https://wordpress.org/themes/onepress/
+- [Screenr](https://wordpress.org/themes/screenr/)
+- [Boston](https://wordpress.org/themes/boston/).
+- [OnePress](https://wordpress.org/themes/onepress/)
 
 == Installation ==
 
@@ -29,6 +29,8 @@ OnePress: https://wordpress.org/themes/onepress/
 
 
 == Changelog ==
+= 1.0.1
+* Improve and fix bug.
 
 = 1.0.0 =
 * Release
