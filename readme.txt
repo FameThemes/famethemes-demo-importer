@@ -29,6 +29,9 @@ Working with themes:
 
 
 == Changelog ==
+= 1.0.2
+* Add recommend plugins notices.
+
 = 1.0.1
 * Improve and fix bug.
 

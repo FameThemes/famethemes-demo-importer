@@ -42,3 +42,14 @@
 .ft-import-error {
     border-left-color: #dc3232;
 }
+.recommend-plugins {
+    background: #fff none repeat scroll 0 0;
+    box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    line-height: 2.1em;
+    margin-bottom: 25px;
+    max-width: 1050px;
+    overflow: auto;
+    padding: 0px 25px 10px;
+    position: relative;
+}

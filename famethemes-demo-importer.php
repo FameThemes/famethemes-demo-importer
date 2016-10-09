@@ -5,7 +5,7 @@ Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: Demo data import tool for FameThemes's themes.
 Author: famethemes
 Author URI:  http://www.famethemes.com/
-Version: 1.0.1
+Version: 1.0.2
 Text Domain: ftdi
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
@@ -33,7 +33,6 @@ class FT_Demo_Content_Importer {
         } else {
             add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
         }
-
 
         add_action( 'customize_controls_print_footer_scripts', array( $this, 'update_customizer_keys' ) );
         if ( is_admin() ) {
@@ -99,6 +98,115 @@ class FT_Demo_Content_Importer {
         update_option( $key, $data );
     }
 
+    function get_recommend_plugins(){
+        $recommend_plugins = get_theme_support( 'recommend-plugins' );
+        if ( is_array( $recommend_plugins ) && isset( $recommend_plugins[0] ) ){
+            $recommend_plugins = $recommend_plugins[0];
+        } else {
+            $recommend_plugins[] = array();
+        }
+
+        return $recommend_plugins;
+    }
+
+    function has_inactive_recommend_plugins( $recommend_plugins = false ){
+        if ( ! $recommend_plugins ) {
+            $recommend_plugins = $this->get_recommend_plugins( ) ;
+        }
+        $all_active = true;
+        if ( ! empty( $recommend_plugins ) ) {
+            foreach ( $recommend_plugins as $plugin_slug => $plugin_info ) {
+                $plugin_info = wp_parse_args( $plugin_info, array(
+                    'name' => '',
+                    'active_filename' => '',
+                ) );
+                if ( $plugin_info['active_filename'] ) {
+                    $active_file_name = $plugin_info['active_filename'] ;
+                } else {
+                    $active_file_name = $plugin_slug . '/' . $plugin_slug . '.php';
+                }
+                if ( ! is_plugin_active( $active_file_name ) ) {
+                    $all_active = false;
+                }
+            }
+        }
+
+        return ( $all_active ) ? false : true;
+    }
+
+    function render_recommend_plugins( $recommend_plugins = false ){
+        if ( ! $recommend_plugins ) {
+            $recommend_plugins = $this->get_recommend_plugins( ) ;
+        }
+
+        if ( empty( $recommend_plugins ) ) {
+            return false;
+        }
+        foreach ( $recommend_plugins as $plugin_slug => $plugin_info ) {
+            $plugin_info = wp_parse_args( $plugin_info, array(
+                'name' => '',
+                'active_filename' => '',
+            ) );
+            $plugin_name = $plugin_info['name'];
+            $status = is_dir( WP_PLUGIN_DIR . '/' . $plugin_slug );
+            $button_class = 'install-now button';
+            if ( $plugin_info['active_filename'] ) {
+                $active_file_name = $plugin_info['active_filename'] ;
+            } else {
+                $active_file_name = $plugin_slug . '/' . $plugin_slug . '.php';
+            }
+
+            if ( ! is_plugin_active( $active_file_name ) ) {
+                $button_txt = esc_html__( 'Install Now', 'ftdi' );
+                if ( ! $status ) {
+                    $install_url = wp_nonce_url(
+                        add_query_arg(
+                            array(
+                                'action' => 'install-plugin',
+                                'plugin' => $plugin_slug
+                            ),
+                            network_admin_url( 'update.php' )
+                        ),
+                        'install-plugin_'.$plugin_slug
+                    );
+
+                } else {
+                    $install_url = add_query_arg(array(
+                        'action' => 'activate',
+                        'plugin' => rawurlencode( $active_file_name ),
+                        'plugin_status' => 'all',
+                        'paged' => '1',
+                        '_wpnonce' => wp_create_nonce('activate-plugin_' . $active_file_name ),
+                    ), network_admin_url('plugins.php'));
+                    $button_class = 'activate-now button-primary';
+                    $button_txt = esc_html__( 'Active Now', 'ftdi' );
+                }
+
+                $detail_link = add_query_arg(
+                    array(
+                        'tab' => 'plugin-information',
+                        'plugin' => $plugin_slug,
+                        'TB_iframe' => 'true',
+                        'width' => '772',
+                        'height' => '349',
+
+                    ),
+                    network_admin_url( 'plugin-install.php' )
+                );
+
+                echo '<div class="rcp">';
+                echo '<h4 class="rcp-name">';
+                echo esc_html( $plugin_name );
+                echo '</h4>';
+                echo '<p class="action-btn plugin-card-'.esc_attr( $plugin_slug ).'"><a href="'.esc_url( $install_url ).'" data-slug="'.esc_attr( $plugin_slug ).'" class="'.esc_attr( $button_class ).'">'.$button_txt.'</a></p>';
+                echo '<a class="plugin-detail thickbox open-plugin-details-modal" href="'.esc_url( $detail_link ).'">'.esc_html__( 'Details', 'ftdi' ).'</a>';
+                echo '</div>';
+            }
+
+        }
+    }
+
+
     function display_import(){
         $nonce = wp_create_nonce( 'ft_demo_import' );
         $url = admin_url('admin-ajax.php');
@@ -136,6 +244,8 @@ class FT_Demo_Content_Importer {
 
         $this->js();
 
+        $recommend_plugins = $this->get_recommend_plugins();
+
         ?>
         <div class="ft-import-box ft-import-welcome">
             <h3><?php esc_html_e( 'Welcome to FameThemes Demo Importer!', 'ftdi' ); ?></h3>
@@ -150,6 +260,15 @@ class FT_Demo_Content_Importer {
             <p><?php esc_html_e( 'Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'ftdi' ); ?></p>
         </div>
 
+        <?php if ( ! empty( $recommend_plugins ) && $this->has_inactive_recommend_plugins( $recommend_plugins ) ) { ?>
+        <div id="plugin-filter" class="recommend-plugins">
+            <h3><?php esc_html_e( 'Recommend Plugins', 'ftdi' ); ?></h3>
+            <p><?php esc_html_e( 'To fully import demo content, please install and activate all recommend plugins before import.', 'ftdi' ); ?></p>
+            <?php
+            $this->render_recommend_plugins();
+            ?>
+        </div>
+        <?php } ?>
 
         <?php if ( $this->check_data_exists( $current_item ) ){ ?>
             <div class="ft-import-box ft-import-theme">
