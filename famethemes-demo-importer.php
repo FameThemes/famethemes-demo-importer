@@ -432,7 +432,6 @@ class FT_Demo_Content_Importer {
         foreach ( $files as $k => $ext ) {
             $file = $item_name.'-'.$k.'.'.$ext;
             $file_path = self::download_file( $this->git_repo.$item_name.'/'.$k.'.'.$ext, $file, false );
-            echo $file_path;
             $downloaded_file[ $k ] = $file_path;
         }
 
