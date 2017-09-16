@@ -10,6 +10,8 @@ Text Domain: ftdi
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
+include dirname( __FILE__ ).'/inc/class-dashboard.php';
+
 
 class FT_Demo_Content_Importer {
     public $dir;
@@ -21,12 +23,15 @@ class FT_Demo_Content_Importer {
         $this->dir = trailingslashit( plugin_dir_path( __FILE__) );
 
         require_once $this->dir.'inc/class-demo-content.php';
+        require_once $this->dir.'inc/merlin-wp/merlin.php';
+
         add_action( 'wp_ajax_ft_demo_import_content', array( $this, 'ajax_import' ) );
         add_action( 'wp_ajax_ft_demo_import_download', array( $this, 'ajax_download' ) );
         add_action( 'wp_ajax_ft_demo_export', array( $this, 'ajax_export' ) );
 
         $template_slug = get_option( 'template' );
         $theme_slug = get_option( 'stylesheet' );
+
         // child theme active
         if ( $template_slug != $theme_slug ) {
             add_action( $template_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
@@ -221,7 +226,6 @@ class FT_Demo_Content_Importer {
 
         $current_item_name = str_replace( array( '-', '_' ), ' ', $current_item );
         $current_item_name = ucwords( $current_item_name );
-
 
         $import_url = add_query_arg( array(
             '_nonce'    => $nonce,
@@ -580,4 +584,9 @@ function ft_demo_importer_plugin_activate( $plugin, $network_wide = false ) {
     }
 }
 add_action( 'activated_plugin', 'ft_demo_importer_plugin_activate', 90, 2 );
+
+
+
+
+
 

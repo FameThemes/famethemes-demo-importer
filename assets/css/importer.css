@@ -53,3 +53,19 @@
     padding: 0px 25px 10px;
     position: relative;
 }
+.ft-demo-contents .theme-overlay .theme-wrap {
+    box-shadow: 0 1px 1px -1px rgba(0,0,0,.1);
+    border: 1px solid #ddd;
+}
+.ft-demo-contents .theme-overlay .theme-wrap {
+    position: relative;
+    top: auto; bottom: auto; left: auto; right: auto;
+    padding-top: 50%;
+    margin-bottom: 40px;
+}
+.ft-demo-contents .theme-overlay .theme-about {
+    top: 25px;
+}
+.ft-demo-contents .theme .theme-actions {
+   opacity: 1;
+}

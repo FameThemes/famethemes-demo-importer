@@ -1,0 +1,11 @@
+{
+	"name": "Merlin WP",
+	"slug": "merlin-wp",  
+	"textdomain": "merlin-wp",
+	"version": "0.1.3",
+	"theme_uri": "https://merlinwp.com",
+	"author": "Rich Tabor <hello@merlinwp.com>",
+	"author_uri": "https://merlinwp.com",
+	"author_shop": "Merlin WP",
+	"license": "Licensed GPLv3 for open source use"
+}
