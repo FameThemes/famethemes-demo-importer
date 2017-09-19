@@ -277,7 +277,7 @@ body.ft-demo-body-viewing {
     }
 
     #ft-demo-sidebar-heading {
-        background: #f5f5f5;
+        background: #eee;
         color: #555d66;
         margin: 0;
         padding: 12px 15px 15px;
@@ -288,6 +288,10 @@ body.ft-demo-body-viewing {
         display: block;
         overflow: hidden;
         white-space: nowrap;
+        span {
+            display: block;
+            font-size: 12px;
+        }
     }
 
     #ft-demo-viewing {
@@ -301,4 +305,15 @@ body.ft-demo-body-viewing {
             display: block;
         }
     }
+    #ft-demo-sidebar-footer {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        display: block;
+        left: 0px;
+        padding: 10px 20px;
+        text-align: right;
+        background: #eee;
+    }
+
 }

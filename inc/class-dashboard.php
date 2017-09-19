@@ -106,7 +106,8 @@ class FT_Demo_Content_Dashboard {
             <div id="ft-demo-sidebar">
 
                 <div id="ft-demo-sidebar-heading">
-                    <strong class="panel-title site-title">demo-import</strong>
+                    <span>Your're viewing demo</span>
+                    <strong class="panel-title site-title">EasyMag</strong>
                 </div>
 
                 <div class="ft-demo-import-progress">
@@ -160,8 +161,11 @@ class FT_Demo_Content_Dashboard {
                         <div class="ft-step-heading">Import Customize</div>
                         <div class="ft-child-steps"></div>
                     </div>
+                </div>
 
 
+                <div id="ft-demo-sidebar-footer">
+                    <input type="button" name="save" id="save" class="button button-primary save" value="Import">
                 </div>
 
             </div>
