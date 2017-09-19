@@ -107,6 +107,13 @@ class FT_Demo_Content_Dashboard {
         $link_current_theme = '?page='.$this->page_slug.'&tab=current_theme';
         $link_export= '?page='.$this->page_slug.'&tab=export';
         $tab = isset( $_GET['tab'] )  ? $_GET['tab'] : '';
+        $content = get_transient( 'ft_demo_xml_data' );
+        if ( is_array( $content ) ) {
+            echo '<pre>';
+            print_r(  $content['posts'] );
+            echo '</pre>';
+        }
+
 
         echo '<div class="wrap ft-demo-contents">';
             ?>
@@ -121,6 +128,61 @@ class FT_Demo_Content_Dashboard {
                     <li><a href="<?php echo $link_export; ?>"  class="<?php echo ( $tab == 'export' ) ? 'current' : ''; ?>"><?php _e( 'Export', 'ftdi' ); ?></a></li>
                 </ul>
                 <form class="search-form"><label class="screen-reader-text" for="wp-filter-search-input"><?php _e( 'Search Demos', 'ftdi' ); ?></label><input placeholder="Search themes..." aria-describedby="live-search-desc" id="wp-filter-search-input" class="wp-filter-search" type="search"></form>
+            </div>
+
+            <div class="ft-demo-import-progress">
+
+                <div class="ft-step ft-demo-install-plugins">
+                    <div class="ft-step-heading">Install Plugins</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-active-plugins">
+                    <div class="ft-step-heading">Active Plugins</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-import-users">
+                    <div class="ft-step-heading">Import Users</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-import-categories">
+                    <div class="ft-step-heading">Import Categories</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-import-tags">
+                    <div class="ft-step-heading">Import Tags</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-import-taxs">
+                    <div class="ft-step-heading">Import Taxonomies</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step  ft-demo-import-posts">
+                    <div class="ft-step-heading">Import Posts/ Comments</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-import-theme-options">
+                    <div class="ft-step-heading">Import theme Options</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step ft-demo-import-widgets">
+                    <div class="ft-step-heading">Import Widgets</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+                <div class="ft-step  ft-demo-import-customize">
+                    <div class="ft-step-heading">Import Customize</div>
+                    <div class="ft-child-steps"></div>
+                </div>
+
+
             </div>
 
             <div class="theme-overlay">
@@ -148,6 +210,9 @@ class FT_Demo_Content_Dashboard {
             </div>
 
             <?php
+
+
+
             echo '<div class="theme-browser rendered">';
                 echo '<div class="themes wp-clearfix">';
                 foreach (  $this->items as $theme => $item ) {

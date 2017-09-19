@@ -1,0 +1,255 @@
+//@import "variables";
+
+//@import "mixins";
+/*
+
+.merlin__body {
+	align-items: center;
+	background: $background;
+	box-shadow: none;
+	box-sizing: border-box;
+	display: flex;
+	font-size: 14px;
+	justify-content: center;
+	line-height: 1.7em;
+	margin: 0 auto;
+	padding: 0 !important;
+}
+
+h1 {
+	@include font-smoothing;
+	border: 0;
+	color: #444;
+	font-size: 20px;
+	font-weight: 500;
+	margin: 0 0 20px;
+	padding: 0;
+}
+
+p {
+	font-size: 14px;
+	line-height: 1.7em;
+	margin: 0;
+}
+
+.merlin__input {
+	border-radius: 3px;
+	padding: 4px 8px;
+	font-size: 12px;
+	width: 70%;
+	display: block;
+	margin: 14px auto 0;
+}
+
+.lead + .merlin__button--knockout {
+	z-index: -1;
+}
+
+p.lead {
+	animation: vanishOut 800ms linear alternate;
+	z-index: 9999;
+}
+
+p.success {
+	animation: vanishIn 700ms linear alternate;
+}
+
+
+@keyframes vanishIn {
+	0% {
+		opacity: 0;
+		transform-origin: 50% 50%;
+		transform: scale(2, 2);
+		filter: blur(70px);
+	}
+
+	100% {
+		opacity: 1;
+		transform-origin: 50% 50%;
+		transform: scale(1, 1);
+		filter: blur(0px);
+	}
+}
+
+/* Applies styles when Reduced Motion is enabled */
+/*
+@media screen and (prefers-reduced-motion: reduce) {
+	@keyframes vanishIn {
+		0% {
+			opacity: 0;
+		}
+
+		100% {
+			opacity: 1;
+		}
+	}
+}
+
+@keyframes vanishOut {
+	0% {
+		opacity: 1;
+		transform-origin: 50% 50%;
+		transform: scale(1, 1);
+		filter: blur(0px);
+	}
+
+	100% {
+		opacity: 0;
+		transform-origin: 50% 50%;
+		transform: scale(2, 2);
+		filter: blur(50px);
+	}
+}
+*/
+
+/* Applies styles when Reduced Motion is enabled */
+/*
+@media screen and (prefers-reduced-motion: reduce) {
+	@keyframes vanishOut {
+		0% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 0;
+		}
+	}
+}
+
+/*
+@import "modules/hidden";
+
+@import "modules/huh";
+
+@import "modules/branding";
+
+@import "modules/steps";
+
+@import "modules/icons";
+
+@import "modules/content";
+
+@import "modules/buttons";
+
+@import "modules/colorchange";
+
+@import "modules/chevron";
+
+@import "modules/spinner";
+
+@import "modules/back-to-dashboard";
+
+@import "modules/drawer";
+
+@import "modules/drawer-import-content";
+
+@import "modules/drawer-install-plugins";
+
+@import "modules/drawer-more-info";
+
+@import "modules/checkmark";
+
+@import "modules/footer";
+*/
+
+
+
+//------------------------------------
+/*
+.ft-demo-import-now.button.updating-message:before {
+    margin: 13px 5px 0 -2px;
+}
+
+.ft-import-box {
+    background: #fff none repeat scroll 0 0;
+    box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    line-height: 2.1em;
+    margin-bottom: 25px;
+    overflow: auto;
+    padding: 0px 12px 0px 12px;
+    position: relative;
+    max-width: 1050px;
+}
+.ft-import-box.ft-import-welcome {
+    padding: 0px 20px 10px 25px;
+}
+.ft-import-box h3 {
+    font-size: 22px;
+    font-weight: 500;
+}
+.ft-import-box li {
+    margin: 0px;
+    padding-left: 15px;
+    list-style: inside;
+}
+.ft-export-config {
+    left: 20px;
+    position: relative;
+    top: 10px;
+}
+.ft-import-action {
+    margin-bottom: 25px;
+}
+.ft-import-theme {
+    border-left: 4px solid #0085ba;
+}
+.ft-import-success {
+    border-left-color: #46b450;
+}
+.ft-import-error {
+    border-left-color: #dc3232;
+}
+.recommend-plugins {
+    background: #fff none repeat scroll 0 0;
+    box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    line-height: 2.1em;
+    margin-bottom: 25px;
+    max-width: 1050px;
+    overflow: auto;
+    padding: 0px 25px 10px;
+    position: relative;
+}
+
+*/
+
+
+.ft-demo-contents .theme-overlay .theme-wrap {
+    box-shadow: 0 1px 1px -1px rgba(0,0,0,.1);
+    border: 1px solid #ddd;
+}
+.ft-demo-contents .theme-overlay .theme-wrap {
+    position: relative;
+    top: auto; bottom: auto; left: auto; right: auto;
+    padding-top: 50%;
+    margin-bottom: 40px;
+}
+.ft-demo-contents .theme-overlay .theme-about {
+    top: 25px;
+}
+.ft-demo-contents .theme-overlay  .theme-overlay .theme-wrap {
+    z-index: 1;
+}
+.ft-demo-contents .theme .theme-actions {
+    opacity: 1;
+}
+.ft-demo-import-progress {
+    background: #ffffff;
+    box-shadow: 0 1px 1px -1px rgba(0,0,0,.1);
+    border: 1px solid #ddd;
+    padding: 30px;
+    margin-bottom: 40px;
+}
+
+.ft-demo-import-progress .ft-step {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 15px;
+    padding-top: 15px;
+}
+.ft-step.ft-step-running {
+    background: #f9d673;
+}
+.ft-step.ft-step-completed {
+    background: #c2e3b0;
+}

@@ -121,3 +121,213 @@ jQuery( document ).ready( function( $ ){
 
     } );
 } );
+
+// -------------------------------------------------------------------------------
+
+(function ( $ ) {
+
+    var ft_demo_content_params = ft_demo_content_params || window.ft_demo_content_params;
+
+    ft_demo_content_params.plugin_install_count = parseInt( ft_demo_content_params.plugin_install_count );
+    ft_demo_content_params.plugin_active_count = parseInt( ft_demo_content_params.plugin_active_count );
+    ft_demo_content_params.plugin_update_count = parseInt( ft_demo_content_params.plugin_update_count );
+
+    if( typeof ft_demo_content_params.plugins.active !== "object" ) {
+        ft_demo_content_params.plugins.active = {};
+    }
+
+
+    var $document = $( document );
+    var ftDemoContents  = {
+        installPlugins: function() {
+            // Install Plugins
+            var $list_install_plugins = $( '.ft-demo-install-plugins' );
+            if ( ft_demo_content_params.plugin_install_count > 0 ) {
+
+                var $child_steps = $list_install_plugins.find(  '.ft-child-steps' );
+                $.each(ft_demo_content_params.plugins.install, function ($slug, plugin) {
+                    var $item = $(  '<div class="ft-child-item ft-plugin-'+$slug+'">Installing '+plugin.name+'</div>' );
+                    $child_steps.append( $item );
+                    $item.attr( 'data-plugin', $slug );
+                });
+
+                var current = $child_steps.find( '.ft-child-item' ).eq( 0 );
+
+                var callback = function( current ){
+                    if ( current.length ) {
+                        var slug = current.attr( 'data-plugin' );
+                        var plugin =  ft_demo_content_params.plugins.install[ slug ];
+                        $.post( plugin.page_url, plugin.args, function (res) {
+                            //console.log(plugin.name + ' Install Completed');
+                            plugin.action = ft_demo_content_params.action_active_plugin;
+                            ft_demo_content_params.plugins.activate[ slug ] = plugin;
+                            current.html( plugin.name + 'Installed'  );
+                            var next = current.next();
+                            callback( next );
+                        });
+                    } else {
+                        console.log( 'Plugins install completed' );
+                        $list_install_plugins.addClass( 'ft-step-completed' );
+                        $document.trigger( 'ft_demo_content_plugins_install_completed' );
+                    }
+                };
+                callback( current );
+            } else {
+                $list_install_plugins.addClass( 'ft-step-completed' );
+                $document.trigger( 'ft_demo_content_plugins_install_completed' );
+            }
+
+        },
+        activePlugins: function(){
+            var $list_active_plugins = $( '.ft-demo-active-plugins' );
+            var $child_steps = $list_active_plugins.find(  '.ft-child-steps' );
+            $.each(ft_demo_content_params.plugins.activate, function ($slug, plugin) {
+                var $item = $(  '<div class="ft-child-item ft-plugin-'+$slug+'">Activating '+plugin.name+'</div>' );
+                $child_steps.append( $item );
+                $item.attr( 'data-plugin', $slug );
+            });
+
+            var callback = function( current ){
+                if ( current.length ) {
+                    var slug = current.attr( 'data-plugin' );
+                    var plugin =  ft_demo_content_params.plugins.activate[ slug ];
+                    $.post( plugin.page_url, plugin.args, function (res) {
+                        current.html( plugin.name + ' Activated' );
+                        var next = current.next();
+                        callback( next );
+                    });
+                } else {
+                    console.log( ' Activate all plugins' );
+                    $list_active_plugins.addClass( 'ft-step-completed' );
+                    $document.trigger( 'ft_demo_content_plugins_active_completed' );
+                }
+            };
+
+            var current = $child_steps.find( '.ft-child-item' ).eq( 0 );
+            callback( current );
+        },
+        ajax: function( doing, complete_cb ){
+            console.log( 'Doing....', doing );
+            $.ajax( {
+                url: ft_demo_content_params.ajaxurl,
+                data: {
+                    action: 'ft_demo_import',
+                    doing: doing,
+                    theme: '', // Import demo for theme ?
+                    version: '' // Current demo version ?
+                },
+                type: 'GET',
+                dataType: 'json',
+                success: function( res ){
+                    if ( typeof complete_cb === 'function' ) {
+                        complete_cb();
+                    }
+                    console.log( 'Done Step: ', doing );
+                    $document.trigger( 'ft_demo_content_'+doing+'_completed' );
+                },
+                fail: function(){
+                    $document.trigger( 'ft_demo_content_'+doing+'_fail' );
+                }
+
+            } )
+        },
+        import_users: function(){
+            var step =  $( '.ft-demo-import-users' );
+            step.addClass( 'ft-step-running' );
+            this.ajax( 'import_users', function(){
+                step.removeClass( 'ft-step-running' ).addClass( 'ft-step-completed' );
+            } );
+        },
+        import_categories: function(){
+            var step =  $( '.ft-demo-import-categories' );
+            step.addClass( 'ft-step-running' );
+            this.ajax(  'import_categories', function(){
+                step.removeClass( 'ft-step-running' ).addClass( 'ft-step-completed' );
+            } );
+        },
+        import_tags: function(){
+            var step =  $( '.ft-demo-import-tags' );
+            step.addClass( 'ft-step-running' );
+            this.ajax(  'import_tags', function(){
+                step.removeClass( 'ft-step-running' ).addClass( 'ft-step-completed' );
+            } );
+        },
+        import_taxs: function(){
+            var step =  $( '.ft-demo-import-taxs' );
+            step.addClass( 'ft-step-running' );
+            this.ajax(  'import_taxs', function(){
+                step.removeClass( 'ft-step-running' ).addClass( 'ft-step-completed' );
+            } );
+        },
+        import_posts: function(){
+            var step =  $( '.ft-demo-import-posts' );
+            step.addClass( 'ft-step-running' );
+            this.ajax( 'import_posts', function(){
+                step.removeClass( 'ft-step-running' ).addClass( 'ft-step-completed' );
+            } );
+        },
+        init: function(){
+            var that = this;
+            if ( ft_demo_content_params.run == 'run' ) {
+
+                $document.on( 'ft_demo_content_ready', function(){
+                    that.installPlugins();
+                } );
+
+                $document.on( 'ft_demo_content_plugins_install_completed', function(){
+                    that.activePlugins();
+                } );
+
+                $document.on( 'ft_demo_content_plugins_active_completed', function(){
+                    that.import_users();
+                } );
+
+                $document.on( 'ft_demo_content_import_users_completed', function(){
+                    that.import_categories();
+                } );
+
+                $document.on( 'ft_demo_content_import_categories_completed', function(){
+                    that.import_tags();
+                } );
+
+                $document.on( 'ft_demo_content_import_tags_completed', function(){
+                    that.import_taxs();
+                } );
+
+                $document.on( 'ft_demo_content_import_taxs_completed', function(){
+                    that.import_posts();
+                } );
+
+                $document.trigger( 'ft_demo_content_ready' );
+
+            }
+
+
+        }
+    };
+
+    $.fn.ftDemoContent = function() {
+        ftDemoContents.init();
+    };
+
+
+
+
+}( jQuery ));
+
+jQuery( document ).ready( function( $ ){
+
+    $( document ).ftDemoContent();
+    // Active Plugins
+
+
+
+
+
+
+
+
+});
+
+
+
