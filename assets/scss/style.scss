@@ -238,22 +238,93 @@ p.success {
     background: #ffffff;
     padding: 30px;
 }
-
+.ft-step-heading {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+}
+.ft-child-item {
+    margin: 5px 0px;
+}
 .ft-demo-import-progress .ft-step {
     border-bottom: 1px solid #ddd;
     padding-bottom: 15px;
     padding-top: 15px;
 }
-.ft-step.ft-step-running {
-    background: #f9d673;
+
+@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+
+
+.ft-step {
+    position: relative;
+    .ft-child-steps {
+        display: none;
+    }
+    .ft-status {
+        background: none;
+        border: none !important;
+        -webkit-box-shadow: none;
+        box-shadow: none;
+        padding: 0px;
+        position: absolute;
+        top: 11px;
+        right: 0px;
+        line-height: 24px;
+        width: 24px;
+        height: 24px;
+        display: block;
+
+        &:before {
+            font-family: "dashicons";
+            font: 400 24px/1 dashicons;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            width: 24px;
+            height: 24px;
+            display: block;
+            font-weight: normal;
+        }
+        &.ft-loading {
+            -webkit-animation:spin 2s linear infinite;
+            -moz-animation:spin 2s linear infinite;
+            animation:spin 2s linear infinite;
+            color: #f56e28;
+            &:before {
+                content: "\f463";
+            }
+        }
+
+        &.ft-waiting {
+            //color: #f56e28;
+            &:before {
+                content: "\f469";
+            }
+        }
+
+        &.ft-completed {
+            color: #65ae1f;
+            &::before {
+                content: "\f147";
+            }
+        }
+    }
+
+    &.ft-step-running {
+        background: #f9d673;
+    }
+
+    &.ft-step-completed {
+        background: #c2e3b0;
+    }
 }
-.ft-step.ft-step-completed {
-    background: #c2e3b0;
-}
+
 
 body.ft-demo-body-viewing {
     overflow: hidden !important;
 }
+
 
 #ft-theme-demo-preview {
     z-index: 9999999;

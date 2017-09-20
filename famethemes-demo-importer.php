@@ -27,11 +27,9 @@ class FT_Demo_Content_Importer {
 
         require_once $this->dir.'inc/class-demo-content.php';
 
-
-
+        // Example config plugins
         require_once $this->dir.'inc/class-tgm-plugin-activation.php';
         require_once $this->dir.'/sample/example.php';
-        require_once $this->dir.'inc/merlin-wp/merlin.php';
 
 
         require_once $this->dir.'inc/class-progress.php';

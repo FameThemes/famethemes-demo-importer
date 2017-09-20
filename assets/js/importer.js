@@ -168,17 +168,34 @@ jQuery( document ).ready( function( $ ){
     var template = repeaterTemplate();
 
     var ftDemoContents  = {
+        preparing_plugins: function() {
+            var $list_install_plugins = $('.ft-demo-install-plugins');
+            var n = _.size(ft_demo_content_params.plugins.install);
+            if (n > 0) {
+                var $child_steps = $list_install_plugins.find('.ft-child-steps');
+                $.each(ft_demo_content_params.plugins.install, function ($slug, plugin) {
+                    var $item = $('<div class="ft-child-item ft-plugin-' + $slug + '">Installing ' + plugin.name + '</div>');
+                    $child_steps.append($item);
+                    $item.attr('data-plugin', $slug);
+                });
+
+            }
+
+            var $list_active_plugins = $( '.ft-demo-active-plugins' );
+            var $activate_child_steps = $list_active_plugins.find(  '.ft-child-steps' );
+            $.each(ft_demo_content_params.plugins.all, function ($slug, plugin) {
+                var $item = $(  '<div class="ft-child-item ft-plugin-'+$slug+'">Activating '+plugin.name+'</div>' );
+                $activate_child_steps.append( $item );
+                $item.attr( 'data-plugin', $slug );
+            });
+
+        },
         installPlugins: function() {
             // Install Plugins
             var $list_install_plugins = $( '.ft-demo-install-plugins' );
-            if ( ft_demo_content_params.plugin_install_count > 0 ) {
-
-                var $child_steps = $list_install_plugins.find(  '.ft-child-steps' );
-                $.each(ft_demo_content_params.plugins.install, function ($slug, plugin) {
-                    var $item = $(  '<div class="ft-child-item ft-plugin-'+$slug+'">Installing '+plugin.name+'</div>' );
-                    $child_steps.append( $item );
-                    $item.attr( 'data-plugin', $slug );
-                });
+            var $child_steps = $list_install_plugins.find(  '.ft-child-steps' );
+            var n = _.size( ft_demo_content_params.plugins.install );
+            if ( n > 0 ) {
 
                 var current = $child_steps.find( '.ft-child-item' ).eq( 0 );
 
@@ -303,6 +320,7 @@ jQuery( document ).ready( function( $ ){
         },
 
         preview: function(){
+            var that = this;
             $document .on( 'click', '.ft-preview-theme-btn', function( e ){
                 e.preventDefault();
                 var btn = $( this );
@@ -324,6 +342,9 @@ jQuery( document ).ready( function( $ ){
                 } );
                 $( 'body' ).append( previewHtml );
                 $( 'body' ).addClass( 'ft-demo-body-viewing' );
+
+                that.preparing_plugins();
+
             } );
 
             $document.on( 'click', '.ft-demo-close', function( e ) {
@@ -340,6 +361,7 @@ jQuery( document ).ready( function( $ ){
 
             that.preview();
             that.toggle_collapse();
+
 
             $document.on( 'ft_demo_content_ready', function(){
                 that.installPlugins();
@@ -372,6 +394,9 @@ jQuery( document ).ready( function( $ ){
             if ( ft_demo_content_params.run == 'run' ) {
                 $document.trigger( 'ft_demo_content_ready' );
             }
+            // test
+
+            $( '.ft-preview-theme-btn' ).eq( 0 ).click();
 
 
         }

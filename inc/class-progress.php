@@ -166,9 +166,6 @@ class  FT_Demo_Content_Progress {
                 'action_active_plugin'  => 'tgmpa-bulk-activate',
                 'action_update_plugin'  => 'tgmpa-bulk-update',
                 'plugins'               => $plugins,
-                'plugin_install_count'  => count( $plugins['install'] ),
-                'plugin_active_count'   => count( $plugins['activate'] ),
-                'plugin_update_count'   => count( $plugins['update'] ),
                 'run'                   => $run,
             ) );
         } else {

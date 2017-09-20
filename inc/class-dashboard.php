@@ -129,51 +129,61 @@ class FT_Demo_Content_Dashboard {
 
                             <div class="ft-step ft-demo-install-plugins">
                                 <div class="ft-step-heading"><?php _e( 'Install Plugins', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-loading"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-active-plugins">
                                 <div class="ft-step-heading"><?php _e( 'Active Plugins', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-import-users">
                                 <div class="ft-step-heading"><?php _e( 'Import Users', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-import-categories">
                                 <div class="ft-step-heading"><?php _e( 'Import Categories', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-completed"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-import-tags">
                                 <div class="ft-step-heading"><?php _e( 'Import Tags', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-completed"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-import-taxs">
                                 <div class="ft-step-heading"><?php _e( 'Import Taxonomies', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step  ft-demo-import-posts">
                                 <div class="ft-step-heading"><?php _e( 'Import Posts', 'ftdi' ); ?></div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-import-theme-options">
                                 <div class="ft-step-heading">Import theme Options</div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step ft-demo-import-widgets">
                                 <div class="ft-step-heading">Import Widgets</div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
 
                             <div class="ft-step  ft-demo-import-customize">
                                 <div class="ft-step-heading">Import Customize</div>
+                                <div class="ft-status ft-waiting"></div>
                                 <div class="ft-child-steps"></div>
                             </div>
                         </div>
