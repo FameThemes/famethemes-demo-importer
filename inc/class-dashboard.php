@@ -102,77 +102,94 @@ class FT_Demo_Content_Dashboard {
 
     function  preview_template(){
         ?>
-        <div id="ft-theme-demo-preview">
-            <div id="ft-demo-sidebar">
+        <script id="tmpl-ft-theme-demo-preview" type="text/html">
+            <div id="ft-theme-demo-preview">
 
-                <div id="ft-demo-sidebar-heading">
-                    <span>Your're viewing demo</span>
-                    <strong class="panel-title site-title">EasyMag</strong>
+                  <span type="button" class="ft-collapse-sidebar button" aria-expanded="true">
+                        <span class="collapse-sidebar-arrow"></span>
+                        <span class="collapse-sidebar-label"><?php _e( 'Collapse', 'ftdi' ); ?></span>
+                    </span>
+
+                <div id="ft-demo-sidebar">
+                    <span class="ft-demo-close"><span class="screen-reader-text"><?php _e( 'Close', 'fdi' ); ?></span></span>
+
+                    <div id="ft-demo-sidebar-topbar">
+                        <span class="ft-theme-name">{{ data.name }}</span>
+                    </div>
+
+                    <div id="ft-demo-sidebar-content">
+                        <# if ( data.demo_version ) { #>
+                        <div id="ft-demo-sidebar-heading">
+                            <span><?php _e( "Your're viewing demo", 'ftdi' ); ?></span>
+                            <strong class="panel-title site-title">{{ data.demo_name }}</strong>
+                        </div>
+                        <# } #>
+
+                        <div class="ft-demo-import-progress">
+
+                            <div class="ft-step ft-demo-install-plugins">
+                                <div class="ft-step-heading"><?php _e( 'Install Plugins', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-active-plugins">
+                                <div class="ft-step-heading"><?php _e( 'Active Plugins', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-import-users">
+                                <div class="ft-step-heading"><?php _e( 'Import Users', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-import-categories">
+                                <div class="ft-step-heading"><?php _e( 'Import Categories', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-import-tags">
+                                <div class="ft-step-heading"><?php _e( 'Import Tags', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-import-taxs">
+                                <div class="ft-step-heading"><?php _e( 'Import Taxonomies', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step  ft-demo-import-posts">
+                                <div class="ft-step-heading"><?php _e( 'Import Posts', 'ftdi' ); ?></div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-import-theme-options">
+                                <div class="ft-step-heading">Import theme Options</div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step ft-demo-import-widgets">
+                                <div class="ft-step-heading">Import Widgets</div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+
+                            <div class="ft-step  ft-demo-import-customize">
+                                <div class="ft-step-heading">Import Customize</div>
+                                <div class="ft-child-steps"></div>
+                            </div>
+                        </div>
+
+                    </div><!-- /.ft-demo-sidebar-content -->
+
+                    <div id="ft-demo-sidebar-footer">
+                        <input type="button" class="button button-primary save" value="<?php esc_attr_e( 'Import Now', 'ftdi' ); ?>">
+                    </div>
+
                 </div>
-
-                <div class="ft-demo-import-progress">
-
-                    <div class="ft-step ft-demo-install-plugins">
-                        <div class="ft-step-heading">Install Plugins</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-active-plugins">
-                        <div class="ft-step-heading">Active Plugins</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-import-users">
-                        <div class="ft-step-heading">Import Users</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-import-categories">
-                        <div class="ft-step-heading">Import Categories</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-import-tags">
-                        <div class="ft-step-heading">Import Tags</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-import-taxs">
-                        <div class="ft-step-heading">Import Taxonomies</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step  ft-demo-import-posts">
-                        <div class="ft-step-heading">Import Posts</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-import-theme-options">
-                        <div class="ft-step-heading">Import theme Options</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step ft-demo-import-widgets">
-                        <div class="ft-step-heading">Import Widgets</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
-
-                    <div class="ft-step  ft-demo-import-customize">
-                        <div class="ft-step-heading">Import Customize</div>
-                        <div class="ft-child-steps"></div>
-                    </div>
+                <div id="ft-demo-viewing">
+                    <iframe src="{{ data.demoURL }}"></iframe>
                 </div>
-
-
-                <div id="ft-demo-sidebar-footer">
-                    <input type="button" name="save" id="save" class="button button-primary save" value="Import">
-                </div>
-
             </div>
-            <div id="ft-demo-viewing">
-                <iframe src="https://demos.famethemes.com/onepress/"></iframe>
-            </div>
-        </div>
+        </script>
         <?php
     }
 
@@ -222,7 +239,12 @@ class FT_Demo_Content_Dashboard {
                         </div>
                         <div class="theme-actions">
                             <div class="inactive-theme">
-                                <a href="#" data-demo-name="<?php echo esc_attr( $this->current_theme->get_template() ); ?>" data-demo-version="" class="button button-primary load-customize hide-if-no-customize"><?php _e( 'Import Demo Content', 'ftdi' ); ?></a>
+                                <a href="#"
+                                   data-theme-slug="<?php echo esc_attr( $this->current_theme->get_template() ); ?>"
+                                   data-demo-version=""
+                                   data-name="<?php echo esc_attr( $this->current_theme->get( 'Name' ) ); ?>"
+                                   data-demo-url=""
+                                   class="ft-preview-theme-btn button button-primary"><?php _e( 'Import Demo Content', 'ftdi' ); ?></a>
                             </div>
                         </div>
                     </div>
@@ -266,11 +288,10 @@ class FT_Demo_Content_Dashboard {
                 echo '</div>';
             echo '</div>';
         echo '</div>';
-
         ?>
-
-
         <?php
+
+        //$this->preview_template();
     }
 }
 

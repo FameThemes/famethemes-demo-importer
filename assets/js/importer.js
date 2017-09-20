@@ -135,9 +135,38 @@ jQuery( document ).ready( function( $ ){
     if( typeof ft_demo_content_params.plugins.active !== "object" ) {
         ft_demo_content_params.plugins.active = {};
     }
-
-
     var $document = $( document );
+    var is_importing = false;
+
+    /**
+     * Function that loads the Mustache template
+     */
+    var repeaterTemplate = _.memoize(function () {
+        var compiled,
+            /*
+             * Underscore's default ERB-style templates are incompatible with PHP
+             * when asp_tags is enabled, so WordPress uses Mustache-inspired templating syntax.
+             *
+             * @see track ticket #22344.
+             */
+            options = {
+                evaluate: /<#([\s\S]+?)#>/g,
+                interpolate: /\{\{\{([\s\S]+?)\}\}\}/g,
+                escape: /\{\{([^\}]+?)\}\}(?!\})/g,
+                variable: 'data'
+            };
+
+        return function (data, tplId ) {
+            if ( typeof tplId === "undefined" ) {
+                tplId = '#tmpl-ft-theme-demo-preview';
+            }
+            compiled = _.template(jQuery( tplId ).html(), null, options);
+            return compiled(data);
+        };
+    });
+
+    var template = repeaterTemplate();
+
     var ftDemoContents  = {
         installPlugins: function() {
             // Install Plugins
@@ -266,40 +295,82 @@ jQuery( document ).ready( function( $ ){
                 step.removeClass( 'ft-step-running' ).addClass( 'ft-step-completed' );
             } );
         },
+
+        toggle_collapse: function(){
+            $document .on( 'click', '.ft-collapse-sidebar', function( e ){
+                $( '#ft-theme-demo-preview' ).toggleClass('ft-preview-collapse');
+            } );
+        },
+
+        preview: function(){
+            $document .on( 'click', '.ft-preview-theme-btn', function( e ){
+                e.preventDefault();
+                var btn = $( this );
+                var demoURL         = btn.attr( 'data-demo-url' ) || '';
+                var slug            = btn.attr( 'data-theme-slug' ) || '';
+                var name            = btn.attr( 'data-name' ) || '';
+                var demo_version    = btn.attr( 'data-demo-version' ) || '';
+                var demo_name       = btn.attr( 'data-demo-version-name' ) || '';
+                if ( demoURL.indexOf( 'http' ) !== 0 ) {
+                    demoURL = 'https://demos.famethemes.com/'+slug+'/';
+                }
+                $( '#ft-theme-demo-preview' ).remove();
+                var previewHtml = template( {
+                    name: name,
+                    slug: slug,
+                    demo_version: demo_version,
+                    demo_name: demo_name,
+                    demoURL: demoURL
+                } );
+                $( 'body' ).append( previewHtml );
+                $( 'body' ).addClass( 'ft-demo-body-viewing' );
+            } );
+
+            $document.on( 'click', '.ft-demo-close', function( e ) {
+                e.preventDefault();
+                $( this ).closest('#ft-theme-demo-preview').remove();
+                $( 'body' ).removeClass( 'ft-demo-body-viewing' );
+            } );
+
+
+        },
+
         init: function(){
             var that = this;
+
+            that.preview();
+            that.toggle_collapse();
+
+            $document.on( 'ft_demo_content_ready', function(){
+                that.installPlugins();
+            } );
+
+            $document.on( 'ft_demo_content_plugins_install_completed', function(){
+                that.activePlugins();
+            } );
+
+            $document.on( 'ft_demo_content_plugins_active_completed', function(){
+                that.import_users();
+            } );
+
+            $document.on( 'ft_demo_content_import_users_completed', function(){
+                that.import_categories();
+            } );
+
+            $document.on( 'ft_demo_content_import_categories_completed', function(){
+                that.import_tags();
+            } );
+
+            $document.on( 'ft_demo_content_import_tags_completed', function(){
+                that.import_taxs();
+            } );
+
+            $document.on( 'ft_demo_content_import_taxs_completed', function(){
+                that.import_posts();
+            } );
+
             if ( ft_demo_content_params.run == 'run' ) {
-
-                $document.on( 'ft_demo_content_ready', function(){
-                    that.installPlugins();
-                } );
-
-                $document.on( 'ft_demo_content_plugins_install_completed', function(){
-                    that.activePlugins();
-                } );
-
-                $document.on( 'ft_demo_content_plugins_active_completed', function(){
-                    that.import_users();
-                } );
-
-                $document.on( 'ft_demo_content_import_users_completed', function(){
-                    that.import_categories();
-                } );
-
-                $document.on( 'ft_demo_content_import_categories_completed', function(){
-                    that.import_tags();
-                } );
-
-                $document.on( 'ft_demo_content_import_tags_completed', function(){
-                    that.import_taxs();
-                } );
-
-                $document.on( 'ft_demo_content_import_taxs_completed', function(){
-                    that.import_posts();
-                } );
-
                 $document.trigger( 'ft_demo_content_ready' );
-
             }
 
 

@@ -257,7 +257,7 @@ body.ft-demo-body-viewing {
 
 #ft-theme-demo-preview {
     z-index: 9999999;
-    background: #ffffff;
+    background: #eee;
     position: fixed;
     top: 0px;
     left: 0px;
@@ -265,6 +265,93 @@ body.ft-demo-body-viewing {
     display: block;
     width: 100%;
 
+    .ft-demo-close {
+        display: block;
+        float: left;
+        width: 45px;
+        height: 45px;
+        padding-right: 2px;
+        background: #eee;
+        border-right: 1px solid #ddd;
+        color: #444;
+        cursor: pointer;
+        text-decoration: none;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        -webkit-transition: color .1s ease-in-out,background .1s ease-in-out;
+        transition: color .1s ease-in-out,background .1s ease-in-out;
+        z-index: 9999999;
+        &:before {
+            font: 400 22px/1 dashicons;
+            content: "\f335";
+            position: relative;
+            top: 12px;
+            left: 13px;
+        }
+    }
+    .ft-collapse-sidebar {
+        z-index: 9999999;
+        bottom: 5px;
+        left: 0;
+        padding: 9px 0 9px 10px;
+        height: 45px;
+        color: #656a6f;
+        outline: 0;
+        line-height: 1;
+        background-color: transparent!important;
+        border: none!important;
+        -webkit-box-shadow: none!important;
+        box-shadow: none!important;
+        -webkit-border-radius: 0!important;
+        border-radius: 0!important;
+        position: fixed;
+
+        .collapse-sidebar-arrow:before {
+            display: block;
+            float: left;
+            content: "\f148";
+            font: 400 20px/1 dashicons;
+            speak: none;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            border: 1px solid transparent;
+
+            -webkit-border-radius: 50%;
+            -moz-border-radius: 50%;
+            border-radius: 50%;
+        }
+        .collapse-sidebar-label {
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 20px;
+            margin-left: 5px;
+            -webkit-transition: all .3s; /* For Safari 3.1 to 6.0 */
+            transition:  all .3s;
+        }
+
+        &:hover {
+            color: #0073aa;
+            .collapse-sidebar-arrow:before {
+                border-color: #0073aa;
+            }
+        }
+    }
+
+    #ft-demo-sidebar-topbar {
+        display: block;
+        text-align: right;
+        border-bottom: 1px solid #ddd;
+        padding: 10px 10px 10px 55px;
+        background: #eee;
+        height: 25px;
+    }
+    .ft-theme-name {
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 24px;
+    }
     #ft-demo-sidebar {
         width: 300px;
         top: 0px;
@@ -273,11 +360,26 @@ body.ft-demo-body-viewing {
         display: block;
         border-right: 1px solid #ddd;
         position: fixed;
-        background: #eee;
+        background: #fff;
+        -webkit-transition: all .3s; /* For Safari 3.1 to 6.0 */
+        transition:  all .3s;
+        overflow: hidden;
+    }
+    &.ft-preview-collapse {
+        #ft-demo-sidebar {
+            left: -301px;
+
+        }
+        #ft-demo-viewing {
+            margin-left: 0px;
+        }
+        .collapse-sidebar-label {
+            opacity: 0 !important;
+        }
     }
 
     #ft-demo-sidebar-heading {
-        background: #eee;
+        background: #fff;
         color: #555d66;
         margin: 0;
         padding: 12px 15px 15px;
@@ -288,6 +390,7 @@ body.ft-demo-body-viewing {
         display: block;
         overflow: hidden;
         white-space: nowrap;
+        border-bottom: 1px solid #ddd;
         span {
             display: block;
             font-size: 12px;
@@ -304,6 +407,19 @@ body.ft-demo-body-viewing {
             height: 100%;
             display: block;
         }
+
+        -webkit-transition: all .3s; /* For Safari 3.1 to 6.0 */
+        transition:  all .3s;
+        overflow: hidden;
+    }
+    #ft-demo-sidebar-content {
+        position: absolute;
+        top: 46px;
+        bottom: 49px;
+        display: block;
+        left: 0px;
+        width: 100%;
+        overflow: auto;
     }
     #ft-demo-sidebar-footer {
         position: absolute;
@@ -311,9 +427,10 @@ body.ft-demo-body-viewing {
         right: 0px;
         display: block;
         left: 0px;
-        padding: 10px 20px;
+        padding: 20px 20px;
         text-align: right;
         background: #eee;
+        border-top: 1px solid #ddd;
     }
 
 }

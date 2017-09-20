@@ -138,7 +138,9 @@ class  FT_Demo_Content_Progress {
 
     function scripts(){
         wp_enqueue_style( 'ft-demo-content', FT_DEMO_CONTENT_URL . 'style.css', false );
-        wp_enqueue_script( 'ft-demo-content', FT_DEMO_CONTENT_URL.'assets/js/importer.js', array( 'jquery' ) );
+
+        wp_enqueue_script( 'underscore');
+        wp_enqueue_script( 'ft-demo-content', FT_DEMO_CONTENT_URL.'assets/js/importer.js', array( 'jquery', 'underscore' ) );
 
         $run = isset( $_REQUEST['import_now'] ) && $_REQUEST['import_now'] == 1 ? 'run' : 'no';
         // Localize the javascript.
@@ -146,6 +148,11 @@ class  FT_Demo_Content_Progress {
 
             $this->tgmpa = isset($GLOBALS['tgmpa']) ? $GLOBALS['tgmpa'] : TGM_Plugin_Activation::get_instance();
             $plugins = $this->get_tgmpa_plugins();
+
+            $template_slug = get_option( 'template' );
+            //$theme_slug = get_option( 'stylesheet' );
+
+
             // Check first if TMGPA is included.
             wp_localize_script( 'ft-demo-content', 'ft_demo_content_params', array(
                 'tgm_plugin_nonce' 	=> array(
