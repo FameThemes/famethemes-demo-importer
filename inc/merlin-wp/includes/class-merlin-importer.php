@@ -586,7 +586,7 @@ class Merlin_Importer {
      */
     function importEnd()
     {
-        /*
+
         delete_transient('_wxr_imported_users');
         delete_transient('_wxr_imported_terms');
         delete_transient('_wxr_imported_posts');
@@ -594,7 +594,7 @@ class Merlin_Importer {
         delete_transient('_wxr_orphaned_posts');
         delete_transient('_wxr_imported_comments');
         delete_transient('_wxr_orphaned_comments');
-        */
+
 
         wp_suspend_cache_invalidation(false);
 

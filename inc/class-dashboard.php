@@ -95,7 +95,7 @@ class Demo_Content_Dashboard {
      *
      * @return    array
      */
-    protected function get_tgmpa_plugins() {
+    public function get_tgmpa_plugins() {
         $this->get_tgmpa();
         if ( empty( $this->tgmpa ) ) {
             return array();
