@@ -39,6 +39,9 @@ class Demo_Contents {
         require_once DEMO_CONTENT_PATH.'inc/class-progress.php';
         $this->dashboard = new Demo_Content_Dashboard();
         $this->progress = new Demo_Contents_Progress();
+        if ( is_admin() ) {
+            add_action('init', array($this, 'export'));
+        }
 
     }
 
@@ -140,10 +143,214 @@ class Demo_Contents {
         return $file_path_or_id;
     }
 
-    function ajax_export(){
-        $type = $_REQUEST['type'];
+    /**
+     * Available widgets
+     *
+     * Gather site's widgets into array with ID base, name, etc.
+     * Used by export and import functions.
+     *
+     * @since 0.4
+     * @global array $wp_registered_widget_updates
+     * @return array Widget information
+     */
+    static function get_available_widgets() {
+
+        global $wp_registered_widget_controls;
+
+        $widget_controls = $wp_registered_widget_controls;
+
+        $available_widgets = array();
+
+        foreach ( $widget_controls as $widget ) {
+
+            if ( ! empty( $widget['id_base'] ) && ! isset( $available_widgets[$widget['id_base']] ) ) { // no dupes
+
+                $available_widgets[$widget['id_base']]['id_base'] = $widget['id_base'];
+                $available_widgets[$widget['id_base']]['name'] = $widget['name'];
+
+            }
+
+        }
+
+        return $available_widgets;
+
+    }
+
+
+    static function get_update_keys(){
+
+        $key = 'ft_demo_customizer_keys';
+        $theme_slug = get_option( 'stylesheet' );
+        $data = get_option( $key );
+        if ( ! is_array( $data ) ) {
+            $data = array();
+        }
+        if ( isset( $data[ $theme_slug ] ) ){
+            return $data[ $theme_slug ];
+        }
+
+        $r = wp_remote_post( admin_url( 'customize.php' ), array(
+                'method' => 'POST',
+                'timeout' => 45,
+                'redirection' => 5,
+                'httpversion' => '1.0',
+                'blocking' => true,
+                'headers' => array(),
+                'cookies' => array(
+                    SECURE_AUTH_COOKIE => $_COOKIE[ SECURE_AUTH_COOKIE ],
+                    AUTH_COOKIE => $_COOKIE[ AUTH_COOKIE ],
+                    LOGGED_IN_COOKIE => $_COOKIE[ LOGGED_IN_COOKIE ],
+                )
+            )
+        );
+
+        if ( is_wp_error( $r ) ) {
+            return false;
+        } else {
+            global $wpdb;
+
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT option_value FROM $wpdb->options WHERE option_name = %s LIMIT 1", $key ) );
+            $notoptions = wp_cache_get( 'notoptions', 'options' );
+            // Has to be get_row instead of get_var because of funkiness with 0, false, null values
+            if ( is_object( $row ) ) {
+                $value = $row->option_value;
+                $data = apply_filters( 'option_' . $key, maybe_unserialize( $value ), $key );
+                wp_cache_add( $key, $value, 'options' );
+            } else { // option does not exist, so we must cache its non-existence
+                if ( ! is_array( $notoptions ) ) {
+                    $notoptions = array();
+                }
+                $notoptions[$key] = true;
+                wp_cache_set( 'notoptions', $notoptions, 'options' );
+
+                /** This filter is documented in wp-includes/option.php */
+                $data = apply_filters( 'default_option_' . $key, '', $key );
+            }
+
+            if ( ! is_array( $data ) ) {
+                $data = array();
+            }
+
+            if ( isset( $data[ $theme_slug ] ) ) {
+                return $data[ $theme_slug ];
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate Widgets export data
+     *
+     * @since 0.1
+     * @return string Export file contents
+     */
+    static function generate_widgets_export_data() {
+
+        // Get all available widgets site supports
+        $available_widgets = self::get_available_widgets();
+
+        // Get all widget instances for each widget
+        $widget_instances = array();
+        foreach ( $available_widgets as $widget_data ) {
+
+            // Get all instances for this ID base
+            $instances = get_option( 'widget_' . $widget_data['id_base'] );
+
+            // Have instances
+            if ( ! empty( $instances ) ) {
+
+                // Loop instances
+                foreach ( $instances as $instance_id => $instance_data ) {
+
+                    // Key is ID (not _multiwidget)
+                    if ( is_numeric( $instance_id ) ) {
+                        $unique_instance_id = $widget_data['id_base'] . '-' . $instance_id;
+                        $widget_instances[$unique_instance_id] = $instance_data;
+                    }
+
+                }
+
+            }
+
+        }
+
+        // Gather sidebars with their widget instances
+        $sidebars_widgets = get_option( 'sidebars_widgets' ); // get sidebars and their unique widgets IDs
+        $sidebars_widget_instances = array();
+        foreach ( $sidebars_widgets as $sidebar_id => $widget_ids ) {
+
+            // Skip inactive widgets
+            if ( 'wp_inactive_widgets' == $sidebar_id ) {
+                continue;
+            }
+
+            // Skip if no data or not an array (array_version)
+            if ( ! is_array( $widget_ids ) || empty( $widget_ids ) ) {
+                continue;
+            }
+
+            // Loop widget IDs for this sidebar
+            foreach ( $widget_ids as $widget_id ) {
+
+                // Is there an instance for this widget ID?
+                if ( isset( $widget_instances[$widget_id] ) ) {
+
+                    // Add to array
+                    $sidebars_widget_instances[$sidebar_id][$widget_id] = $widget_instances[$widget_id];
+
+                }
+
+            }
+
+        }
+
+        // Filter pre-encoded data
+        $data = apply_filters( 'ft_demo_export_widgets_data', $sidebars_widget_instances );
+
+        // Encode the data for file contents
+        return $data;
+
+    }
+
+    static function generate_config(){
+        $nav_menu_locations = get_theme_mod( 'nav_menu_locations' );
+        // Just update the customizer keys
+
+        $regen_keys = self::get_update_keys();
+
+        $config = array(
+            'home_url' => home_url('/'),
+            'menus' => $nav_menu_locations,
+            'pages' => array(
+                'page_on_front'  => get_option( 'page_on_front' ),
+                'page_for_posts' => get_option( 'page_for_posts' ),
+            ),
+            'options' => array(
+                'show_on_front' => get_option( 'show_on_front' )
+            ),
+            'theme_mods' => get_theme_mods(),
+            'widgets' => self::generate_widgets_export_data(),
+            'customizer_keys' => $regen_keys
+        );
+
+        $config = apply_filters( 'ft_demo_generate_config', $config );
+
+        return json_encode( $config );
+    }
+
+
+    function export(){
+        if ( ! isset( $_REQUEST['demo_contents_export'] ) ) {
+            return ;
+        }
+        if ( ! current_user_can( 'export' ) ) {
+            return ;
+        }
+
         ob_start();
         ob_end_clean();
+        ob_flush();
 
         /**
          * Filters the export filename.
@@ -160,17 +367,7 @@ class Demo_Contents {
         header( 'Content-Disposition: attachment; filename=' . $filename );
         header( 'Content-Type: application/xml; charset=' . get_option( 'blog_charset' ), true );
 
-        switch ( $type ) {
-            case 'options':
-            case 'option':
-            case 'config':
-            case 'widget':
-            case 'widgets':
-            case 'theme_mod':
-            case 'theme_mods':
-                echo Demo_Contents::generate_config();
-                break;
-        }
+        echo Demo_Contents::generate_config();
         die();
     }
 
