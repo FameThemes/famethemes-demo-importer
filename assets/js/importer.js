@@ -375,14 +375,11 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
             $( '.demo-contents--import-now' ).replaceWith( '<span class="button button-secondary">'+demo_contents_params.failed_msg+'</span>' );
         },
 
-        render_tasks: function(){
-
-        },
-
         preview: function(){
             var that = this;
-            $document .on( 'click', '.demo-contents .themes .theme', function( e ){
+            $document .on( 'click', '.demo-contents-themes-listing .theme', function( e ){
                 e.preventDefault();
+                console.log( 'ok' );
                 var t               = $( this );
                 var btn             = $( '.demo-contents--preview-theme-btn', t );
                 var theme           = btn.closest('.theme');
@@ -636,8 +633,6 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
 
             // END Custom upload demo file
 
-
-
         }
     };
 
@@ -646,22 +641,10 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
     };
 
 
-
-
 }( jQuery ));
 
 jQuery( document ).ready( function( $ ){
-
     $( document ).ftDemoContent();
-    // Active Plugins
-
-
-
-
-
-
-
-
 });
 
 

@@ -17,6 +17,12 @@ class Demo_Content_Dashboard {
         add_action( 'admin_menu', array( $this, 'add_menu' ) );
         add_action( 'admin_footer', array( $this, 'preview_template' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
+
+        $current_theme_slug = get_option( 'template' );
+        add_action( $current_theme_slug.'_demo_import_content_tab', array( $this, 'listing_themes' ) );
+        add_action( 'theme_demo_import_content_tab', array( $this, 'listing_themes' ) );
+
     }
 
     function get_tgmpa(){
@@ -424,8 +430,7 @@ class Demo_Content_Dashboard {
         }
 
         $this->setup_themes();
-        global $number_theme;
-        $number_theme = 0;
+        $number_theme = count( $this->items );
         $link_all = '?page='.$this->page_slug;
         $link_current_theme = '?page='.$this->page_slug.'&tab=current_theme';
         $link_export= '?page='.$this->page_slug.'&tab=export';
@@ -433,47 +438,6 @@ class Demo_Content_Dashboard {
 
         ob_start();
 
-        $number_theme = count( $this->items );
-
-        if ( has_action( 'demo_contents_before_themes_listing' ) ) {
-            do_action( 'demo_contents_before_themes_listing', $this );
-        } else {
-
-            // Listing installed themes
-            foreach (( array ) $this->items as $theme_slug => $theme ) {
-
-                ?>
-                <div class="theme <?php echo  (  $theme['activate'] ) ? 'demo-contents--current-theme' : ''; ?>" tabindex="0" aria-describedby="<?php echo esc_attr($theme_slug); ?>-action <?php echo esc_attr($theme_slug); ?>-name"
-                     data-slug="<?php echo esc_attr($theme_slug); ?>">
-                    <div class="theme-screenshot">
-                        <img src="<?php echo esc_url($theme['screenshot']); ?>" alt="">
-                    </div>
-                    <?php if ( $theme['activate'] ) { ?>
-                        <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
-                    <?php }else { ?>
-                        <span class="more-details"><?php _e('Theme Details', 'demo-contents'); ?></span>
-                    <?php } ?>
-
-                    <div class="theme-author"><?php sprintf(__('by %s', 'demo-contents'),$theme['author'] ); ?></div>
-                    <h2 class="theme-name" id="<?php echo esc_attr($theme_slug); ?>-name"><?php echo esc_html($theme['name']); ?></h2>
-                    <div class="theme-actions">
-                        <a
-                            data-theme-slug="<?php echo esc_attr($theme_slug); ?>"
-                            data-demo-version=""
-                            data-name="<?php echo esc_html($theme['name']); ?>"
-                            data-demo-url=""
-                            class="demo-contents--preview-theme-btn button button-primary customize"
-                            href="#"
-                        ><?php _e('Start Import Demo', 'demo-contents'); ?></a>
-                    </div>
-                </div>
-                <?php
-            }
-
-            do_action('demo_content_themes_listing');
-        } // end check if has actions
-        $list_themes = ob_get_clean();
-        ob_start();
 
         ?>
         <div class="wrap demo-contents">
@@ -486,22 +450,68 @@ class Demo_Content_Dashboard {
                     <li><a href="<?php echo $link_all; ?>" class="<?php echo ( ! $tab ) ? 'current' : ''; ?>"><?php _e( 'All Demos', 'demo-contents' ); ?></a></li>
                 </ul>
             </div>
-            <div class="theme-browser rendered">
-                <div class="themes wp-clearfix">
-                    <?php
-                    if ( $number_theme > 0 ) {
-                        echo $list_themes;
-                    } else {
-                        ?>
-                        <div class="demo-contents-no-themes">
-                            <?php _e( 'No Themes Found', 'demo-contents' ); ?>
-                        </div>
-                        <?php
-                    }
-                    ?>
-                </div><!-- /.Themes -->
-            </div><!-- /.theme-browser -->
+
+            <?php $this->listing_themes(); ?>
+
         </div><!-- /.wrap -->
+        <?php
+    }
+
+    function listing_themes(){
+        $this->setup_themes();
+        $number_theme = count( $this->items );
+        ?>
+        <div class="theme-browser rendered demo-contents-themes-listing">
+            <div class="themes wp-clearfix">
+                <?php
+                if ( $number_theme > 0 ) {
+                    if ( has_action( 'demo_contents_before_themes_listing' ) ) {
+                        do_action( 'demo_contents_before_themes_listing', $this );
+                    } else {
+
+                        // Listing installed themes
+                        foreach (( array ) $this->items as $theme_slug => $theme ) {
+
+                            ?>
+                            <div class="theme <?php echo  (  $theme['activate'] ) ? 'demo-contents--current-theme' : ''; ?>" tabindex="0" aria-describedby="<?php echo esc_attr($theme_slug); ?>-action <?php echo esc_attr($theme_slug); ?>-name"
+                                 data-slug="<?php echo esc_attr($theme_slug); ?>">
+                                <div class="theme-screenshot">
+                                    <img src="<?php echo esc_url($theme['screenshot']); ?>" alt="">
+                                </div>
+                                <?php if ( $theme['activate'] ) { ?>
+                                    <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
+                                <?php }else { ?>
+                                    <span class="more-details"><?php _e('Theme Details', 'demo-contents'); ?></span>
+                                <?php } ?>
+
+                                <div class="theme-author"><?php sprintf(__('by %s', 'demo-contents'),$theme['author'] ); ?></div>
+                                <div class="theme-name" id="<?php echo esc_attr($theme_slug); ?>-name"><?php echo esc_html($theme['name']); ?></div>
+                                <div class="theme-actions">
+                                    <a
+                                            data-theme-slug="<?php echo esc_attr($theme_slug); ?>"
+                                            data-demo-version=""
+                                            data-name="<?php echo esc_html($theme['name']); ?>"
+                                            data-demo-url=""
+                                            class="demo-contents--preview-theme-btn button button-primary customize"
+                                            href="#"
+                                    ><?php _e('Start Import Demo', 'demo-contents'); ?></a>
+                                </div>
+                            </div>
+                            <?php
+                        }
+
+                        do_action('demo_content_themes_listing');
+                    } // end check if has actions
+                } else {
+                    ?>
+                    <div class="demo-contents-no-themes">
+                        <?php _e( 'No Themes Found', 'demo-contents' ); ?>
+                    </div>
+                    <?php
+                }
+                ?>
+            </div><!-- /.Themes -->
+        </div><!-- /.theme-browser -->
         <?php
     }
 }

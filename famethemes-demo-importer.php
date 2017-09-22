@@ -5,11 +5,10 @@ Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: Demo data import tool for FameThemes's themes.
 Author: famethemes
 Author URI:  http://www.famethemes.com/
-Version: 1.0.5
+Version: 1.0.6
 Text Domain: demo-contents
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
-
 
 
 define( 'DEMO_CONTENT_URL', trailingslashit ( plugins_url('', __FILE__) ) );
@@ -40,7 +39,6 @@ class Demo_Contents {
         require_once DEMO_CONTENT_PATH.'inc/class-progress.php';
         $this->dashboard = new Demo_Content_Dashboard();
         $this->progress = new Demo_Contents_Progress();
-
 
     }
 
