@@ -93,7 +93,7 @@ class  Demo_Contents_Progress {
         if ( $doing == 'checking_resources' ){
             $file_data = $this->maybe_remote_download_data_files( $current_theme );
             if ( ! $file_data || empty( $file_data ) ) {
-                wp_send_json_error( sprintf( __( 'Demo data not found for <strong>%s</strong>. However you can import demo content by upload your demo files below.', 'demo-contents' ) , $themes[ $current_theme_slug ]->get("Name") ) );
+                wp_send_json_error( sprintf( __( 'Demo data not found for <strong>%s</strong>. However you can import demo content by upload your demo files below.', 'demo-contents' ) , $themes[ $current_theme_slug ]['name'] ) );
             } else {
                 wp_send_json_success( __( 'Demo data ready for import.', 'demo-contents' ) );
             }
