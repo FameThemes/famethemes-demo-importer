@@ -337,12 +337,14 @@ class Demo_Content_Dashboard {
                 continue;
             }
             $list_themes[ $theme_slug ] = array(
-                'slug'          => $theme_slug,
-                'name'          => $theme->get('Name'),
-                'screenshot'    => $theme->get_screenshot(),
-                'author'        => $theme->get('Author'),
-                'activate'      => false,
-                'is_plugin'     => false
+                'slug'              => $theme_slug,
+                'name'              => $theme->get('Name'),
+                'screenshot'        => $theme->get_screenshot(),
+                'author'            => $theme->get('Author'),
+                'activate'          => false,
+                'demo_version'      => '',
+                'demo_version_name' => '',
+                'is_plugin'         => false
             );
         }
         $current_theme = false;
@@ -468,7 +470,8 @@ class Demo_Content_Dashboard {
                                 <div class="theme-actions">
                                     <a
                                             data-theme-slug="<?php echo esc_attr($theme_slug); ?>"
-                                            data-demo-version=""
+                                            data-demo-version="<?php echo esc_attr( $theme['demo_version'] ); ?>"
+                                            data-demo-version-name="<?php echo esc_attr( $theme['demo_version_name'] ); ?>"
                                             data-name="<?php echo esc_html($theme['name']); ?>"
                                             data-demo-url=""
                                             class="demo-contents--preview-theme-btn button button-primary customize"
