@@ -2,7 +2,7 @@
 /**
  * Merlin WP
  * Better WordPress Theme Onboarding
- *
+ * @changed   Shrimp2t
  * @package   Merlin WP
  * @version   @@pkg.version
  * @link      https://merlinwp.com/
@@ -295,7 +295,7 @@ class Merlin_Importer {
 
                     $p_t_tax = $p_term['taxonomy'];
                     $p_t_id = false;
-                    if ( ! is_array( $p_t_ids[ $p_t_tax ] ) ) {
+                    if ( ! isset(  $p_t_ids[ $p_t_tax ] ) || ! is_array( $p_t_ids[ $p_t_tax ] ) ) {
                         $p_t_ids[ $p_t_tax ] = array();
                     }
 
@@ -400,15 +400,19 @@ class Merlin_Importer {
     /**
      * Import widgets
      */
-    function importWidgets( $file ) {
+    function importWidgets( $data ) {
         global $wp_filesystem, $wp_registered_widget_controls, $wp_registered_sidebars;
 
         //add_filter( 'sidebars_widgets', array( $this, '_unset_sidebar_widget' ) );
+        if ( empty( $data ) || ! is_array( $data ) ) {
+            return ;
+        }
 
         $valid_sidebar = false;
         $widget_instances = array();
         $imported_terms = get_transient('_wxr_imported_terms') ? : array();
 
+        /*
         WP_Filesystem();
 
         if ( file_exists( $file ) ) {
@@ -420,6 +424,7 @@ class Merlin_Importer {
         } else {
             $data = array();
         }
+        */
 
         foreach ( $wp_registered_widget_controls as $widget_id => $widget ) {
             $base_id = isset($widget['id_base']) ? $widget['id_base'] : null;
@@ -491,9 +496,11 @@ class Merlin_Importer {
     /**
      * Import theme options
      */
-    function importThemeOptions( $file ) {
-        global $wp_filesystem, $wp_customize;
+    function importThemeOptions( $customize_data = array() ) {
+        global $wp_customize;
 
+        /*
+        global $wp_filesystem;
         WP_Filesystem();
 
         if ( file_exists( $file ) ) {
@@ -505,31 +512,39 @@ class Merlin_Importer {
         } else {
             $customize_data = array();
         }
+        */
 
         if (!empty($customize_data)) {
-            if (!empty($customize_data['mods'])) {
-                foreach ($customize_data['mods'] as $mod_key => $mod_value) {
-                    if (is_string($mod_value) && preg_match('/\.(jpg|jpeg|png|gif)/i', $mod_value)) {
-                        $attachment = $this->fetchCustomizeImage($mod_value);
-                        if ( !is_wp_error($attachment) ) {
-                            $mod_value = $attachment->url;
-                            $index_key = $mod_key . '_data';
-                            if ( isset($customize_data['mods'][$index_key]) ) {
-                                $customize_data['mods'][$index_key] = $attachment;
-                                update_post_meta($attachment->attachment_id, '_wp_attachment_is_custom_header', get_option('stylesheet'));
-                            }
+
+            foreach ($customize_data as $mod_key => $mod_value) {
+
+                if (is_string($mod_value) && preg_match('/\.(jpg|jpeg|png|gif)/i', $mod_value)) {
+                    $attachment = $this->fetchCustomizeImage($mod_value);
+                    if ( !is_wp_error($attachment) ) {
+                        $mod_value = $attachment->url;
+                        $index_key = $mod_key . '_data';
+                        if ( isset($customize_data['mods'][$index_key]) ) {
+                            $customize_data['mods'][$index_key] = $attachment;
+                            update_post_meta($attachment->attachment_id, '_wp_attachment_is_custom_header', get_option('stylesheet'));
                         }
                     }
-                    if ('nav_menu_locations' === $mod_key) {
-                        $imported_terms = get_transient('_wxr_imported_terms') ? : array();
-                        foreach ($mod_value as $menu_location => $menu_term_id) {
-                            $mod_value[$menu_location] = isset($imported_terms[$menu_term_id]) ? $imported_terms[$menu_term_id] : $menu_term_id;
-                        }
-                    }
-                    set_theme_mod($mod_key, $mod_value);
                 }
+                if ('nav_menu_locations' === $mod_key) {
+                    $imported_terms = get_transient('_wxr_imported_terms') ? : array();
+                    foreach ($mod_value as $menu_location => $menu_term_id) {
+                        $mod_value[$menu_location] = isset($imported_terms[$menu_term_id]) ? $imported_terms[$menu_term_id] : $menu_term_id;
+                    }
+                }
+
+                if ( 'custom_logo' == $mod_key ) {
+                    $processed_posts = get_transient('_wxr_imported_posts') ? : array();
+                    $mod_value = isset( $processed_posts[ $mod_value ] ) ? $processed_posts[ $mod_value ] : $mod_value;
+                }
+
+                set_theme_mod($mod_key, $mod_value);
             }
         }
+
     }
 
 

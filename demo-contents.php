@@ -6,53 +6,43 @@ Description: Demo data import tool for FameThemes's themes.
 Author: famethemes
 Author URI:  http://www.famethemes.com/
 Version: 1.0.5
-Text Domain: ftdi
+Text Domain: demo-contents
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
-include dirname( __FILE__ ).'/inc/class-dashboard.php';
-
-define( 'FT_DEMO_CONTENT_URL', trailingslashit ( plugins_url('', __FILE__) ) );
-define( 'FT_DEMO_CONTENT_PATH', trailingslashit( plugin_dir_path( __FILE__) ) );
 
 
-class FT_Demo_Content_Importer {
+define( 'DEMO_CONTENT_URL', trailingslashit ( plugins_url('', __FILE__) ) );
+define( 'DEMO_CONTENT_PATH', trailingslashit( plugin_dir_path( __FILE__) ) );
+
+
+class Demo_Contents {
     public $dir;
     public $url;
-    public $git_repo = 'https://raw.githubusercontent.com/FameThemes/famethemes-xml-demos/master/';
-    function __construct( ){
+    static $git_repo = 'FameThemes/famethemes-xml-demos';
+    public $dashboard;
+    public $progress;
+    static $_instance;
 
-        $this->url = trailingslashit( plugins_url('', __FILE__) );
-        $this->dir = trailingslashit( plugin_dir_path( __FILE__) );
-
-        require_once $this->dir.'inc/class-demo-content.php';
-
-        // Example config plugins
-        require_once $this->dir.'inc/class-tgm-plugin-activation.php';
-        require_once $this->dir.'/sample/example.php';
-
-
-        require_once $this->dir.'inc/class-progress.php';
-
-        add_action( 'wp_ajax_ft_demo_import_content', array( $this, 'ajax_import' ) );
-        add_action( 'wp_ajax_ft_demo_import_download', array( $this, 'ajax_download' ) );
-        add_action( 'wp_ajax_ft_demo_export', array( $this, 'ajax_export' ) );
-
-        $template_slug = get_option( 'template' );
-        $theme_slug = get_option( 'stylesheet' );
-
-        // child theme active
-        if ( $template_slug != $theme_slug ) {
-            add_action( $template_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
-        } else {
-            add_action( $theme_slug.'_demo_import_content_tab', array( $this, 'display_import' ) );
+    static function get_instance(){
+        if ( is_null( self::$_instance ) ) {
+            self::$_instance = new self();
         }
 
-        add_action( 'customize_controls_print_footer_scripts', array( $this, 'update_customizer_keys' ) );
-
+        return self::$_instance ;
     }
 
+    function __construct(){
 
+        require_once DEMO_CONTENT_PATH.'inc/class-tgm-plugin-activation.php';
+        require_once DEMO_CONTENT_PATH.'inc/theme-supports.php';
+        require_once DEMO_CONTENT_PATH.'inc/class-dashboard.php';
+        require_once DEMO_CONTENT_PATH.'inc/class-progress.php';
+        $this->dashboard = new Demo_Content_Dashboard();
+        $this->progress = new Demo_Contents_Progress();
+
+
+    }
 
 
     /**
@@ -138,6 +128,8 @@ class FT_Demo_Content_Importer {
 
         if ( $name ) {
             $file_array['name'] = $name;
+        } else {
+            $file_array['name'] = basename( $url );
         }
         // Do the validation and storage stuff.
         $file_path_or_id = self::media_handle_sideload( $file_array, 0, null, array(), $save_attachment );
@@ -147,56 +139,9 @@ class FT_Demo_Content_Importer {
             @unlink( $file_array['tmp_name'] );
             return false;
         }
-
         return $file_path_or_id;
     }
 
-    function download_dummy_files( $item_name ){
-        $files = array(
-            'dummy-data'    => 'xml', // file ext
-            'config'        => 'json'
-        );
-        $downloaded_file = array();
-        foreach ( $files as $k => $ext ) {
-            $file = $item_name.'-'.$k.'.'.$ext;
-            $file_path = self::download_file( $this->git_repo.$item_name.'/'.$k.'.'.$ext, $file, false );
-            $downloaded_file[ $k ] = $file_path;
-        }
-
-        return $downloaded_file;
-    }
-
-
-
-    function data_dir( $param ){
-
-        $siteurl = get_option( 'siteurl' );
-        $upload_path = trim( get_option( 'upload_path' ) );
-
-        if ( empty( $upload_path ) || 'wp-content/uploads' == $upload_path ) {
-            $dir = WP_CONTENT_DIR . '/uploads';
-        } elseif ( 0 !== strpos( $upload_path, ABSPATH ) ) {
-            // $dir is absolute, $upload_path is (maybe) relative to ABSPATH
-            $dir = path_join( ABSPATH, $upload_path );
-        } else {
-            $dir = $upload_path;
-        }
-
-        if ( !$url = get_option( 'upload_url_path' ) ) {
-            if ( empty($upload_path) || ( 'wp-content/uploads' == $upload_path ) || ( $upload_path == $dir ) )
-                $url = WP_CONTENT_URL . '/uploads';
-            else
-                $url = trailingslashit( $siteurl ) . $upload_path;
-        }
-
-
-        $param['path']  = $dir . '/ft-dummy-data';
-        $param['url']   = $url . '/ft-dummy-data';
-
-        return $param;
-    }
-
-    
     function ajax_export(){
         $type = $_REQUEST['type'];
         ob_start();
@@ -225,7 +170,7 @@ class FT_Demo_Content_Importer {
             case 'widgets':
             case 'theme_mod':
             case 'theme_mods':
-                echo FT_Demo_Content::generate_config();
+                echo Demo_Contents::generate_config();
                 break;
         }
         die();
@@ -233,11 +178,18 @@ class FT_Demo_Content_Importer {
 
 }
 
+/*
+echo '<pre>';
+print_r( get_theme_mod( 'clients_items' ) );
+echo '</pre>';
+*/
+
 if ( is_admin() ) {
-    function ft_demo_importer(){
-        new FT_Demo_Content_Importer();
+    function demo_contents__init(){
+        new Demo_Contents();
+
     }
-    add_action( 'plugins_loaded', 'ft_demo_importer' );
+    add_action( 'plugins_loaded', 'demo_contents__init' );
 }
 
 /**
@@ -246,7 +198,7 @@ if ( is_admin() ) {
  * @param $plugin
  * @param bool|false $network_wide
  */
-function ft_demo_importer_plugin_activate( $plugin, $network_wide = false ) {
+function demo_contents_importer_plugin_activate( $plugin, $network_wide = false ) {
     if ( ! $network_wide &&  $plugin == plugin_basename( __FILE__ ) ) {
         $template_slug = get_option('template');
         $url = add_query_arg(
@@ -260,7 +212,22 @@ function ft_demo_importer_plugin_activate( $plugin, $network_wide = false ) {
         die();
     }
 }
-add_action( 'activated_plugin', 'ft_demo_importer_plugin_activate', 90, 2 );
+add_action( 'activated_plugin', 'demo_contents_importer_plugin_activate', 90, 2 );
+
+
+// Support Upload XML file
+add_filter('upload_mimes', 'demo_contents_custom_upload_xml');
+function demo_contents_custom_upload_xml($mimes)
+{
+    if ( current_user_can( 'upload_files' ) ) {
+    $mimes = array_merge($mimes, array(
+        'xml' => 'application/xml',
+        'json' => 'application/json'
+    ));
+    }
+    return $mimes;
+}
+
 
 
 
