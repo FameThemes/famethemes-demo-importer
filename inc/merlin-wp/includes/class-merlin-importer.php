@@ -611,6 +611,12 @@ class Merlin_Importer {
         wp_defer_comment_counting(false);
 
         flush_rewrite_rules();
+
+        // Move Hello world to trash
+        $post = get_page_by_title( 'Hello world!', OBJECT, 'post' );
+        if ( $post ) {
+            wp_update_post( array('ID'=> $post->ID , 'post_status' => 'trash' ) );
+        }
     }
 
     /**

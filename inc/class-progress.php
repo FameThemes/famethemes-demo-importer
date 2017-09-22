@@ -27,7 +27,7 @@ class  Demo_Contents_Progress {
         if ( ! isset( $_REQUEST['__checking_plugins'] ) ) {
             return;
         }
-        
+
         $plugins = Demo_Contents::get_instance()->dashboard->get_tgmpa_plugins();
         ob_clean();
         ob_flush();
