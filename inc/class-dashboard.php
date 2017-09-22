@@ -187,41 +187,14 @@ class Demo_Content_Dashboard {
         if ( ! empty( $this->items ) ) {
             return $this->items;
         }
-        $cache_key = 'Demo_Content_Dashboard_get_theme';
 
-        if ( ! $this->cache_time ) {
-            delete_transient( $cache_key );
-        }
-        $items = get_transient( $cache_key );
-
-        if ( $items ) {
-            return $items;
-        }
-
-        $r = wp_remote_get( $this->api_url );
-        if ( wp_remote_retrieve_response_code( $r ) != 200 ) {
-            $this->errors['COULD_NOT_CONNECT'] = __( 'Could not connect to FameThemes server.', 'demo-contents' );
-            return array();
-        }
-
-        $items = wp_remote_retrieve_body( $r );
-        $items = json_decode( $items, true );
-        if ( ! is_array( $items )  || empty( $items ) ) {
-            $this->errors['COULD_NOT_LOAD_ITEMS'] = __( 'Could not load themes.', 'demo-contents' );
-            return array();
-        }
-
-        set_transient( $cache_key , $items, $this->cache_time );
-
-        return $items;
+        return $this->setup_themes();
     }
 
     function is_installed( $theme_slug ){
         $check = wp_get_theme( $theme_slug );
         return $check->exists();
     }
-
-
 
     function  preview_template(){
         ?>
@@ -341,7 +314,13 @@ class Demo_Content_Dashboard {
     }
 
     function setup_themes(){
+        // If already setup
+        if ( ! empty( $this->items) ) {
+            return $this->items;
+        }
 
+        // if have filter for list themes
+        $this->items = apply_filters( 'demo_contents_get_themes', array(), $this );
         if ( ! empty( $this->items) ) {
             return $this->items;
         }
@@ -421,7 +400,7 @@ class Demo_Content_Dashboard {
         }
 
         $this->items = $list_themes;
-        return  $this->items;
+        return $this->items;
     }
 
     function dashboard() {
