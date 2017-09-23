@@ -464,7 +464,7 @@ class Demo_Content_Dashboard {
                                 <?php if ( $theme['activate'] ) { ?>
                                     <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
                                 <?php }else { ?>
-                                    <span class="more-details"><?php _e('Theme Details', 'demo-contents'); ?></span>
+                                    <span class="more-details"><?php _e('View Details', 'demo-contents'); ?></span>
                                 <?php } ?>
 
                                 <div class="theme-author"><?php sprintf(__('by %s', 'demo-contents'),$theme['author'] ); ?></div>

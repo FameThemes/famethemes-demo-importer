@@ -1,13 +1,10 @@
-//@import "variables";
-
-//@import "mixins";
 
 .demo-contents--current-theme {
     position: relative;
     .more-details {
         opacity: 1 !important;
         z-index: 3;
-    }
+    } 
 }
 .demo-contents-hide {
     display: none !important;
@@ -32,7 +29,7 @@
 .demo-contents .theme-overlay  .theme-overlay .theme-wrap {
     z-index: 1;
 }
-.demo-contents .theme .theme-actions {
+.demo-contents .theme .theme-actions, .demo-import-tab-content .theme .theme-actions {
     opacity: 1;
 }
 .demo-contents-import-progress {
