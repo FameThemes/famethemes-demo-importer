@@ -343,6 +343,7 @@ class Demo_Content_Dashboard {
                 'author'            => $theme->get('Author'),
                 'activate'          => false,
                 'demo_version'      => '',
+                'demo_url'          => 'https://demos.famethemes.com/'.$theme_slug.'/',
                 'demo_version_name' => '',
                 'is_plugin'         => false
             );
@@ -388,6 +389,7 @@ class Demo_Content_Dashboard {
                         $clone['name'] =  $info['name'];
                         $clone['slug'] =  $info['slug'];
                         $clone['is_plugin'] = true;
+                        $clone['demo_url'] = 'https://demos.famethemes.com/'.$info['slug'].'/';
                         // Move clone theme to top because it need to stay above current theme
                         $list_themes = array(  $info['slug'] => $clone ) + $list_themes;
                     }
@@ -473,7 +475,7 @@ class Demo_Content_Dashboard {
                                             data-demo-version="<?php echo esc_attr( $theme['demo_version'] ); ?>"
                                             data-demo-version-name="<?php echo esc_attr( $theme['demo_version_name'] ); ?>"
                                             data-name="<?php echo esc_html($theme['name']); ?>"
-                                            data-demo-url=""
+                                            data-demo-url="<?php echo esc_attr( $theme['demo_url'] ); ?>"
                                             class="demo-contents--preview-theme-btn button button-primary customize"
                                             href="#"
                                     ><?php _e('Start Import Demo', 'demo-contents'); ?></a>

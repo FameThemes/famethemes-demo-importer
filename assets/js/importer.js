@@ -383,14 +383,14 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
                 var t               = $( this );
                 var btn             = $( '.demo-contents--preview-theme-btn', t );
                 var theme           = btn.closest('.theme');
-                var demoURL         = btn.attr( 'data-demo-url' ) || '';
                 var slug            = btn.attr( 'data-theme-slug' ) || '';
                 var name            = btn.attr( 'data-name' ) || '';
                 var demo_version    = btn.attr( 'data-demo-version' ) || '';
                 var demo_name       = btn.attr( 'data-demo-version-name' ) || '';
+                var demo_url        = btn.attr( 'data-demo-url' ) || '';
                 var img             = $( '.theme-screenshot img', theme ).attr( 'src' );
-                if ( demoURL.indexOf( 'http' ) !== 0 ) {
-                    demoURL = 'https://demos.famethemes.com/'+slug+'/';
+                if ( demo_url.indexOf( 'http' ) !== 0 ) {
+                    demo_url = 'https://demos.famethemes.com/'+slug+'/';
                 }
                 $( '#demo-contents--preview' ).remove();
 
@@ -399,7 +399,7 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
                     slug: slug,
                     demo_version: demo_version,
                     demo_name:  demo_name,
-                    demoURL: demoURL,
+                    demoURL: demo_url,
                     img: img,
                     activate: false
                 };
