@@ -15,17 +15,22 @@ FameThemes Demo importer
 Import demo content for FameThemes’s themes with just one click.
 
 
-###To Support demo for a theme.
+###Support demo for a theme.
 1. Create new theme demo dir in GitHub repo `username/repo-name/theme-name`.
 
-###To Support multiple demos for a theme.
+###Support multiple demos for a theme.
 1. Create new theme demo dir in GitHub repo `username/repo-name/theme-name`.
 2. Create new json file and name it  `demos.json`, add list demos here.
 3. Crate new demo dir and name it `demos`.
 4. Add your new demo in new dir `child-demo`, so we have full path like this: `username/repo-name/theme-name/demos/child-demo` and put file `dummy-data.xml` and `config.json`
 
 
-Working with themes:
+###Export config.json
+
+In Admin if user has cap `export` add ?demo_contents_export in current url.
+Example: https://example.com/wp-admin/?demo_contents_export
+
+###Working with themes:
 
 - [Screenr](https://wordpress.org/themes/screenr/)
 - [Boston](https://wordpress.org/themes/boston/).

@@ -168,7 +168,7 @@ class  Demo_Contents_Progress {
                     $importer->importPosts( $content['posts'] );
                 }
                 $importer->remapImportedData();
-                //$importer->importEnd();
+                do_action( 'demo_contents_import_posts_completed', $this, $importer );
 
                 break;
 
@@ -176,7 +176,7 @@ class  Demo_Contents_Progress {
                 if ( isset( $option_config['options'] ) ){
                     $this->importOptions( $option_config['options'] );
                 }
-                //print_r( $option_config['pages'] );
+
                 // Setup Pages
                 $processed_posts = get_transient('_wxr_imported_posts') ? : array();
                 if ( isset( $option_config['pages'] ) ){
@@ -186,13 +186,19 @@ class  Demo_Contents_Progress {
                     }
                 }
 
+                do_action( 'demo_contents_import_theme_options_completed', $this, $importer );
+
                 break;
 
             case 'import_widgets':
                 $this->config_data = $option_config;
                 if ( isset( $option_config['widgets'] ) ){
                    // print_r( $option_config['widgets'] );
-                    $importer->importWidgets( $option_config['widgets'] );
+                    if ( ! isset( $this->config_data['widgets_config'] ) ) {
+                        $this->config_data['widgets_config'] = array();
+                    }
+                    $importer->importWidgets( $option_config['widgets'], $this->config_data['widgets_config'] );
+                    do_action( 'demo_contents_import_widgets_completed', $this, $importer );
                 }
                 break;
 
@@ -205,6 +211,8 @@ class  Demo_Contents_Progress {
                         }
                     }
                 }
+
+                do_action( 'demo_contents_import_customize_completed', $this, $importer );
 
                 $importer->importEnd();
 

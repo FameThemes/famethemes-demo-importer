@@ -183,7 +183,7 @@ class Demo_Contents {
 
     static function get_update_keys(){
 
-        $key = 'ft_demo_customizer_keys';
+        $key = 'demo_contents_customizer_keys';
         $theme_slug = get_option( 'stylesheet' );
         $data = get_option( $key );
         if ( ! is_array( $data ) ) {
@@ -317,6 +317,87 @@ class Demo_Contents {
 
     }
 
+     static  function get_widgets_config_fields( $config){
+        $_config = array();
+        foreach ( $config as $k => $f ) {
+            switch ( $f['type'] ) {
+                case 'list_cat':
+                    $_config[ $f['name'] ] = array(
+                        'type' => 'term',
+                        'tax' =>  'category'
+                    );
+                    break;
+                case 'group':
+                    foreach ( $f['fields'] as $_k => $_f ) {
+                        if ( $_f['type'] == 'source' ) {
+                            if ( isset( $_f['source']['post_type'] ) ) {
+                                $_config[ $_f['name'] ] = 'post';
+                            } else {
+                                $_config[ $_f['name'] ] = array(
+                                    'type' => 'term',
+                                    'tax' => $_f['source']['tax']
+                                );
+                            }
+                        } else {
+                            $_config[ $_f['name'] ] = $_f['type'];
+                        }
+                    }
+
+                    $_config[ $f['name'] ] = 'repeater';
+                    break;
+                default:
+                    if ( $f['type'] == 'source' ) {
+                        if ( isset( $f['source']['post_type'] ) ) {
+                            $_config[ $f['name'] ] = 'post';
+                        } else {
+                            $_config[ $f['name'] ] = array(
+                                'type' => 'term',
+                                'tax' => $f['source']['tax']
+                            );
+                        }
+                    } else {
+                        $_config[ $f['name'] ] = $f['type'];
+                    }
+                    break;
+            }
+
+        }
+
+        return $_config;
+    }
+
+
+    static function get_widgets_config(){
+        global $wp_registered_widget_controls;
+
+        $widget_instances = array();
+
+        foreach ( $wp_registered_widget_controls as $widget_id => $widget ) {
+            $base_id = isset($widget['id_base']) ? $widget['id_base'] : null;
+            if (!empty($base_id) && !isset($widget_instances[$base_id])) {
+                $widget_instances[$base_id] = '';
+            }
+        }
+        global $wp_widget_factory;
+
+        foreach ( $wp_widget_factory->widgets  as $class_name => $object ){
+            $config = array();
+            if( method_exists( $object,'config' ) ) {
+                $config = $object->config();
+            }
+            // get_configs
+            if( method_exists( $object,'get_configs' ) ) {
+                $config = $object->get_configs();
+            }
+
+
+            $widget_instances[$object->id_base] = self::get_widgets_config_fields( $config );
+        }
+
+        return $widget_instances;
+    }
+
+
     static function generate_config(){
         $nav_menu_locations = get_theme_mod( 'nav_menu_locations' );
         // Just update the customizer keys
@@ -334,15 +415,15 @@ class Demo_Contents {
                 'show_on_front' => get_option( 'show_on_front' )
             ),
             'theme_mods' => get_theme_mods(),
-            'widgets' => self::generate_widgets_export_data(),
+            'widgets'       => self::generate_widgets_export_data(),
+            'widgets_config' => self::get_widgets_config(),
             'customizer_keys' => $regen_keys
         );
 
-        $config = apply_filters( 'ft_demo_generate_config', $config );
+        $config = apply_filters( 'demo_contents_generate_config', $config );
 
         return json_encode( $config );
     }
-
 
     function export(){
         if ( ! isset( $_REQUEST['demo_contents_export'] ) ) {
@@ -426,6 +507,9 @@ function demo_contents_custom_upload_xml($mimes)
     }
     return $mimes;
 }
+
+
+//add_action( 'wp', '__test' );
 
 
 

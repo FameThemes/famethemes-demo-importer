@@ -127,12 +127,14 @@ class Merlin_Importer {
             $term_slug   	= isset( $term['slug'] ) ? $term['slug'] : '';
             $parent_slug 	= isset( $term['parent'] ) ? $term['parent'] : '';
             $mapping_key 	= $taxonomy . '--' . $term['slug'];
+            $mapping_key_id 	= $taxonomy . '--' . $original_id;
             $existing 		= $this->termExists( $term );
 
             if ( $existing ) {
                 $imported_terms[ $mapping_key ] = $existing;
                 $imported_terms[ $original_id ] = $existing;
                 $imported_terms[ $term_slug ] = $existing;
+                $imported_terms[ $mapping_key_id ] = $existing;
                 continue;
             }
             if ( isset( $imported_terms[ $mapping_key ] ) ) {
@@ -177,9 +179,11 @@ class Merlin_Importer {
             if (is_wp_error($result)) {
                 continue;
             }
+
             $imported_terms[$term_slug] = $result['term_id'];
             $imported_terms[$mapping_key] = $result['term_id'];
             $imported_terms[$original_id] = $result['term_id'];
+            $imported_terms[ $mapping_key_id ] = $result['term_id'];
             if ($requires_remapping) {
                 $orphaned_terms[$result['term_id']] = $taxonomy;
             }
@@ -398,14 +402,121 @@ class Merlin_Importer {
     }
 
     /**
+     * Resetup widget data
+     *
+     *
+     * @param $data
+     * @param $config
+     * @return array
+     */
+    function replace_array( $data, $config ){
+        if ( ! is_array( $data ) ) {
+            return $data;
+        }
+
+        $imported_terms = get_transient('_wxr_imported_terms') ? : array();
+        $processed_posts = get_transient('_wxr_imported_posts') ? : array();
+
+
+        foreach ( $data as $key => $value ) {
+
+            if ( !  isset( $config[ $key ] ) ) {
+                continue;
+            }
+            $type = $config[ $key ];
+
+            if ( is_array( $type ) ) {
+                if ( ! isset( $type['type'] ) ) {
+                    continue;
+                }
+                $input_type =  $type['type'];
+            } else {
+                $input_type =  $type;
+            }
+
+            switch ( $input_type ) {
+                case  'post':
+                    if ( isset( $processed_posts[ $value ] ) ) {
+                        $data[ $key ] = $processed_posts[ $value ];
+                    }
+                    break;
+                case  'term': case  'tag': case  'category':
+                if ( ! isset( $type['tax'] ) ) {
+                    $tax = 'category';
+                } else {
+                    $tax = $type['tax'] ;
+                }
+
+                $value_is_array = true;
+                if ( ! is_array( $value ) ) {
+                    $value = explode( ',', $value );
+                    $value_is_array = false;
+                }
+                if ( ! empty( $value ) && is_array( $value ) ) {
+                    foreach ( $value as $vk => $vv ) {
+                        if ( isset( $imported_terms[ $tax.'--'. $vv] ) ) {
+                            $value[ $vk ] = $imported_terms[ $tax.'--'. $vv ];
+                        }
+                    }
+                }
+                if ( ! $value_is_array ) {
+                    $data[ $key ] = join(',', $value );
+                } else {
+                    $data[ $key ] = $value;
+                }
+
+                break;
+                case 'media': case 'image':case 'video':case 'audio':case 'attachment':
+                if ( is_numeric( $value ) ) {
+                    if ( isset( $processed_posts[ $value ] ) ) {
+                        $data[ $key ] = $processed_posts[ $value ];
+                    }
+                }else {
+                    if ( is_array( $value ) ) {
+                        if ( isset( $value['id'] ) ) {
+                            if ( isset( $processed_posts[ $value['id'] ] ) ) {
+                                $data[ $key ]['id'] = $processed_posts[ $value['id'] ];
+                            }
+                        }
+                    }
+                }
+                break;
+                case 'group':
+                case 'groups':
+                    if ( is_array( $value ) ) {
+                        var_dump( $value );
+                        $data[ $key ] = $this->replace_array( $value, $config );
+                    }
+                    break;
+                case 'repeater':
+                case 'repeat':
+                case 'loop':
+                    if ( is_array( $value ) ) {
+                        foreach ( $value as $gk => $gv ) {
+                            $data[ $key ][ $gk ] = $this->replace_array( $gv, $config );
+                        }
+                    }
+
+                    break;
+            }
+
+        }
+
+        return $data;
+    }
+
+    /**
      * Import widgets
      */
-    function importWidgets( $data ) {
+    function importWidgets( $data, $widgets_config = array() ) {
         global $wp_filesystem, $wp_registered_widget_controls, $wp_registered_sidebars;
 
         //add_filter( 'sidebars_widgets', array( $this, '_unset_sidebar_widget' ) );
         if ( empty( $data ) || ! is_array( $data ) ) {
             return ;
+        }
+        if ( ! $widgets_config ) {
+            $widgets_config = array();
         }
 
         $valid_sidebar = false;
@@ -433,6 +544,9 @@ class Merlin_Importer {
             }
         }
 
+        // Delete old widgets
+        update_option('sidebars_widgets', array() );
+
         foreach ( $data as $sidebar_id => $widgets ) {
             if ('wp_inactive_widgets' === $sidebar_id) {
                 continue;
@@ -451,7 +565,15 @@ class Merlin_Importer {
                 if (isset($widget_instances[$base_id])) {
                     $single_widget_instances = get_option('widget_' . $base_id);
                     $single_widget_instances = !empty($single_widget_instances) ? $single_widget_instances : array('_multiwidget' => 1);
-                    $single_widget_instances[] = apply_filters( 'merlin_import_widget_data', $widget, $widget_instances[$base_id] );
+
+                    $_config = array();
+                    if ( isset( $widgets_config[ $widget_instances[$base_id] ] ) ) {
+                       $_config = $widgets_config[ $widget_instances[$base_id] ];
+                    }
+
+                   $widget = $this->replace_array( $_config, $_config );
+
+                    $single_widget_instances[] = apply_filters( 'demo_contents_merlin_import_widget_data', $widget, $widget_instances[$base_id], $base_id );
                     end($single_widget_instances);
                     $new_instance_id_number = key($single_widget_instances);
                     if ('0' === strval($new_instance_id_number)) {
