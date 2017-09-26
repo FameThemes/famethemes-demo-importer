@@ -2,27 +2,40 @@
 class Demo_Content_Dashboard {
     private $api_url = 'https://www.famethemes.com/wp-json/wp/v2/download/?download_type=15&per_page=100&orderby=title&order=asc';
     private $errors = array();
-    private $cache_time = 3*HOUR_IN_SECONDS;
-    //private $cache_time = 0;
+   // private $cache_time = 3*HOUR_IN_SECONDS;
+    private $cache_time = 0;
     private $page_slug = 'demo-contents';
     private $config_slugs = array(
         'coupon-wp' => 'wp-coupon'
     );
     private $items = array();
-    private $current_theme = null;
     private $allowed_authors = array();
     public  $tgmpa = null;
+    public  $is_theme_page = false;
     function __construct()
     {
+
         add_action( 'admin_menu', array( $this, 'add_menu' ) );
         add_action( 'admin_footer', array( $this, 'preview_template' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 
         $current_theme_slug = get_option( 'template' );
-        add_action( $current_theme_slug.'_demo_import_content_tab', array( $this, 'listing_themes' ) );
-        add_action( 'theme_demo_import_content_tab', array( $this, 'listing_themes' ) );
+        add_action( $current_theme_slug.'_demo_import_content_tab', array( $this, 'wellcome' ), 10 );
+        add_action( 'theme_demo_import_content_tab', array( $this, 'wellcome' ), 10 );
 
+        add_action( $current_theme_slug.'_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
+        add_action( 'theme_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
+
+        add_action( 'current_screen', array( $this, 'setup_screen' ) );
+
+    }
+
+    function setup_screen(){
+        $screen = get_current_screen();
+        if ( strpos( $screen->id, 'appearance_' ) !== false ) {
+            $this->is_theme_page = true;
+        }
     }
 
     function get_tgmpa(){
@@ -35,13 +48,29 @@ class Demo_Content_Dashboard {
     }
 
 
-    function scripts(){
+    function scripts( $hook = '' ){
+        $load_script = false;
+        if ( strpos( $hook, 'appearance_' ) === 0 ) {
+            $load_script = true;
+        }
+
+        if ( ! $load_script ) {
+            if ( strpos( $hook, 'demo-contents' ) !== false ) {
+                $load_script = true;
+            }
+        }
+
+        $load_script = apply_filters( 'demo_contents_load_scripts', $load_script, $hook );
+        if ( ! $load_script ) {
+            return false;
+        }
+
         wp_enqueue_style( 'demo-contents', DEMO_CONTENT_URL . 'style.css', false );
         wp_enqueue_script( 'underscore');
         wp_enqueue_script( 'demo-contents', DEMO_CONTENT_URL.'assets/js/importer.js', array( 'jquery', 'underscore' ) );
         wp_enqueue_media();
         $run = isset( $_REQUEST['import_now'] ) && $_REQUEST['import_now'] == 1 ? 'run' : 'no';
-        $themes = $this->setup_themes();
+        $themes = $this->setup_themes( $this->is_theme_page ?  false : true );
         $tgm_url = '';
         // Localize the javascript.
         $plugins = array();
@@ -183,12 +212,8 @@ class Demo_Content_Dashboard {
         return apply_filters( 'demo_content_default_author', 'FameThemes' );
     }
 
-    function get_items(){
-        if ( ! empty( $this->items ) ) {
-            return $this->items;
-        }
-
-        return $this->setup_themes();
+    function get_items( $all_demos = true ){
+        return $this->setup_themes( $all_demos );
     }
 
     function is_installed( $theme_slug ){
@@ -313,14 +338,21 @@ class Demo_Content_Dashboard {
         return apply_filters( 'demo_contents_get_details_link', $link, $theme_slug, $theme_name );
     }
 
-    function setup_themes(){
+    function setup_themes( $all_demos = true ){
+
+        $key = 'demo_contents_get_themes_'.( (int ) $all_demos );
+
+        $cache = wp_cache_get( $key );
+        if ( false !== $cache ) {
+            $this->items = $cache;
+        }
         // If already setup
         if ( ! empty( $this->items) ) {
-            return $this->items;
+            // return $this->items;
         }
 
         // if have filter for list themes
-        $this->items = apply_filters( 'demo_contents_get_themes', array(), $this );
+        $this->items = apply_filters( 'demo_contents_get_themes', array(), $all_demos, $this );
         if ( ! empty( $this->items) ) {
             return $this->items;
         }
@@ -328,20 +360,33 @@ class Demo_Content_Dashboard {
         $current_theme_slug = get_option( 'template' );
         $child_theme_slug    = get_option( 'stylesheet' );
 
-        $installed_themes = wp_get_themes();
+        $current_active_slugs = array( $current_theme_slug );
+
+        if ( $all_demos ) {
+            $installed_themes = wp_get_themes();
+        } else {
+            $_activate_theme = wp_get_theme( $current_theme_slug );
+            $installed_themes = array(  );
+            $installed_themes[ $current_theme_slug ] = $_activate_theme;
+        }
+
         $list_themes = array();
 
         // Listing installed themes
-        foreach ( ( array )$installed_themes as $theme_slug => $theme) {
+        foreach ( ( array )$installed_themes as $theme_slug => $theme ) {
             if ( ! $this->is_allowed_theme($theme->get('Author'))) {
                 continue;
+            }
+            $is_activate = false;
+            if(  $theme_slug == $current_theme_slug || $theme_slug == $child_theme_slug ) {
+                $is_activate = true;
             }
             $list_themes[ $theme_slug ] = array(
                 'slug'              => $theme_slug,
                 'name'              => $theme->get('Name'),
                 'screenshot'        => $theme->get_screenshot(),
                 'author'            => $theme->get('Author'),
-                'activate'          => false,
+                'activate'          => $is_activate,
                 'demo_version'      => '',
                 'demo_url'          => 'https://demos.famethemes.com/'.$theme_slug.'/',
                 'demo_version_name' => '',
@@ -382,7 +427,7 @@ class Demo_Content_Dashboard {
         // Check if plugin active
         foreach ( $support_plugins as $plugin => $info ) {
             if ( is_plugin_active( $plugin ) ) {
-                if ( $current_theme_slug == $info['theme'] ) {
+                if ( $current_theme_slug == $info['theme'] || $child_theme_slug == $info['theme'] ) {
                     if ( isset( $list_themes[ $info['theme'] ] ) ) {
                         $clone = $list_themes[ $info['theme'] ];
                         $clone['activate'] = true;
@@ -403,8 +448,102 @@ class Demo_Content_Dashboard {
             $list_themes = array( $child_theme_slug => $child_theme ) + $list_themes;
         }
 
+        $child_demos = array();
+        foreach ( $list_themes as $slug => $theme ) {
+            if ( $theme['activate'] ) {
+                $sub_demos = $this->get_sub_demos( $theme['slug'] );
+                if ( ! empty( $sub_demos ) ) {
+                    // $list_themes = $list_themes + $sub_demos;
+                    $child_demos = $child_demos + $sub_demos;
+                }
+            }
+        }
+        if( ! empty( $child_demos ) ) {
+            // remove all other demo themes.
+            foreach ( $list_themes as $slug => $theme ) {
+                if ( ! $theme['activate'] ) {
+                    unset( $list_themes[ $slug ] );
+                }
+
+            }
+
+        }
+        $list_themes = $list_themes + $child_demos;
+
         $this->items = $list_themes;
+        wp_cache_set( $key, $this->items );
+
         return $this->items;
+    }
+
+
+
+    function get_sub_demos( $theme_slug ){
+
+        $repo_name = Demo_Contents::get_github_repo();
+        $key = $repo_name.'/'.$theme_slug;
+
+        if ( $this->cache_time > 0 ) {
+            $cache = get_transient($key);
+            if (false !== $cache) {
+                return $cache;
+            }
+        }
+
+        $url = sprintf( 'https://api.github.com/repos/%1$s/contents/%2$s/demos', $repo_name, $theme_slug );
+
+        $args = array(
+            'headers' => array(
+                'Authorization' => 'token dd7c2be5ce59384fc134cf066f432820fa54bcea'
+            )
+        );
+
+        $demos = array();
+
+        $res = wp_remote_get( $url, $args );
+        if ( wp_remote_retrieve_response_code( $res ) !== 200 ) {
+            set_transient( $key, $demos, $this->cache_time ); // cache 2 hours
+            return false;
+        }
+
+        $body = wp_remote_retrieve_body( $res );
+        $files = json_decode( $body, true );
+        if ( empty( $files ) ) {
+            set_transient( $key, $demos, $this->cache_time ); // cache 2 hours
+            return false;
+        }
+
+        $repo_username = explode('/', $repo_name );
+        $repo_username = $repo_username[0];
+        //
+
+        foreach ( $files as $file ) {
+            if ( $file['type'] != 'dir' ) {
+                continue;
+            }
+            $slug = $theme_slug.'-'.$file['name'];
+            $name = $file['name'];
+            $name = str_replace( '-', ' ', $name );
+            $name = ucwords( $name );
+            $screenshot_url = 'https://raw.githubusercontent.com/'.$repo_name.'/master/'.$file['path'].'/screenshot.png';
+            $arg = array(
+                'slug'              => $theme_slug,
+                'name'              => ucwords( $theme_slug ),
+                'screenshot'        => $screenshot_url,
+                'author'            => $repo_username,
+                'activate'          => false,
+                'demo_version'      => $file['name'],
+                'demo_url'          => 'https://demos.famethemes.com/'.$slug.'/',
+                'demo_version_name' => $name,
+                'is_plugin'         => false
+            );
+
+            $demos[ $slug ] = apply_filters( 'demo_contents_child_demo_args', $arg );
+        }
+
+        set_transient( $key, $demos, $this->cache_time ); // cache 2 hours
+
+       return $demos;
     }
 
     function dashboard() {
@@ -434,14 +573,65 @@ class Demo_Content_Dashboard {
                 </ul>
             </div>
 
-            <?php $this->listing_themes(); ?>
+            <?php $this->listing_themes( true ); ?>
 
         </div><!-- /.wrap -->
         <?php
     }
 
-    function listing_themes(){
-        $this->setup_themes();
+    function wellcome(){
+        ?>
+        <div class="demo-contents-import-box demo-contents-import-welcome">
+            <h3><?php esc_html_e( 'Welcome to FameThemes Demo Importer!', 'demo-contents' ); ?></h3>
+            <p>
+                <?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'demo-contents' ); ?>
+            </p>
+            <ul>
+                <li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'demo-contents' ); ?></li>
+                <li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'demo-contents' ); ?></li>
+                <li><?php esc_html_e( 'Click "Start Import Demo" to start import, it can take a couple of minutes.', 'demo-contents' ); ?></li>
+            </ul>
+            <p><?php esc_html_e( 'Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'demo-contents' ); ?></p>
+        </div>
+        <?php
+    }
+
+    function loop_theme( $theme ){
+        ?>
+        <div class="theme <?php echo  (  $theme['activate'] ) ? 'demo-contents--current-theme' : ''; ?>" tabindex="0">
+            <div class="theme-screenshot">
+                <img src="<?php echo esc_url($theme['screenshot']); ?>" alt="">
+            </div>
+            <?php if ( $theme['activate'] ) { ?>
+                <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
+            <?php }else { ?>
+                <span class="more-details"><?php _e('View Details', 'demo-contents'); ?></span>
+            <?php } ?>
+
+            <div class="theme-author"><?php sprintf(__('by %s', 'demo-contents'),$theme['author'] ); ?></div>
+            <div class="theme-name"><?php echo  ( $theme['demo_version_name'] ) ? esc_html( $theme['demo_version_name']  ) : esc_html($theme['name']); ?></div>
+            <div class="theme-actions">
+                <a
+                    data-theme-slug="<?php echo esc_attr( $theme['slug'] ); ?>"
+                    data-demo-version="<?php echo esc_attr( $theme['demo_version'] ); ?>"
+                    data-demo-version-name="<?php echo esc_attr( $theme['demo_version_name'] ); ?>"
+                    data-name="<?php echo esc_html($theme['name']); ?>"
+                    data-demo-url="<?php echo esc_attr( $theme['demo_url'] ); ?>"
+                    class="demo-contents--preview-theme-btn button button-primary customize"
+                    href="#"
+                ><?php _e('Start Import Demo', 'demo-contents'); ?></a>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Listing themes
+     *
+     * @param bool $all_demos true if list all demos of authors, false if listing demos for current theme only
+     */
+    function listing_themes( $all_demos = false ){
+        $this->setup_themes( $all_demos, true );
         $number_theme = count( $this->items );
         ?>
         <div class="theme-browser rendered demo-contents-themes-listing">
@@ -454,34 +644,7 @@ class Demo_Content_Dashboard {
 
                         // Listing installed themes
                         foreach (( array ) $this->items as $theme_slug => $theme ) {
-
-                            ?>
-                            <div class="theme <?php echo  (  $theme['activate'] ) ? 'demo-contents--current-theme' : ''; ?>" tabindex="0" aria-describedby="<?php echo esc_attr($theme_slug); ?>-action <?php echo esc_attr($theme_slug); ?>-name"
-                                 data-slug="<?php echo esc_attr($theme_slug); ?>">
-                                <div class="theme-screenshot">
-                                    <img src="<?php echo esc_url($theme['screenshot']); ?>" alt="">
-                                </div>
-                                <?php if ( $theme['activate'] ) { ?>
-                                    <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
-                                <?php }else { ?>
-                                    <span class="more-details"><?php _e('View Details', 'demo-contents'); ?></span>
-                                <?php } ?>
-
-                                <div class="theme-author"><?php sprintf(__('by %s', 'demo-contents'),$theme['author'] ); ?></div>
-                                <div class="theme-name" id="<?php echo esc_attr($theme_slug); ?>-name"><?php echo esc_html($theme['name']); ?></div>
-                                <div class="theme-actions">
-                                    <a
-                                            data-theme-slug="<?php echo esc_attr($theme_slug); ?>"
-                                            data-demo-version="<?php echo esc_attr( $theme['demo_version'] ); ?>"
-                                            data-demo-version-name="<?php echo esc_attr( $theme['demo_version_name'] ); ?>"
-                                            data-name="<?php echo esc_html($theme['name']); ?>"
-                                            data-demo-url="<?php echo esc_attr( $theme['demo_url'] ); ?>"
-                                            class="demo-contents--preview-theme-btn button button-primary customize"
-                                            href="#"
-                                    ><?php _e('Start Import Demo', 'demo-contents'); ?></a>
-                                </div>
-                            </div>
-                            <?php
+                            $this->loop_theme( $theme );
                         }
 
                         do_action('demo_content_themes_listing');
@@ -499,4 +662,3 @@ class Demo_Content_Dashboard {
         <?php
     }
 }
-

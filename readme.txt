@@ -1,4 +1,4 @@
-=== Plugin Name ===
+=== FameTheme Demo Importer ===
 Contributors: famethemes, shrimp2t
 Donate link: https://www.famethemes.com/
 Tags: import, demo data, oneclick, famethemes
@@ -14,6 +14,17 @@ FameThemes Demo importer
 
 Import demo content for FameThemes’s themes with just one click.
 
+
+###To Support demo for a theme.
+1. Create new theme demo dir in GitHub repo `username/repo-name/theme-name`.
+
+###To Support multiple demos for a theme.
+1. Create new theme demo dir in GitHub repo `username/repo-name/theme-name`.
+2. Create new json file and name it  `demos.json`, add list demos here.
+3. Crate new demo dir and name it `demos`.
+4. Add your new demo in new dir `child-demo`, so we have full path like this: `username/repo-name/theme-name/demos/child-demo` and put file `dummy-data.xml` and `config.json`
+
+
 Working with themes:
 
 - [Screenr](https://wordpress.org/themes/screenr/)
@@ -24,11 +35,14 @@ Working with themes:
 
 1. Upload `famethemes-demo-importer` folder to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Appereance -> (Theme Name) -> Select tab One Click Demo Import
+3. Appereance -> (Theme Name) -> Select tab One Click Demo Import or Tools -> Demo Contents to select demo to import.
 
 
 
 == Changelog ==
+= 1.0.6
+* Improve core and UX.
+
 = 1.0.2
 * Add recommend plugins notices.
 

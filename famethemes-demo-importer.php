@@ -18,7 +18,7 @@ define( 'DEMO_CONTENT_PATH', trailingslashit( plugin_dir_path( __FILE__) ) );
 class Demo_Contents {
     public $dir;
     public $url;
-    static $git_repo = 'FameThemes/famethemes-xml-demos';
+    private static $git_repo = 'FameThemes/famethemes-xml-demos';
     public $dashboard;
     public $progress;
     static $_instance;
@@ -43,6 +43,10 @@ class Demo_Contents {
             add_action('init', array($this, 'export'));
         }
 
+    }
+
+    static function get_github_repo(){
+        return apply_filters( 'demo_contents_github_repo', self::$git_repo );
     }
 
 

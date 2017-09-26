@@ -414,7 +414,6 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
                 $( 'body' ).append( previewHtml );
                 $( 'body' ).addClass( 'demo-contents-body-viewing' );
 
-
                 that.preparing_plugins();
 
                 $document.trigger( 'demo_contents_preview_opened' );

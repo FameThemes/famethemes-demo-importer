@@ -451,7 +451,7 @@ class Merlin_Importer {
                 if (isset($widget_instances[$base_id])) {
                     $single_widget_instances = get_option('widget_' . $base_id);
                     $single_widget_instances = !empty($single_widget_instances) ? $single_widget_instances : array('_multiwidget' => 1);
-                    $single_widget_instances[] = $widget;
+                    $single_widget_instances[] = apply_filters( 'merlin_import_widget_data', $widget, $widget_instances[$base_id] );
                     end($single_widget_instances);
                     $new_instance_id_number = key($single_widget_instances);
                     if ('0' === strval($new_instance_id_number)) {

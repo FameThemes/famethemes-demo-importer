@@ -99,12 +99,10 @@ class  Demo_Contents_Progress {
             }
         }
 
-
         /// Check theme activate
         if ( ! isset( $themes[ $current_theme_slug ] ) ) {
             wp_send_json_error( __( 'This theme have not installed.', 'demo-contents' ) );
         }
-
 
 
         //wp_send_json_success(); // just for test
@@ -115,7 +113,7 @@ class  Demo_Contents_Progress {
 
        $transient_key = '_demo_content_'.$current_theme_slug;
        if ( $current_theme_demo_version ) {
-           $transient_key .= '-'.$current_theme_demo_version;
+           $transient_key .= '-demos-'.$current_theme_demo_version;
        }
 
 
@@ -214,7 +212,7 @@ class  Demo_Contents_Progress {
                 // Delete file
                 $file_key = '_demo_contents_file_'.$current_theme_slug;
                 if ( $current_theme_demo_version ) {
-                    $file_key .= '-'.$current_theme_demo_version;
+                    $file_key .= '-demos-'.$current_theme_demo_version;
                 }
                 $files = get_transient( $file_key );
                 if ( is_array( $files ) ) {
@@ -341,7 +339,7 @@ class  Demo_Contents_Progress {
 
         $sub_path = $theme_name;
         if ( $demo_version ) {
-            $sub_path .= '/'.$demo_version;
+            $sub_path .= '/demos/'.$demo_version;
         }
         $prefix_name = str_replace( '/', '-', $sub_path );
 
@@ -352,6 +350,7 @@ class  Demo_Contents_Progress {
         $config_file = false;
 
         $files_data = get_transient( '_demo_contents_file_'.$prefix_name );
+        $files_data = false;
 
         // If have cache
         if ( ! empty( $files_data ) ) {
@@ -366,10 +365,11 @@ class  Demo_Contents_Progress {
         $remote_folder = apply_filters( 'demo_contents_remote_demo_data_folder_url', false );
 
         if ( ! $remote_folder ) {
-            $repo = apply_filters( 'demo_contents_github_repo', Demo_Contents::$git_repo );
+            $repo = Demo_Contents::get_github_repo();
             $remote_folder = 'https://raw.githubusercontent.com/'.$repo.'/master/';
         }
         $remote_folder = trailingslashit( $remote_folder );
+
 
         $xml_id = Demo_Contents::download_file( $remote_folder.$sub_path.'/dummy-data.xml',  $xml_file_name );
         if ( $xml_id ) {

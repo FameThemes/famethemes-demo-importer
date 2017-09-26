@@ -1,3 +1,31 @@
+.demo-contents-import-box {
+  background: #fff none repeat scroll 0 0;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  line-height: 2.1em;
+  margin-bottom: 25px;
+  overflow: auto;
+  padding: 15px;
+  position: relative;
+  max-width: 1050px;
+}
+
+.demo-contents-import-box.demo-contents-welcome {
+  padding: 0px 20px 10px 25px;
+}
+
+.demo-contents-import-box h3 {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0px 0px 15px;
+}
+
+.demo-contents-import-box li {
+  margin: 0px;
+  padding-left: 15px;
+  list-style: inside;
+}
+
 .demo-contents--current-theme {
   position: relative;
 }
