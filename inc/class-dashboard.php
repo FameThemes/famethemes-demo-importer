@@ -21,12 +21,23 @@ class Demo_Content_Dashboard {
         add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 
         $current_theme_slug = get_option( 'template' );
+        $no_pro = false;
+        if ( strpos( $current_theme_slug, '-pro' ) !== false ) {
+            $no_pro = str_replace( '-pro', '', $current_theme_slug );
+        }
+
         add_action( $current_theme_slug.'_demo_import_content_tab', array( $this, 'wellcome' ), 10 );
         add_action( 'theme_demo_import_content_tab', array( $this, 'wellcome' ), 10 );
-
         add_action( $current_theme_slug.'_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
-        add_action( 'theme_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
 
+        if ( $no_pro ) {
+            add_action( $no_pro.'_demo_import_content_tab', array( $this, 'wellcome' ), 10 );
+            add_action( $no_pro.'_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
+
+        }
+
+        // Remove no pro suffix
+        add_action( 'theme_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
         add_action( 'current_screen', array( $this, 'setup_screen' ) );
 
     }
