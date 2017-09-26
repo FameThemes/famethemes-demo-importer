@@ -25,12 +25,12 @@ https://www.youtube.com/watch?v=w0OKnqnHYo4
 `apply_filters( 'demo_contents_github_repo', self::$git_repo );`
 
 ### Add theme to listing preview
-```
+```php
 $allowed_authors  = apply_filters( 'demo_contents_allowed_authors', array(
-	   'famethemes' => 'FameThemes',
-	   'daisy themes' => 'Daisy Themes'
+   'famethemes' => 'FameThemes',
+   'daisy themes' => 'Daisy Themes'
 ) );
- ```
+```
 
 ###Support demo for a theme.
 1. Create new theme demo dir in GitHub repo  `username/repo-name/theme-name`.
