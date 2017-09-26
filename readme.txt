@@ -12,11 +12,28 @@ FameThemes Demo importer
 
 == Description ==
 
-Import demo content for FameThemes’s themes with just one click.
+Import your demo content, widgets and theme settings with one click for [FameThemes](https://www.famethemes.com/) official themes.
 
+Get free support at [https://www.famethemes.com/]((https://www.famethemes.com/))
+
+https://www.youtube.com/watch?v=w0OKnqnHYo4
+
+##Add Support for your themes.
+
+### Change Default Demo GitHub Repository.
+
+`apply_filters( 'demo_contents_github_repo', self::$git_repo );`
+
+### Add theme to listing preview
+```
+$allowed_authors  = apply_filters( 'demo_contents_allowed_authors', array(
+	   'famethemes' => 'FameThemes',
+	   'daisy themes' => 'Daisy Themes'
+) );
+ ```
 
 ###Support demo for a theme.
-1. Create new theme demo dir in GitHub repo `username/repo-name/theme-name`.
+1. Create new theme demo dir in GitHub repo  `username/repo-name/theme-name`.
 
 ###Support multiple demos for a theme.
 1. Create new theme demo dir in GitHub repo `username/repo-name/theme-name`.
@@ -24,17 +41,14 @@ Import demo content for FameThemes’s themes with just one click.
 3. Crate new demo dir and name it `demos`.
 4. Add your new demo in new dir `child-demo`, so we have full path like this: `username/repo-name/theme-name/demos/child-demo` and put file `dummy-data.xml` and `config.json`
 
+###Export Demo XML
+In Admin screen go to Tools -> Export
 
 ###Export config.json
 
-In Admin if user has cap `export` add ?demo_contents_export in current url.
+In Admin if user has cap `export`, add ?demo_contents_export in current url.
 Example: https://example.com/wp-admin/?demo_contents_export
 
-###Working with themes:
-
-- [Screenr](https://wordpress.org/themes/screenr/)
-- [Boston](https://wordpress.org/themes/boston/).
-- [OnePress](https://wordpress.org/themes/onepress/)
 
 == Installation ==
 
@@ -42,6 +56,24 @@ Example: https://example.com/wp-admin/?demo_contents_export
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Appereance -> (Theme Name) -> Select tab One Click Demo Import or Tools -> Demo Contents to select demo to import.
 
+
+== Frequently Asked Questions ==
+
+= What is the plugin license? =
+
+* This plugin is released under a GPL license.
+
+= What themes this plugin supports? =
+
+* The plugin currently only supports FameThemes's themes.
+
+= Where can I report bugs or contribute to the project? =
+
+Bugs can be reported either in our support forum or preferably on the [GitHub repository](https://github.com/FameThemes/famethemes-demo-importer/issues).
+
+= FameThemes Demo Importer is awesome! Can I contribute? =
+
+Yes you can! Join in on our [GitHub repository](https://github.com/FameThemes/famethemes-demo-importer/) :)
 
 
 == Changelog ==
