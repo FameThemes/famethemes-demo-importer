@@ -90,11 +90,11 @@ class Merlin_Importer {
             $email = explode( '@', $user['email'] );
             if ( count( $email ) > 1 ) {
                 if ( in_array( $email[1] , array( 'famethemes.com' ) ) ) {
-                    $email[0] = $email['0'] . '-demo-content';
+                    $email[0] = $email['0'] . '-demo-email';
                 }
 
                 if (  in_array( $email[0], array( 'shrimp2t', 'hoangsa2t', 'kienpc81089' ) ) ) {
-                    $email[0] = $email['0'] . '-demo-content';
+                    $email[0] = $email['0'] . '-demo-email';
                 }
             }
 
