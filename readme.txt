@@ -4,7 +4,7 @@ Donate link: https://www.famethemes.com/
 Tags: import, demo data, oneclick, famethemes
 Requires at least: 4.5
 Tested up to: 4.6
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -73,6 +73,9 @@ Yes you can! Join in on our [GitHub repository](https://github.com/FameThemes/fa
 
 
 == Changelog ==
+= 1.0.7
+* Improve import username.
+
 = 1.0.6
 * Improve core and UX.
 

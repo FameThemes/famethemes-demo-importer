@@ -85,10 +85,25 @@ class Merlin_Importer {
                 continue;
             }
 
+            $user['email']  = isset( $user['email'] ) ? $user['email'] : '';
+
+            $email = explode( '@', $user['email'] );
+            if ( count( $email ) > 1 ) {
+                if ( in_array( $email[1] , array( 'famethemes.com' ) ) ) {
+                    $email[0] = $email['0'] . '-demo-content';
+                }
+
+                if (  in_array( $email[0], array( 'shrimp2t', 'hoangsa2t', 'kienpc81089' ) ) ) {
+                    $email[0] = $email['0'] . '-demo-content';
+                }
+            }
+
+            $email = join( '@', $email );
+
             $userdata = array(
                 'user_login'   => $user_login,
                 'user_pass'    => wp_generate_password(),
-                'user_email'   => isset( $user['email'] ) ? $user['email'] : '',
+                'user_email'   => $email,
                 'display_name' => $user['display_name'],
                 'first_name'   => isset( $user['first_name'] ) ? $user['first_name'] : '',
                 'last_name'    => isset( $user['last_name'] ) ? $user['last_name'] : '',
