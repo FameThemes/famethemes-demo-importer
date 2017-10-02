@@ -432,10 +432,9 @@ class Merlin_Importer {
         $imported_terms = get_transient('_wxr_imported_terms') ? : array();
         $processed_posts = get_transient('_wxr_imported_posts') ? : array();
 
-
         foreach ( $data as $key => $value ) {
 
-            if ( !  isset( $config[ $key ] ) ) {
+            if ( ! isset( $config[ $key ] ) ) {
                 continue;
             }
             $type = $config[ $key ];
@@ -456,50 +455,49 @@ class Merlin_Importer {
                     }
                     break;
                 case  'term': case  'tag': case  'category':
-                if ( ! isset( $type['tax'] ) ) {
-                    $tax = 'category';
-                } else {
-                    $tax = $type['tax'] ;
-                }
-
-                $value_is_array = true;
-                if ( ! is_array( $value ) ) {
-                    $value = explode( ',', $value );
-                    $value_is_array = false;
-                }
-                if ( ! empty( $value ) && is_array( $value ) ) {
-                    foreach ( $value as $vk => $vv ) {
-                        if ( isset( $imported_terms[ $tax.'--'. $vv] ) ) {
-                            $value[ $vk ] = $imported_terms[ $tax.'--'. $vv ];
-                        }
+                    if ( ! isset( $type['tax'] ) ) {
+                        $tax = 'category';
+                    } else {
+                        $tax = $type['tax'] ;
                     }
-                }
-                if ( ! $value_is_array ) {
-                    $data[ $key ] = join(',', $value );
-                } else {
-                    $data[ $key ] = $value;
-                }
 
-                break;
-                case 'media': case 'image':case 'video':case 'audio':case 'attachment':
-                if ( is_numeric( $value ) ) {
-                    if ( isset( $processed_posts[ $value ] ) ) {
-                        $data[ $key ] = $processed_posts[ $value ];
+                    $value_is_array = true;
+                    if ( ! is_array( $value ) ) {
+                        $value = explode( ',', $value );
+                        $value_is_array = false;
                     }
-                }else {
-                    if ( is_array( $value ) ) {
-                        if ( isset( $value['id'] ) ) {
-                            if ( isset( $processed_posts[ $value['id'] ] ) ) {
-                                $data[ $key ]['id'] = $processed_posts[ $value['id'] ];
+                    if ( ! empty( $value ) && is_array( $value ) ) {
+                        foreach ( $value as $vk => $vv ) {
+                            if ( isset( $imported_terms[ $tax.'--'. $vv] ) ) {
+                                $value[ $vk ] = $imported_terms[ $tax.'--'. $vv ];
                             }
                         }
                     }
-                }
+                    if ( ! $value_is_array ) {
+                        $data[ $key ] = join(',', $value );
+                    } else {
+                        $data[ $key ] = $value;
+                    }
+
+                break;
+                case 'media': case 'image':case 'video':case 'audio':case 'attachment':
+                    if ( is_numeric( $value ) ) {
+                        if ( isset( $processed_posts[ $value ] ) ) {
+                            $data[ $key ] = $processed_posts[ $value ];
+                        }
+                    }else {
+                        if ( is_array( $value ) ) {
+                            if ( isset( $value['id'] ) ) {
+                                if ( isset( $processed_posts[ $value['id'] ] ) ) {
+                                    $data[ $key ]['id'] = $processed_posts[ $value['id'] ];
+                                }
+                            }
+                        }
+                    }
                 break;
                 case 'group':
                 case 'groups':
                     if ( is_array( $value ) ) {
-                        var_dump( $value );
                         $data[ $key ] = $this->replace_array( $value, $config );
                     }
                     break;
@@ -511,14 +509,14 @@ class Merlin_Importer {
                             $data[ $key ][ $gk ] = $this->replace_array( $gv, $config );
                         }
                     }
-
                     break;
             }
 
-        }
+        } // end loop data
 
         return $data;
     }
+
 
     /**
      * Import widgets
@@ -537,20 +535,6 @@ class Merlin_Importer {
         $valid_sidebar = false;
         $widget_instances = array();
         $imported_terms = get_transient('_wxr_imported_terms') ? : array();
-
-        /*
-        WP_Filesystem();
-
-        if ( file_exists( $file ) ) {
-            $file_contents = $wp_filesystem->get_contents($file);
-            $data = json_decode($file_contents, true);
-            if (null === $data) {
-                $data = maybe_unserialize($file_contents);
-            }
-        } else {
-            $data = array();
-        }
-        */
 
         foreach ( $wp_registered_widget_controls as $widget_id => $widget ) {
             $base_id = isset($widget['id_base']) ? $widget['id_base'] : null;
@@ -586,7 +570,7 @@ class Merlin_Importer {
                        $_config = $widgets_config[ $widget_instances[$base_id] ];
                     }
 
-                   $widget = $this->replace_array( $_config, $_config );
+                    $widget = $this->replace_array( $widget, $_config );
 
                     $single_widget_instances[] = apply_filters( 'demo_contents_merlin_import_widget_data', $widget, $widget_instances[$base_id], $base_id );
                     end($single_widget_instances);

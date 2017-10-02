@@ -214,6 +214,8 @@ class  Demo_Contents_Progress {
 
                 do_action( 'demo_contents_import_customize_completed', $this, $importer );
 
+
+                /*
                 $importer->importEnd();
 
 
@@ -230,6 +232,7 @@ class  Demo_Contents_Progress {
                 }
                 delete_transient( $transient_key );
                 delete_transient( $transient_key.'-json' );
+                */
                 break;
 
         } // end switch action
