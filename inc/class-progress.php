@@ -360,7 +360,6 @@ class  Demo_Contents_Progress {
         $config_file = false;
 
         $files_data = get_transient( '_demo_contents_file_'.$prefix_name );
-        $files_data = false;
 
         // If have cache
         if ( ! empty( $files_data ) ) {

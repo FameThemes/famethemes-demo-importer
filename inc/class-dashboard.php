@@ -501,26 +501,37 @@ class Demo_Content_Dashboard {
             }
         }
 
+
         $url = sprintf( 'https://api.github.com/repos/%1$s/contents/%2$s/demos', $repo_name, $theme_slug );
+        //$url = sprintf( 'https://api.github.com/repos/%1$s/contents/%2$s', $repo_name, $theme_slug );
+
+        $tokens = array(
+            'a3f436cfc47798cbfb2e2e8b0b6d8bf030121c63',
+            'dd7c2be5ce59384fc134cf066f432820fa54bcea',
+            '8a66f39f5d064e8b47dd2fe5b990e59d4bc0a7e9'
+        );
+
+        $token_key = array_rand( $tokens );
 
         $args = array(
             'headers' => array(
-                'Authorization' => 'token dd7c2be5ce59384fc134cf066f432820fa54bcea'
+                'Authorization' => "token {$tokens[$token_key]}"
             )
         );
 
         $demos = array();
 
         $res = wp_remote_get( $url, $args );
+
         if ( wp_remote_retrieve_response_code( $res ) !== 200 ) {
-            set_transient( $key, $demos, $this->cache_time ); // cache 2 hours
+            set_transient( $key, $demos, $this->cache_time );
             return false;
         }
 
         $body = wp_remote_retrieve_body( $res );
         $files = json_decode( $body, true );
         if ( empty( $files ) ) {
-            set_transient( $key, $demos, $this->cache_time ); // cache 2 hours
+            set_transient( $key, $demos, $this->cache_time );
             return false;
         }
 
