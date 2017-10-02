@@ -456,6 +456,22 @@ class Demo_Contents {
         die();
     }
 
+    /**
+     * Check if an item exists out there in the "ether".
+     *
+     * @param string $url - preferably a fully qualified URL
+     * @return boolean - true if it is out there somewhere
+     */
+    static function url_exists($url) {
+        if (($url == '') || ($url == null)) { return false; }
+        $response = wp_remote_head( $url, array( 'timeout' => 5 ) );
+        $accepted_status_codes = array( 200, 301, 302 );
+        if ( ! is_wp_error( $response ) && in_array( wp_remote_retrieve_response_code( $response ), $accepted_status_codes ) ) {
+            return true;
+        }
+        return false;
+    }
+
 }
 
 /*
@@ -480,6 +496,7 @@ if ( is_admin() ) {
  */
 function demo_contents_importer_plugin_activate( $plugin, $network_wide = false ) {
     if ( ! $network_wide &&  $plugin == plugin_basename( __FILE__ ) ) {
+
         $template_slug = get_option('template');
         $url = add_query_arg(
             array(
@@ -488,8 +505,24 @@ function demo_contents_importer_plugin_activate( $plugin, $network_wide = false 
             ),
             admin_url('themes.php')
         );
-        wp_redirect($url);
-        die();
+
+        // Check url exists
+        if ( Demo_Contents::url_exists( $url ) ) {
+            wp_redirect($url);
+            die();
+        }
+
+        $url = add_query_arg(
+            array(
+                'page' => $template_slug,
+                'tab' => 'demo-data-importer',
+            ),
+            admin_url('themes.php')
+        );
+        if ( Demo_Contents::url_exists( $url ) ) {
+            wp_redirect($url);
+            die();
+        }
     }
 }
 add_action( 'activated_plugin', 'demo_contents_importer_plugin_activate', 90, 2 );
@@ -508,8 +541,6 @@ function demo_contents_custom_upload_xml($mimes)
     return $mimes;
 }
 
-
-//add_action( 'wp', '__test' );
 
 
 

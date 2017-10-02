@@ -33,7 +33,6 @@ class Demo_Content_Dashboard {
         if ( $no_pro ) {
             add_action( $no_pro.'_demo_import_content_tab', array( $this, 'wellcome' ), 10 );
             add_action( $no_pro.'_demo_import_content_tab', array( $this, 'listing_themes' ), 35 );
-
         }
 
         // Remove no pro suffix
@@ -119,6 +118,7 @@ class Demo_Content_Dashboard {
             'btn_done_label'        => __( 'All Done! View Site', 'demo-contents' ),
             'failed_msg'            => __( 'Import Failed!', 'demo-contents' ),
             'import_now'            => __( 'Import Now', 'demo-contents' ),
+            'importing'             => __( 'Importing...', 'demo-contents' ),
             'activate_theme'        => __( 'Activate Now', 'demo-contents' ),
             'checking_theme'        => __( 'Checking theme', 'demo-contents' ),
             'checking_resource'        => __( 'Checking resource', 'demo-contents' ),
@@ -615,7 +615,7 @@ class Demo_Content_Dashboard {
             </div>
             <?php if ( $theme['activate'] ) { ?>
                 <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
-            <?php }else { ?>
+            <?php } else { ?>
                 <span class="more-details"><?php _e('View Details', 'demo-contents'); ?></span>
             <?php } ?>
 
@@ -630,7 +630,7 @@ class Demo_Content_Dashboard {
                     data-demo-url="<?php echo esc_attr( $theme['demo_url'] ); ?>"
                     class="demo-contents--preview-theme-btn button button-primary customize"
                     href="#"
-                ><?php _e('Start Import Demo', 'demo-contents'); ?></a>
+                ><?php _e('Start Import', 'demo-contents'); ?></a>
             </div>
         </div>
         <?php

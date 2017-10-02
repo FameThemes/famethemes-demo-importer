@@ -531,6 +531,7 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
                 e.preventDefault();
                 if ( ! $( this ).hasClass( 'updating-message' ) ) {
                     $( this ).addClass( 'updating-message' );
+                    $( this ).html( demo_contents_params.importing );
                     $document.trigger( 'demo_contents_ready' );
                 }
             } );
@@ -566,10 +567,9 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
 
             $document.on( 'demo_contents_preview_opened', function(){
                 //  that.loading();
-                //that.checking_resources();
-                $document.trigger( 'demo_contents_import_theme_options_completed' );
-                 //$document.trigger( 'demo_contents_import_widgets_completed' );
-                // $document.trigger( 'demo_contents_import_theme_options_completed' );
+                that.checking_resources();
+                //$document.trigger( 'demo_contents_import_theme_options_completed' );
+                //$document.trigger( 'demo_contents_import_widgets_completed' );
             } );
 
 

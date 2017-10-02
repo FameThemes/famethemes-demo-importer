@@ -214,25 +214,24 @@ class  Demo_Contents_Progress {
 
                 do_action( 'demo_contents_import_customize_completed', $this, $importer );
 
-
-                /*
-                $importer->importEnd();
-
-
-                // Delete file
-                $file_key = '_demo_contents_file_'.$current_theme_slug;
-                if ( $current_theme_demo_version ) {
-                    $file_key .= '-demos-'.$current_theme_demo_version;
-                }
-                $files = get_transient( $file_key );
-                if ( is_array( $files ) ) {
-                    foreach ( $files as $file_id ) {
-                        wp_delete_attachment( $file_id );
+                // Remove transient data if is live mod
+                if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+                    $importer->importEnd();
+                    // Delete file
+                    $file_key = '_demo_contents_file_'.$current_theme_slug;
+                    if ( $current_theme_demo_version ) {
+                        $file_key .= '-demos-'.$current_theme_demo_version;
                     }
+                    $files = get_transient( $file_key );
+                    if ( is_array( $files ) ) {
+                        foreach ( $files as $file_id ) {
+                            wp_delete_attachment( $file_id );
+                        }
+                    }
+                    delete_transient( $transient_key );
+                    delete_transient( $transient_key.'-json' );
                 }
-                delete_transient( $transient_key );
-                delete_transient( $transient_key.'-json' );
-                */
+
                 break;
 
         } // end switch action
