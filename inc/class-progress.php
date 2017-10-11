@@ -15,8 +15,10 @@ class  Demo_Contents_Progress {
 
     function __construct()
     {
-        add_action( 'wp_ajax_demo_contents__import', array( $this, 'ajax_import' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'checking_plugins' ), 900, 1 );
+        if ( Demo_Contents::php_support() ) {
+            add_action('wp_ajax_demo_contents__import', array($this, 'ajax_import'));
+            add_action('admin_enqueue_scripts', array($this, 'checking_plugins'), 900, 1);
+        }
     }
 
     function checking_plugins( $hook ) {
@@ -178,7 +180,7 @@ class  Demo_Contents_Progress {
                 }
 
                 // Setup Pages
-                $processed_posts = get_transient('_wxr_imported_posts') ? : array();
+                $processed_posts = get_transient('_wxr_imported_posts') ? get_transient('_wxr_imported_posts') : array();
                 if ( isset( $option_config['pages'] ) ){
                     foreach ( $option_config['pages']  as $key => $id ) {
                         $val = isset( $processed_posts[ $id ] )  ? $processed_posts[ $id ] : null ;
@@ -253,7 +255,7 @@ class  Demo_Contents_Progress {
 
     function resetup_repeater_page_ids( $theme_mod_name = null, $list_keys, $url ='', $option_type = 'theme_mod' ){
 
-        $processed_posts = get_transient('_wxr_imported_posts') ? : array();
+        $processed_posts = get_transient('_wxr_imported_posts') ? get_transient('_wxr_imported_posts') : array();
         if ( ! is_array( $processed_posts ) ) {
             $processed_posts = array();
         }

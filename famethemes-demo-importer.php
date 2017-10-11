@@ -5,7 +5,7 @@ Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: Demo data import tool for FameThemes's themes.
 Author: famethemes
 Author URI:  http://www.famethemes.com/
-Version: 1.0.7
+Version: 1.0.8
 Text Domain: demo-contents
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
@@ -47,6 +47,10 @@ class Demo_Contents {
 
     static function get_github_repo(){
         return apply_filters( 'demo_contents_github_repo', self::$git_repo );
+    }
+
+    static function php_support(){
+        return version_compare( PHP_VERSION,  '5.6.20', '>=' );
     }
 
 
@@ -463,9 +467,37 @@ class Demo_Contents {
      * @return boolean - true if it is out there somewhere
      */
     static function url_exists($url) {
-        if (($url == '') || ($url == null)) { return false; }
-        $response = wp_remote_head( $url, array( 'timeout' => 5 ) );
-        $accepted_status_codes = array( 200, 301, 302 );
+        if (($url == '') || ($url == null)) {
+            return false;
+        }
+
+        if ( strpos( $url, home_url() ) !== false ) {
+            $args = array(
+                'method' => 'GET',
+                'timeout' => 45,
+                'redirection' => 5,
+                'httpversion' => '1.0',
+                'blocking' => true,
+                'headers' => array(),
+                'cookies' => array(
+                    SECURE_AUTH_COOKIE => isset($_COOKIE[SECURE_AUTH_COOKIE]) ? $_COOKIE[SECURE_AUTH_COOKIE] : null,
+                    AUTH_COOKIE => isset($_COOKIE[AUTH_COOKIE]) ? $_COOKIE[AUTH_COOKIE] : null,
+                    LOGGED_IN_COOKIE => isset($_COOKIE[LOGGED_IN_COOKIE]) ? $_COOKIE[LOGGED_IN_COOKIE] : null,
+                )
+            );
+        } else {
+            $args = array();
+        }
+
+        $response = wp_remote_get( $url, $args);
+        $code = wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+        $body = wp_unslash( $body );
+
+        if ( strpos( $body, 'id="error-page"' ) !== false ) {
+            return false;
+        }
+        $accepted_status_codes = array( 200, 301 );
         if ( ! is_wp_error( $response ) && in_array( wp_remote_retrieve_response_code( $response ), $accepted_status_codes ) ) {
             return true;
         }
@@ -474,12 +506,6 @@ class Demo_Contents {
 
 }
 
-/*
-echo '<pre>';
-print_r( get_theme_mod( 'clients_items' ) );
-echo '</pre>';
-*/
-
 if ( is_admin() ) {
     function demo_contents__init(){
         new Demo_Contents();
@@ -487,6 +513,8 @@ if ( is_admin() ) {
     }
     add_action( 'plugins_loaded', 'demo_contents__init' );
 }
+
+
 
 /**
  * Redirect to import page

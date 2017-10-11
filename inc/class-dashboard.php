@@ -16,9 +16,10 @@ class Demo_Content_Dashboard {
     {
 
         add_action( 'admin_menu', array( $this, 'add_menu' ) );
-        add_action( 'admin_footer', array( $this, 'preview_template' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
+        if ( Demo_Contents::php_support() ) {
+            add_action('admin_footer', array($this, 'preview_template'));
+        }
+        add_action('admin_enqueue_scripts', array($this, 'scripts'));
 
         $current_theme_slug = get_option( 'template' );
         $no_pro = false;
@@ -76,6 +77,10 @@ class Demo_Content_Dashboard {
         }
 
         wp_enqueue_style( 'demo-contents', DEMO_CONTENT_URL . 'style.css', false );
+        if ( ! Demo_Contents::php_support() ) {
+            return ;
+        }
+
         wp_enqueue_script( 'underscore');
         wp_enqueue_script( 'demo-contents', DEMO_CONTENT_URL.'assets/js/importer.js', array( 'jquery', 'underscore' ) );
         wp_enqueue_media();
@@ -573,49 +578,61 @@ class Demo_Content_Dashboard {
             wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
         }
 
-        $this->setup_themes();
-        $number_theme = count( $this->items );
-        $link_all = '?page='.$this->page_slug;
-        $link_current_theme = '?page='.$this->page_slug.'&tab=current_theme';
-        $link_export= '?page='.$this->page_slug.'&tab=export';
-        $tab = isset( $_GET['tab'] )  ? $_GET['tab'] : '';
+        if ( Demo_Contents::php_support() ) {
+            $this->setup_themes();
+            $number_theme = count( $this->items );
+        }
 
         ob_start();
 
-
         ?>
         <div class="wrap demo-contents">
-            <h1 class="wp-heading-inline"><?php _e( 'Demo Contents', 'demo-contents' ); ?><span class="title-count theme-count"><?php echo $number_theme; ?></span></h1>
-            <div class="wp-filter hide-if-no-js">
-                <div class="filter-count">
-                    <span class="count theme-count"><?php echo $number_theme; ?></span>
+            <h1 class="wp-heading-inline"><?php _e( 'Demo Contents', 'demo-contents' ); ?>
+                <?php if ( Demo_Contents::php_support() ) { ?>
+                <span class="title-count theme-count"><?php echo $number_theme; ?></span>
+                <?php } ?>
+            </h1>
+            <?php
+            if ( Demo_Contents::php_support() ) {
+                $link_all = '?page='.$this->page_slug;
+                $link_current_theme = '?page='.$this->page_slug.'&tab=current_theme';
+                $link_export= '?page='.$this->page_slug.'&tab=export';
+                $tab = isset( $_GET['tab'] )  ? $_GET['tab'] : '';
+                 ?>
+                <div class="wp-filter hide-if-no-js">
+                    <div class="filter-count">
+                        <span class="count theme-count"><?php echo $number_theme; ?></span>
+                    </div>
+                    <ul class="filter-links">
+                        <li><a href="<?php echo $link_all; ?>" class="<?php echo ( ! $tab ) ? 'current' : ''; ?>"><?php _e( 'All Demos', 'demo-contents' ); ?></a></li>
+                    </ul>
                 </div>
-                <ul class="filter-links">
-                    <li><a href="<?php echo $link_all; ?>" class="<?php echo ( ! $tab ) ? 'current' : ''; ?>"><?php _e( 'All Demos', 'demo-contents' ); ?></a></li>
-                </ul>
-            </div>
-
-            <?php $this->listing_themes( true ); ?>
+                <?php $this->listing_themes( true ); ?>
+            <?php } else {
+                  $this->php_not_support_message();
+            } ?>
 
         </div><!-- /.wrap -->
         <?php
     }
 
     function wellcome(){
-        ?>
-        <div class="demo-contents-import-box demo-contents-import-welcome">
-            <h3><?php esc_html_e( 'Welcome to FameThemes Demo Importer!', 'demo-contents' ); ?></h3>
-            <p>
-                <?php esc_html_e( 'Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'demo-contents' ); ?>
-            </p>
-            <ul>
-                <li><?php esc_html_e( 'No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'demo-contents' ); ?></li>
-                <li><?php esc_html_e( 'Posts, pages, images, widgets and menus will get imported.', 'demo-contents' ); ?></li>
-                <li><?php esc_html_e( 'Click "Start Import Demo" to start import, it can take a couple of minutes.', 'demo-contents' ); ?></li>
-            </ul>
-            <p><?php esc_html_e( 'Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'demo-contents' ); ?></p>
-        </div>
-        <?php
+        if ( Demo_Contents::php_support() ) {
+            ?>
+            <div class="demo-contents-import-box demo-contents-import-welcome">
+                <h3><?php esc_html_e('Welcome to FameThemes Demo Importer!', 'demo-contents'); ?></h3>
+                <p>
+                    <?php esc_html_e('Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'demo-contents'); ?>
+                </p>
+                <ul>
+                    <li><?php esc_html_e('No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'demo-contents'); ?></li>
+                    <li><?php esc_html_e('Posts, pages, images, widgets and menus will get imported.', 'demo-contents'); ?></li>
+                    <li><?php esc_html_e('Click "Start Import Demo" to start import, it can take a couple of minutes.', 'demo-contents'); ?></li>
+                </ul>
+                <p><?php esc_html_e('Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'demo-contents'); ?></p>
+            </div>
+            <?php
+        }
     }
 
     function loop_theme( $theme ){
@@ -647,12 +664,26 @@ class Demo_Content_Dashboard {
         <?php
     }
 
+    function php_not_support_message(){
+        ?>
+        <div class="demo-contents-notice"><?php
+            printf( __( "PHP version is not support. You're using PHP version %s, please upgrade to version 5.6.20 or higher.",  'demo-contents' ), PHP_VERSION );
+            ?></div>
+        <?php
+    }
+
     /**
      * Listing themes
      *
      * @param bool $all_demos true if list all demos of authors, false if listing demos for current theme only
      */
     function listing_themes( $all_demos = false ){
+
+        if ( ! Demo_Contents::php_support() ) {
+            $this->php_not_support_message();
+            return ;
+        }
+
         $this->setup_themes( $all_demos, true );
         $number_theme = count( $this->items );
         ?>
