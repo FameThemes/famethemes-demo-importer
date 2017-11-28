@@ -71,7 +71,7 @@
 
 .demo-contents-import-progress {
   background: #ffffff;
-  padding: 15px 15px 30px;
+  padding: 0;
   display: block;
 }
 
@@ -105,7 +105,7 @@
 }
 .demo-contents--theme-thumbnail {
   padding: 10px;
-  background: #ddd;
+  background: #fff;
 }
 .demo-contents--theme-thumbnail img {
   max-width: 100%;
@@ -116,16 +116,13 @@
   position: relative;
   cursor: pointer;
   border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
-  padding-top: 10px;
-}
-.demo-contents--step:last-child {
-  border-bottom: 0px none;
+  padding: 10px 14px;
 }
 .demo-contents--step .demo-contents--step-heading {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
-  line-height: 18px;
+  line-height: 21px;
+  color: #555d66;
 }
 .demo-contents--step .demo-contents--child-steps {
   display: none;
@@ -141,7 +138,7 @@
   padding: 0px;
   position: absolute;
   top: 7px;
-  right: 0px;
+  right: 10px;
   line-height: 24px;
   width: 24px;
   height: 24px;
@@ -194,9 +191,10 @@ body.demo-contents-body-viewing {
   display: block;
   float: left;
   width: 45px;
-  height: 45px;
+  height: 41px;
   padding-right: 2px;
   background: #eee;
+  border-top: 4px solid #eee;
   border-right: 1px solid #ddd;
   color: #444;
   cursor: pointer;
@@ -209,11 +207,18 @@ body.demo-contents-body-viewing {
   z-index: 99999;
 }
 #demo-contents--preview .demo-contents-close:before {
-  font: 400 22px/1 dashicons;
+  font: 400 22px/45px dashicons;
   content: "\f335";
   position: relative;
-  top: 12px;
+  top: -3px;
   left: 13px;
+}
+#demo-contents--preview .demo-contents-close:hover {
+  background: #fff;
+  color: #0073aa;
+  border-top-color: #0073aa;
+  outline: 0;
+  box-shadow: none;
 }
 #demo-contents--preview .demo-contents-collapse-sidebar {
   z-index: 99999;
@@ -331,6 +336,7 @@ body.demo-contents-body-viewing {
   display: block;
 }
 #demo-contents--preview #demo-contents-sidebar-content {
+  background: #eee;
   position: absolute;
   top: 46px;
   bottom: 49px;
@@ -361,11 +367,10 @@ body.demo-contents-body-viewing {
 }
 
 .demo-contents-notice {
-    background-color: #fcf8e3;
-    color: #8a6d3b;
-    margin-top: 20px;
-    padding: .75rem 1.25rem;
-    margin-bottom: 1rem;
-    border: 1px solid #faf2cc;
-    border-radius: .25rem;
+  background-color: #fcf8e3;
+  color: #8a6d3b;
+  padding: .75rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid #faf2cc;
+  border-radius: .25rem;
 }

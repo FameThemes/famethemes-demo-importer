@@ -59,7 +59,7 @@
 }
 .demo-contents-import-progress {
     background: #ffffff;
-    padding: 15px 15px 30px;
+    padding: 0;
     display: block;
 }
 
@@ -85,22 +85,20 @@
         height: auto;
     }
     padding: 10px;
-    background: #ddd;
+    background: #fff;
 }
 
 .demo-contents--step {
     position: relative;
     cursor: pointer;
     border-bottom: 1px solid #ddd;
-    padding-bottom: 10px;
-    padding-top: 10px;
-    &:last-child {
-        border-bottom: 0px none;
-    }
+    padding: 10px 14px;
+    
     .demo-contents--step-heading {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
-        line-height: 18px;
+        line-height: 21px;
+        color: #555d66;
     }
     .demo-contents--child-steps {
         display: none;
@@ -116,7 +114,7 @@
         padding: 0px;
         position: absolute;
         top: 7px;
-        right: 0px;
+        right: 10px;
         line-height: 24px;
         width: 24px;
         height: 24px;
@@ -184,9 +182,10 @@ body.demo-contents-body-viewing {
         display: block;
         float: left;
         width: 45px;
-        height: 45px;
+        height: 41px;
         padding-right: 2px;
         background: #eee;
+        border-top: 4px solid #eee;
         border-right: 1px solid #ddd;
         color: #444;
         cursor: pointer;
@@ -198,12 +197,20 @@ body.demo-contents-body-viewing {
         transition: color .1s ease-in-out,background .1s ease-in-out;
         z-index: 99999;
         &:before {
-            font: 400 22px/1 dashicons;
+            font: 400 22px/45px dashicons;
             content: "\f335";
             position: relative;
-            top: 12px;
+            top: -3px;
             left: 13px;
         }
+
+      &:hover {
+          background: #fff;
+          color: #0073aa;
+          border-top-color: #0073aa;
+          outline: 0;
+          box-shadow: none;
+      }
     }
     .demo-contents-collapse-sidebar {
         z-index: 99999;
@@ -328,6 +335,7 @@ body.demo-contents-body-viewing {
         overflow: hidden;
     }
     #demo-contents-sidebar-content {
+      background: #eee;
         position: absolute;
         top: 46px;
         bottom: 49px;
