@@ -59,8 +59,9 @@
 }
 .demo-contents-import-progress {
     background: #ffffff;
-    padding: 0;
+    padding: 2px 0 0;
     display: block;
+    border-top: 1px solid #ddd;
 }
 
 .demo-contents-child-item {
@@ -93,7 +94,7 @@
     cursor: pointer;
     border-bottom: 1px solid #ddd;
     padding: 10px 14px;
-    
+
     .demo-contents--step-heading {
         font-size: 13px;
         font-weight: bold;
@@ -113,7 +114,7 @@
         box-shadow: none;
         padding: 0px;
         position: absolute;
-        top: 7px;
+        top: 8px;
         right: 10px;
         line-height: 24px;
         width: 24px;
@@ -270,9 +271,9 @@ body.demo-contents-body-viewing {
         height: 25px;
     }
     .ft-theme-name {
-        font-size: 20px;
-        font-weight: bold;
-        line-height: 24px;
+      font-size: 17px;
+      font-weight: 400;
+      line-height: 24px;
     }
     #demo-contents-sidebar {
         width: 300px;

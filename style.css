@@ -71,8 +71,9 @@
 
 .demo-contents-import-progress {
   background: #ffffff;
-  padding: 0;
+  padding: 2px 0 0;
   display: block;
+  border-top: 1px solid #ddd;
 }
 
 .demo-contents-child-item {
@@ -137,7 +138,7 @@
   box-shadow: none;
   padding: 0px;
   position: absolute;
-  top: 7px;
+  top: 8px;
   right: 10px;
   line-height: 24px;
   width: 24px;
@@ -275,8 +276,8 @@ body.demo-contents-body-viewing {
   height: 25px;
 }
 #demo-contents--preview .ft-theme-name {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 17px;
+  font-weight: 400;
   line-height: 24px;
 }
 #demo-contents--preview #demo-contents-sidebar {
