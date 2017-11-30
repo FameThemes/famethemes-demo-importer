@@ -518,6 +518,7 @@ class Demo_Content_Dashboard {
 
         $token_key = array_rand( $tokens );
 
+
         $args = array(
             'headers' => array(
                 'Authorization' => "token {$tokens[$token_key]}"
@@ -527,13 +528,17 @@ class Demo_Content_Dashboard {
         $demos = array();
 
         $res = wp_remote_get( $url, $args );
-
         if ( wp_remote_retrieve_response_code( $res ) !== 200 ) {
-            set_transient( $key, $demos, $this->cache_time );
-            return false;
+
+            $res = wp_remote_get( $url, array() );
+            if ( wp_remote_retrieve_response_code( $res ) !== 200 ) {
+                delete_transient($key);
+                return false;
+            }
         }
 
         $body = wp_remote_retrieve_body( $res );
+
         $files = json_decode( $body, true );
         if ( empty( $files ) ) {
             set_transient( $key, $demos, $this->cache_time );
