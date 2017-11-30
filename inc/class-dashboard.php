@@ -2,8 +2,8 @@
 class Demo_Content_Dashboard {
     private $api_url = 'https://www.famethemes.com/wp-json/wp/v2/download/?download_type=15&per_page=100&orderby=title&order=asc';
     private $errors = array();
-   // private $cache_time = 3*HOUR_IN_SECONDS;
-    private $cache_time = 0;
+    private $cache_time = 3*HOUR_IN_SECONDS;
+    //private $cache_time = 0;
     private $page_slug = 'demo-contents';
     private $config_slugs = array(
         'coupon-wp' => 'wp-coupon'
@@ -509,27 +509,15 @@ class Demo_Content_Dashboard {
 
         $url = sprintf( 'https://api.github.com/repos/%1$s/contents/%2$s/demos', $repo_name, $theme_slug );
         //$url = sprintf( 'https://api.github.com/repos/%1$s/contents/%2$s', $repo_name, $theme_slug );
-
-        $tokens = array(
-            'a3f436cfc47798cbfb2e2e8b0b6d8bf030121c63',
-            'dd7c2be5ce59384fc134cf066f432820fa54bcea',
-            '8a66f39f5d064e8b47dd2fe5b990e59d4bc0a7e9'
-        );
-
-        $token_key = array_rand( $tokens );
-
-
-        $args = array(
-            'headers' => array(
-                'Authorization' => "token {$tokens[$token_key]}"
-            )
-        );
-
+        // ?client_id=xxxx&client_secret=yyyy'
+        $url_token = add_query_arg( array(
+            'client_id' => '38954090f90b033b94e6',
+            'client_secret' => '20a21793fbc87a0dc197e52393322545d22d817f',
+        ), $url );
         $demos = array();
 
-        $res = wp_remote_get( $url, $args );
+        $res = wp_remote_get( $url_token, array() );
         if ( wp_remote_retrieve_response_code( $res ) !== 200 ) {
-
             $res = wp_remote_get( $url, array() );
             if ( wp_remote_retrieve_response_code( $res ) !== 200 ) {
                 delete_transient($key);

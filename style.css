@@ -375,3 +375,10 @@ body.demo-contents-body-viewing {
   border: 1px solid #faf2cc;
   border-radius: .25rem;
 }
+
+.demo-contents-themes-listing.theme-browser .theme .theme-actions {
+  top: auto;
+  -webkit-transform: translateY(0);
+  transform: translateY(0);
+  bottom: 0px;
+}
