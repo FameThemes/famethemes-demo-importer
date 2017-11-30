@@ -2,8 +2,8 @@
 class Demo_Content_Dashboard {
     private $api_url = 'https://www.famethemes.com/wp-json/wp/v2/download/?download_type=15&per_page=100&orderby=title&order=asc';
     private $errors = array();
-    private $cache_time = 3*HOUR_IN_SECONDS;
-    //private $cache_time = 0;
+    // private $cache_time = 3*HOUR_IN_SECONDS;
+    private $cache_time = 3600;
     private $page_slug = 'demo-contents';
     private $config_slugs = array(
         'coupon-wp' => 'wp-coupon'
@@ -535,7 +535,6 @@ class Demo_Content_Dashboard {
 
         $repo_username = explode('/', $repo_name );
         $repo_username = $repo_username[0];
-        //
 
         foreach ( $files as $file ) {
             if ( $file['type'] != 'dir' ) {
