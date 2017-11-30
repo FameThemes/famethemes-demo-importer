@@ -73,6 +73,9 @@ Yes you can! Join in on our [GitHub repository](https://github.com/FameThemes/fa
 
 
 == Changelog ==
+= 1.1.0
+* Bugs fixed.
+
 = 1.0.9
 * Bugs fixed.
 
