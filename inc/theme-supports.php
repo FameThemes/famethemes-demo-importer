@@ -5,23 +5,27 @@ add_action( 'tgmpa_register', 'demo_contents_register_required_plugins' );
 function demo_contents_register_required_plugins() {
 
     $template_slug  = get_option( 'template' );
-    if ( in_array( $template_slug, array( 'screenr' ) ) ) {
-        /*
-         * Array of plugin arrays. Required keys are name and slug.
-         * If the source is NOT from the .org repo, then source is also required.
-         */
-        $plugins = array(
-
-            // This is an example of how to include a plugin from the WordPress Plugin Repository.
-            array(
-                'name' => 'Contact Form 7',
-                'slug' => 'contact-form-7',
-                'required' => false,
-            ),
-
-        );
-    } else {
-        return ;
+    switch ( $template_slug ) {
+        case  'screenr':
+            $plugins = array(
+                array(
+                    'name' => 'Contact Form 7',
+                    'slug' => 'contact-form-7',
+                    'required' => false,
+                ),
+            );
+            break;
+        case  'onepress':
+            $plugins = array(
+                array(
+                    'name' => 'Pirate Forms',
+                    'slug' => 'pirate-forms',
+                    'required' => false,
+                ),
+            );
+            break;
+        default:
+            return ;
     }
 
     /*
