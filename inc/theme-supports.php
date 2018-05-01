@@ -5,7 +5,7 @@ add_action( 'tgmpa_register', 'demo_contents_register_required_plugins' );
 function demo_contents_register_required_plugins() {
 
     $template_slug  = get_option( 'template' );
-    if ( in_array( $template_slug, array( 'onepress' , 'screenr' ) ) ) {
+    if ( in_array( $template_slug, array( 'screenr' ) ) ) {
         /*
          * Array of plugin arrays. Required keys are name and slug.
          * If the source is NOT from the .org repo, then source is also required.
