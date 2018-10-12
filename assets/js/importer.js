@@ -394,6 +394,8 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
                 }
                 $( '#demo-contents--preview' ).remove();
 
+                console.log( 'demo_url', demo_url );
+
                 demo_contents_viewing_theme =  {
                     name: name,
                     slug: slug,

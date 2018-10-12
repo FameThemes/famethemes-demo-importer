@@ -18,8 +18,8 @@ function demo_contents_register_required_plugins() {
         case  'onepress':
             $plugins = array(
                 array(
-                    'name' => 'Pirate Forms',
-                    'slug' => 'pirate-forms',
+                    'name' => 'WPForms',
+                    'slug' => 'wpforms-lite',
                     'required' => false,
                 ),
             );
