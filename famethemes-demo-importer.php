@@ -3,9 +3,9 @@
 Plugin Name: FameTheme Demo Importer
 Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: Demo data import tool for FameThemes's themes.
-Author: famethemes
+Author: FameThemes
 Author URI:  http://www.famethemes.com/
-Version: 1.1.2
+Version: 1.1.3
 Text Domain: demo-contents
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
