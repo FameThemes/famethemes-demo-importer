@@ -25,7 +25,7 @@ svn update --set-depth infinity trunk
 
 cd ../
 
-rsync -rc --exclude-from=".distignore" . "${SVN_DIR}/trunk/" --delete --delete-excluded
+rsync -rc --exclude-from=".svnignore" . "${SVN_DIR}/trunk/" --delete --delete-excluded
 
 
 cd "${SVN_DIR}"

@@ -1,0 +1,13 @@
+/.wordpress-org
+/.git
+/.github
+/node_modules
+
+.distignore
+.gitignore
+.gitattributes
+deploy.sh
+svn-config.cfg
+/readme.md
+
+/SVN
