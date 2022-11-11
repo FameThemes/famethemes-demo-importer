@@ -1,3 +1,5 @@
+#https://github.com/10up/action-wordpress-plugin-deploy/blob/develop/deploy.sh
+
 source svn-config.cfg
 
 # Remove folder if exists.
@@ -22,6 +24,7 @@ cd "${SVN_DIR}"
 
 svn update --set-depth infinity assets
 svn update --set-depth infinity trunk
+
 
 cd ../
 
