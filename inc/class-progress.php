@@ -253,7 +253,7 @@ class  Demo_Contents_Progress {
     }
 
 
-    function resetup_repeater_page_ids( $theme_mod_name = null, $list_keys, $url ='', $option_type = 'theme_mod' ){
+    function resetup_repeater_page_ids( $theme_mod_name, $list_keys, $url ='', $option_type = 'theme_mod' ){
 
         $processed_posts = get_transient('_wxr_imported_posts') ? get_transient('_wxr_imported_posts') : array();
         if ( ! is_array( $processed_posts ) ) {
