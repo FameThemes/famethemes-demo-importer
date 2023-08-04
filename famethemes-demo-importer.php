@@ -1,12 +1,12 @@
 <?php
 /*
-Plugin Name: FameTheme Demo Importer
+Plugin Name: FameThemes Demo Importer
 Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: Demo data import tool for FameThemes's themes.
 Author: FameThemes
 Author URI:  http://www.famethemes.com/
 Version: 1.1.4
-Text Domain: demo-contents
+Text Domain: famethemes-demo-importer
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
@@ -52,6 +52,10 @@ class Demo_Contents {
     static function php_support(){
         return version_compare( PHP_VERSION,  '5.6.20', '>=' );
     }
+	
+	public function load_text_domain() {
+	load_plugin_textdomain( famethemes-demo-importer, false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+	}
 
 
     /**
@@ -568,11 +572,3 @@ function demo_contents_custom_upload_xml($mimes)
     }
     return $mimes;
 }
-
-
-
-
-
-
-
-

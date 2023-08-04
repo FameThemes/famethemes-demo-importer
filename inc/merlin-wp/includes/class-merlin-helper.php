@@ -40,17 +40,17 @@ if ( ! class_exists( 'Merlin_Helper' ) ) :
 
 				<?php if ( 'welcome' == $current_step ) : ?>
 					<div class="from-me with-second-message">
-						<p>Welcome to Merlin! If you need anything,<br>get in touch via <a href="mailto:hi@merlinwp.com">hi@merlinwp.com</a></p> 
+						<p><?php sprintf(esc_html__( 'Welcome to Merlin! If you need anything, get in touch via %1$shi@merlinwp.com%2$s', 'famethemes-demo-importer' ),'<a href="mailto:hi@merlinwp.com">','</a>'); ?></p> 
 					</div>
 					<div class="from-me is-third-message">
-						<p>BTW, you're seeing this because you have 'dev_mode' set to 'true' in your config file. Don't forget to turn it off when you're done. :)</p>
+						<p><?php esc_html_e( 'BTW, you\'re seeing this because you have \'dev_mode\' set to \'true\' in your config file. Don\'t forget to turn it off when you\'re done. :)', 'famethemes-demo-importer' ); ?></p>
 					</div>
 					<div class="chat-bubble"><div class="loading"><div class="dot one"></div><div class="dot two"></div><div class="dot three"></div></div><div class="tail"></div></div>
 				<?php endif; ?>
 
 				<?php if ( 'child' == $current_step ) : ?>
 					<div class="from-me">
-						<p>Don't forget, there are <a href="" target="_blank">available filters</a> so you may modify the generated child functions.php and style.css files. Pretty magical 'eh!?</p>
+						<p><?php sprintf(esc_html__( 'Don\'t forget, there are %1$savailable filters%2$s so you may modify the generated child functions.php and style.css files. Pretty magical \'eh!?', 'famethemes-demo-importer' ),'<a href="" target="_blank">','</a>'); ?></p>
 					</div>
 				<?php endif; ?>
 
