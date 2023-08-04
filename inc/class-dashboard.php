@@ -104,12 +104,12 @@ class Demo_Content_Dashboard {
                 'install' 	=> wp_create_nonce( 'tgmpa-install' ),
             ),
             'messages' 		        => array(
-                'plugin_installed'    => __( '%s installed', 'demo-contents' ),
-                'plugin_not_installed'    => __( '%s not installed', 'demo-contents' ),
-                'plugin_not_activated'    => __( '%s not activated', 'demo-contents' ),
-                'plugin_installing' => __( 'Installing %s...', 'demo-contents' ),
-                'plugin_activating' => __( 'Activating %s...', 'demo-contents' ),
-                'plugin_activated'  => __( '%s activated', 'demo-contents' ),
+                'plugin_installed'    => __( '%s installed', 'famethemes-demo-importer' ),
+                'plugin_not_installed'    => __( '%s not installed', 'famethemes-demo-importer' ),
+                'plugin_not_activated'    => __( '%s not activated', 'famethemes-demo-importer' ),
+                'plugin_installing' => __( 'Installing %s...', 'famethemes-demo-importer' ),
+                'plugin_activating' => __( 'Activating %s...', 'famethemes-demo-importer' ),
+                'plugin_activated'  => __( '%s activated', 'famethemes-demo-importer' ),
             ),
             'tgm_bulk_url' 		    => $tgm_url,
             'ajaxurl'      		    => admin_url( 'admin-ajax.php' ),
@@ -120,14 +120,14 @@ class Demo_Content_Dashboard {
             'action_update_plugin'  => 'tgmpa-bulk-update',
             'plugins'               => $plugins,
             'home'                  => home_url('/'),
-            'btn_done_label'        => __( 'All Done! View Site', 'demo-contents' ),
-            'failed_msg'            => __( 'Import Failed!', 'demo-contents' ),
-            'import_now'            => __( 'Import Now', 'demo-contents' ),
-            'importing'             => __( 'Importing...', 'demo-contents' ),
-            'activate_theme'        => __( 'Activate Now', 'demo-contents' ),
-            'checking_theme'        => __( 'Checking theme', 'demo-contents' ),
-            'checking_resource'        => __( 'Checking resource', 'demo-contents' ),
-            'confirm_leave'         => __( 'Importing demo content..., are you sure want to cancel ?', 'demo-contents' ),
+            'btn_done_label'        => __( 'All Done! View Site', 'famethemes-demo-importer' ),
+            'failed_msg'            => __( 'Import Failed!', 'famethemes-demo-importer' ),
+            'import_now'            => __( 'Import Now', 'famethemes-demo-importer' ),
+            'importing'             => __( 'Importing...', 'famethemes-demo-importer' ),
+            'activate_theme'        => __( 'Activate Now', 'famethemes-demo-importer' ),
+            'checking_theme'        => __( 'Checking theme', 'famethemes-demo-importer' ),
+            'checking_resource'        => __( 'Checking resource', 'famethemes-demo-importer' ),
+            'confirm_leave'         => __( 'Importing demo content..., are you sure want to cancel ?', 'famethemes-demo-importer' ),
             'installed_themes'      => $themes,
             'current_theme'         => $template_slug,
             'current_child_theme'   => $theme_slug,
@@ -167,7 +167,7 @@ class Demo_Content_Dashboard {
                     '_wpnonce' => wp_create_nonce('bulk-plugins'),
                     'action' => '',
                     'action2' => -1,
-                    //'message' => esc_html__('Installing', '@@textdomain'),
+                    //'message' => esc_html__('Installing', 'famethemes-demo-importer'),
                 );
 
                 $plugin['page_url'] = $tgmpa_url;
@@ -200,7 +200,7 @@ class Demo_Content_Dashboard {
 
 
     function add_menu() {
-        add_management_page( __( 'Demo Contents', 'demo-contents' ), __( 'Demo Contents', 'demo-contents' ), 'manage_options', $this->page_slug, array( $this, 'dashboard' ) );
+        add_management_page( __( 'Demo Contents', 'famethemes-demo-importer' ), __( 'Demo Contents', 'famethemes-demo-importer' ), 'manage_options', $this->page_slug, array( $this, 'dashboard' ) );
     }
 
     function get_allowed_authors(){
@@ -244,11 +244,11 @@ class Demo_Content_Dashboard {
 
                   <span type="button" class="demo-contents-collapse-sidebar button" aria-expanded="true">
                         <span class="collapse-sidebar-arrow"></span>
-                        <span class="collapse-sidebar-label"><?php _e( 'Collapse', 'demo-contents' ); ?></span>
+                        <span class="collapse-sidebar-label"><?php esc_html_e( 'Collapse', 'famethemes-demo-importer' ); ?></span>
                     </span>
 
                 <div id="demo-contents-sidebar">
-                    <span class="demo-contents-close"><span class="screen-reader-text"><?php _e( 'Close', 'fdi' ); ?></span></span>
+                    <span class="demo-contents-close"><span class="screen-reader-text"><?php esc_html_e( 'Close', 'famethemes-demo-importer' ); ?></span></span>
 
                     <div id="demo-contents-sidebar-topbar">
                         <span class="ft-theme-name">{{ data.name }}</span>
@@ -257,7 +257,7 @@ class Demo_Content_Dashboard {
                     <div id="demo-contents-sidebar-content">
                         <# if ( data.demo_version ) { #>
                         <div id="demo-contents-sidebar-heading">
-                            <span><?php _e( "Your're viewing demo", 'demo-contents' ); ?></span>
+                            <span><?php esc_html_e( "Your're viewing demo", 'famethemes-demo-importer' ); ?></span>
                             <strong class="panel-title site-title">{{ data.demo_name }}</strong>
                         </div>
                         <# } #>
@@ -266,69 +266,69 @@ class Demo_Content_Dashboard {
                         <# } #>
 
                         <div class="demo-contents--activate-notice">
-                            <?php _e( 'This theme is inactivated. Your must activate this theme before import demo content', 'demo-contents' ); ?>
+                            <?php esc_html_e( 'This theme is inactivated. Your must activate this theme before import demo content', 'famethemes-demo-importer' ); ?>
                         </div>
 
                         <div class="demo-contents--activate-notice resources-not-found demo-contents-hide">
                             <p class="demo-contents--msg"></p>
                             <div class="demo-contents---upload">
-                                <p><button type="button" class="demo-contents--upload-xml button-secondary"><?php _e( 'Upload XML file .xml', 'demo-contents' ); ?></button></p>
-                                <p><button type="button" class="demo-contents--upload-json button-secondary"><?php _e( 'Upload config file .json or .txt', 'demo-contents' ); ?></button></p>
+                                <p><button type="button" class="demo-contents--upload-xml button-secondary"><?php esc_html_e( 'Upload XML file .xml', 'famethemes-demo-importer' ); ?></button></p>
+                                <p><button type="button" class="demo-contents--upload-json button-secondary"><?php esc_html_e( 'Upload config file .json or .txt', 'famethemes-demo-importer' ); ?></button></p>
                             </div>
                         </div>
 
                         <div class="demo-contents-import-progress">
 
                             <div class="demo-contents--step demo-contents-install-plugins demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Install Recommended Plugins', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Install Recommended Plugins', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--loading"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step demo-contents-import-users demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Users', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Users', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--waiting"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step demo-contents-import-categories demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Categories', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Categories', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--completed"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step demo-contents-import-tags demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Tags', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Tags', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--completed"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step demo-contents-import-taxs demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Taxonomies', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Taxonomies', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--waiting"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step  demo-contents-import-posts demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Posts & Media', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Posts & Media', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--waiting"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step demo-contents-import-theme-options demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Options', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Options', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--waiting"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step demo-contents-import-widgets demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Widgets', 'demo-contents' ); ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Widgets', 'famethemes-demo-importer' ); ?></div>
                                 <div class="demo-contents--status demo-contents--waiting"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
 
                             <div class="demo-contents--step  demo-contents-import-customize demo-contents--waiting">
-                                <div class="demo-contents--step-heading"><?php _e( 'Import Customize Settings', 'demo-contents' ) ?></div>
+                                <div class="demo-contents--step-heading"><?php esc_html_e( 'Import Customize Settings', 'famethemes-demo-importer' ) ?></div>
                                 <div class="demo-contents--status demo-contents--waiting"></div>
                                 <div class="demo-contents--child-steps"></div>
                             </div>
@@ -337,7 +337,7 @@ class Demo_Content_Dashboard {
                     </div><!-- /.demo-contents-sidebar-content -->
 
                     <div id="demo-contents-sidebar-footer">
-                        <a href="#" " class="demo-contents--import-now button button-primary"><?php _e( 'Import Now', 'demo-contents' ); ?></a>
+                        <a href="#" " class="demo-contents--import-now button button-primary"><?php esc_html_e( 'Import Now', 'famethemes-demo-importer' ); ?></a>
                     </div>
 
                 </div>
@@ -579,7 +579,7 @@ class Demo_Content_Dashboard {
 
         ?>
         <div class="wrap demo-contents">
-            <h1 class="wp-heading-inline"><?php _e( 'Demo Contents', 'demo-contents' ); ?>
+            <h1 class="wp-heading-inline"><?php esc_html_e( 'Demo Contents', 'famethemes-demo-importer' ); ?>
                 <?php if ( Demo_Contents::php_support() ) { ?>
                 <span class="title-count theme-count"><?php echo $number_theme; ?></span>
                 <?php } ?>
@@ -596,7 +596,7 @@ class Demo_Content_Dashboard {
                         <span class="count theme-count"><?php echo $number_theme; ?></span>
                     </div>
                     <ul class="filter-links">
-                        <li><a href="<?php echo $link_all; ?>" class="<?php echo ( ! $tab ) ? 'current' : ''; ?>"><?php _e( 'All Demos', 'demo-contents' ); ?></a></li>
+                        <li><a href="<?php echo $link_all; ?>" class="<?php echo ( ! $tab ) ? 'current' : ''; ?>"><?php esc_html_e( 'All Demos', 'famethemes-demo-importer' ); ?></a></li>
                     </ul>
                 </div>
                 <?php $this->listing_themes( true ); ?>
@@ -612,16 +612,16 @@ class Demo_Content_Dashboard {
         if ( Demo_Contents::php_support() ) {
             ?>
             <div class="demo-contents-import-box demo-contents-import-welcome">
-                <h3><?php esc_html_e('Welcome to FameThemes Demo Importer!', 'demo-contents'); ?></h3>
+                <h3><?php esc_html_e('Welcome to FameThemes Demo Importer!', 'famethemes-demo-importer'); ?></h3>
                 <p>
-                    <?php esc_html_e('Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'demo-contents'); ?>
+                    <?php esc_html_e('Importing demo data (post, pages, images, theme settings, ...) is the easiest way to setup your theme. It will allow you to quickly edit everything instead of creating content from scratch. When you import the data, the following things might happen:', 'famethemes-demo-importer'); ?>
                 </p>
                 <ul>
-                    <li><?php esc_html_e('No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'demo-contents'); ?></li>
-                    <li><?php esc_html_e('Posts, pages, images, widgets and menus will get imported.', 'demo-contents'); ?></li>
-                    <li><?php esc_html_e('Click "Start Import Demo" to start import, it can take a couple of minutes.', 'demo-contents'); ?></li>
+                    <li><?php esc_html_e('No existing posts, pages, categories, images, custom post types or any other data will be deleted or modified.', 'famethemes-demo-importer'); ?></li>
+                    <li><?php esc_html_e('Posts, pages, images, widgets and menus will get imported.', 'famethemes-demo-importer'); ?></li>
+                    <li><?php esc_html_e('Click "Start Import Demo" to start import, it can take a couple of minutes.', 'famethemes-demo-importer'); ?></li>
                 </ul>
-                <p><?php esc_html_e('Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'demo-contents'); ?></p>
+                <p><?php esc_html_e('Notice: If your site already has content, please make sure you backup your database and WordPress files before import demo data.', 'famethemes-demo-importer'); ?></p>
             </div>
             <?php
         }
@@ -634,12 +634,12 @@ class Demo_Content_Dashboard {
                 <img src="<?php echo esc_url($theme['screenshot']); ?>" alt="">
             </div>
             <?php if ( $theme['activate'] ) { ?>
-                <span class="more-details"><?php _e('Current Theme', 'demo-contents'); ?></span>
+                <span class="more-details"><?php esc_html_e('Current Theme', 'famethemes-demo-importer'); ?></span>
             <?php } else { ?>
-                <span class="more-details"><?php _e('View Details', 'demo-contents'); ?></span>
+                <span class="more-details"><?php esc_html_e('View Details', 'famethemes-demo-importer'); ?></span>
             <?php } ?>
 
-            <div class="theme-author"><?php sprintf(__('by %s', 'demo-contents'),$theme['author'] ); ?></div>
+            <div class="theme-author"><?php sprintf(__('by %s', 'famethemes-demo-importer'),$theme['author'] ); ?></div>
             <div class="theme-name"><?php echo  ( $theme['demo_version_name'] ) ? esc_html( $theme['demo_version_name']  ) : esc_html($theme['name']); ?></div>
             <div class="theme-actions">
                 <a
@@ -650,7 +650,7 @@ class Demo_Content_Dashboard {
                     data-demo-url="<?php echo esc_attr( $theme['demo_url'] ); ?>"
                     class="demo-contents--preview-theme-btn button button-primary customize"
                     href="#"
-                ><?php _e('Start Import', 'demo-contents'); ?></a>
+                ><?php esc_html_e('Start Import', 'famethemes-demo-importer'); ?></a>
             </div>
         </div>
         <?php
@@ -659,7 +659,7 @@ class Demo_Content_Dashboard {
     function php_not_support_message(){
         ?>
         <div class="demo-contents-notice"><?php
-            printf( __( "PHP version is not support. You're using PHP version %s, please upgrade to version 5.6.20 or higher.",  'demo-contents' ), PHP_VERSION );
+            printf( esc_html__( "PHP version is not support. You're using PHP version %s, please upgrade to version 5.6.20 or higher.",   'famethemes-demo-importer' ), PHP_VERSION );
             ?></div>
         <?php
     }
@@ -697,7 +697,7 @@ class Demo_Content_Dashboard {
                 } else {
                     ?>
                     <div class="demo-contents-no-themes">
-                        <?php _e( 'No Themes Found', 'demo-contents' ); ?>
+                        <?php esc_html_e( 'No Themes Found', 'famethemes-demo-importer' ); ?>
                     </div>
                     <?php
                 }
