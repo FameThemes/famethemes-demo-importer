@@ -264,6 +264,7 @@ var demo_contents_viewing_theme = window.demo_contents_viewing_theme || {};
                 url: demo_contents_params.ajaxurl,
                 data: {
                     action: 'demo_contents__import',
+                    nonce: demo_contents_params.nonce,
                     doing: doing,
                     current_theme: demo_contents_viewing_theme,
                     theme: '', // Import demo for theme ?

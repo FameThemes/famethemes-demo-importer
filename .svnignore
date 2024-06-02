@@ -7,6 +7,7 @@
 .distignore
 .gitignore
 .gitattributes
+.cfg
 deploy.sh
 svn-config.cfg
 /readme.md

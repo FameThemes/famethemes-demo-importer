@@ -113,6 +113,7 @@ class Demo_Content_Dashboard {
             ),
             'tgm_bulk_url' 		    => $tgm_url,
             'ajaxurl'      		    => admin_url( 'admin-ajax.php' ),
+            'nonce'      		    => wp_create_nonce('ft_demo_import'),
             'theme_url'      		=> admin_url( 'themes.php' ),
             'wpnonce'      		    => wp_create_nonce( 'merlin_nonce' ),
             'action_install_plugin' => 'tgmpa-bulk-activate',
