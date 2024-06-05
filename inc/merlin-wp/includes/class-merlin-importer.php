@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Merlin WP
  * Better WordPress Theme Onboarding
@@ -11,56 +12,58 @@
  * @license   Licensed GPLv3 for open source use
  */
 
-if ( ! function_exists( 'WP_Filesystem' ) ) {
+if (!function_exists('WP_Filesystem')) {
     require ABSPATH . 'wp-admin/includes/file.php';
 }
 
-if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+if (!function_exists('wp_generate_attachment_metadata')) {
     require ABSPATH . 'wp-admin/includes/image.php';
 }
 
-if ( ! function_exists( 'wp_read_audio_metadata' ) ) {
+if (!function_exists('wp_read_audio_metadata')) {
     require ABSPATH . 'wp-admin/includes/media.php';
 }
 
 /**
  * Merlin_Importer
  */
-class Merlin_Importer {
+class Merlin_Importer
+{
     /**
      * The main controller for the actual import stage.
      *
      * @param string $file Path to the WXR file for importing.
      */
-    function import( $file ) {
+    function import($file)
+    {
 
         $this->importStart();
 
         $parser = new Merlin_WXR_Parser();
-        $content = $parser->parse( $file );
+        $content = $parser->parse($file);
 
-        if ( is_wp_error( $content ) ) {
+        if (is_wp_error($content)) {
             return false;
         }
 
-        if ( ! empty( $content['users'] ) ) {
-            $this->import_users( $content['users'] );
+        if (!empty($content['users'])) {
+            $this->import_users($content['users']);
         }
 
-        if ( ! empty( $content['categories'] ) ) {
-            $this->importTerms( $content['categories'] );
+        if (!empty($content['categories'])) {
+            $this->importTerms($content['categories']);
         }
 
-        if ( ! empty( $content['tags'] ) ) {
-            $this->importTerms( $content['tags'] );
+        if (!empty($content['tags'])) {
+            $this->importTerms($content['tags']);
         }
 
-        if ( ! empty( $content['terms'] ) ) {
-            $this->importTerms( $content['terms'] );
+        if (!empty($content['terms'])) {
+            $this->importTerms($content['terms']);
         }
 
-        if ( ! empty( $content['posts'] ) ) {
-            $this->importPosts( $content['posts'] );
+        if (!empty($content['posts'])) {
+            $this->importPosts($content['posts']);
         }
 
         $this->remapImportedData();
@@ -73,56 +76,57 @@ class Merlin_Importer {
      *
      * @param array $users WordPress users.
      */
-    function import_users( array $users ) {
+    function import_users(array $users)
+    {
 
-        $imported_users = get_transient( '_wxr_imported_users' ) ? get_transient( '_wxr_imported_users' ) : array();
+        $imported_users = get_transient('_wxr_imported_users') ? get_transient('_wxr_imported_users') : array();
 
-        foreach ( $users as $user ) {
+        foreach ($users as $user) {
             $user_login = $user['login'];
-            $original_id = isset( $user['id'] ) ? $user['id'] : 0;
+            $original_id = isset($user['id']) ? $user['id'] : 0;
 
-            if ( isset( $imported_users[ $original_id ] )|| isset( $imported_users[ $user_login ] ) ) {
+            if (isset($imported_users[$original_id]) || isset($imported_users[$user_login])) {
                 continue;
             }
 
-            $user['email']  = isset( $user['email'] ) ? $user['email'] : '';
+            $user['email']  = isset($user['email']) ? $user['email'] : '';
 
-            $email = explode( '@', $user['email'] );
-            if ( count( $email ) > 1 ) {
-                if ( in_array( $email[1] , array( 'famethemes.com' ) ) ) {
+            $email = explode('@', $user['email']);
+            if (count($email) > 1) {
+                if (in_array($email[1], array('famethemes.com'))) {
                     $email[0] = $email['0'] . '-demo-email';
                 }
 
-                if (  in_array( $email[0], array( 'shrimp2t', 'hoangsa2t', 'kienpc81089' ) ) ) {
+                if (in_array($email[0], array('shrimp2t', 'hoangsa2t', 'kienpc81089'))) {
                     $email[0] = $email['0'] . '-demo-email';
                 }
             }
 
-            $email = join( '@', $email );
+            $email = join('@', $email);
 
             $userdata = array(
                 'user_login'   => $user_login,
                 'user_pass'    => wp_generate_password(),
                 'user_email'   => $email,
                 'display_name' => $user['display_name'],
-                'first_name'   => isset( $user['first_name'] ) ? $user['first_name'] : '',
-                'last_name'    => isset( $user['last_name'] ) ? $user['last_name'] : '',
+                'first_name'   => isset($user['first_name']) ? $user['first_name'] : '',
+                'last_name'    => isset($user['last_name']) ? $user['last_name'] : '',
                 'role'         => 'subscriber',
                 'rich_editing' => false,
-                'description'  => esc_html__( 'This user is created while installing demo content. You should delete or modify this user&#8217;s information now.', '@@textdomain' ),
+                'description'  => esc_html__('This user is created while installing demo content. You should delete or modify this user&#8217;s information now.', '@@textdomain'),
             );
-            $user_id = wp_insert_user( $userdata );
-            if ( is_wp_error( $user_id ) ) {
+            $user_id = wp_insert_user($userdata);
+            if (is_wp_error($user_id)) {
                 continue;
             }
 
-            $imported_users[ $original_id ] = $user_id;
-            $imported_users[ $user_login ] = $user_id;
+            $imported_users[$original_id] = $user_id;
+            $imported_users[$user_login] = $user_id;
         }
 
-        set_transient( '_wxr_imported_users', $imported_users, DAY_IN_SECONDS );
+        set_transient('_wxr_imported_users', $imported_users, DAY_IN_SECONDS);
 
-        if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+        if (defined('DOING_AJAX') && DOING_AJAX) {
             return 'true';
         }
     }
@@ -130,33 +134,34 @@ class Merlin_Importer {
     /**
      * Import terms
      */
-    function importTerms( array $terms ) {
+    function importTerms(array $terms)
+    {
         global $wpdb;
 
-        $imported_terms = get_transient( '_wxr_imported_terms' ) ? get_transient( '_wxr_imported_terms' ) : array();
-        $orphaned_terms = get_transient( '_wxr_orphaned_terms' ) ? get_transient( '_wxr_orphaned_terms' ) : array();
+        $imported_terms = get_transient('_wxr_imported_terms') ? get_transient('_wxr_imported_terms') : array();
+        $orphaned_terms = get_transient('_wxr_orphaned_terms') ? get_transient('_wxr_orphaned_terms') : array();
 
-        foreach ( $terms as $term ) {
-            $taxonomy 		= $term['taxonomy'];
-            $original_id 	= isset( $term['id'] ) ? (int) $term['id'] : 0;
-            $term_slug   	= isset( $term['slug'] ) ? $term['slug'] : '';
-            $parent_slug 	= isset( $term['parent'] ) ? $term['parent'] : '';
-            $mapping_key 	= $taxonomy . '--' . $term['slug'];
-            $mapping_key_id 	= $taxonomy . '--' . $original_id;
-            $existing 		= $this->termExists( $term );
+        foreach ($terms as $term) {
+            $taxonomy         = $term['taxonomy'];
+            $original_id     = isset($term['id']) ? (int) $term['id'] : 0;
+            $term_slug       = isset($term['slug']) ? $term['slug'] : '';
+            $parent_slug     = isset($term['parent']) ? $term['parent'] : '';
+            $mapping_key     = $taxonomy . '--' . $term['slug'];
+            $mapping_key_id     = $taxonomy . '--' . $original_id;
+            $existing         = $this->termExists($term);
 
-            if ( $existing ) {
-                $imported_terms[ $mapping_key ] = $existing;
-                $imported_terms[ $original_id ] = $existing;
-                $imported_terms[ $term_slug ] = $existing;
-                $imported_terms[ $mapping_key_id ] = $existing;
+            if ($existing) {
+                $imported_terms[$mapping_key] = $existing;
+                $imported_terms[$original_id] = $existing;
+                $imported_terms[$term_slug] = $existing;
+                $imported_terms[$mapping_key_id] = $existing;
                 continue;
             }
-            if ( isset( $imported_terms[ $mapping_key ] ) ) {
+            if (isset($imported_terms[$mapping_key])) {
                 continue;
             }
-            if ( ! taxonomy_exists( $taxonomy ) ) {
-                if ( false !== strpos( $taxonomy, 'pa_' ) && class_exists( 'WooCommerce', false ) ) {
+            if (!taxonomy_exists($taxonomy)) {
+                if (false !== strpos($taxonomy, 'pa_') && class_exists('WooCommerce', false)) {
                     $attribute_name = str_replace('pa_', '', $taxonomy);
                     $attribute_args = array(
                         'attribute_label'   => ucwords($attribute_name),
@@ -176,8 +181,8 @@ class Merlin_Importer {
                 }
             }
             $requires_remapping = false;
-            if ( $parent_slug ) {
-                if ( isset( $imported_terms[$parent_slug] ) ) {
+            if ($parent_slug) {
+                if (isset($imported_terms[$parent_slug])) {
                     $term['parent'] = $imported_terms[$parent_slug];
                 } else {
                     $term['meta'][] = array('key' => '_wxr_import_parent', 'value' => $parent_slug);
@@ -198,7 +203,7 @@ class Merlin_Importer {
             $imported_terms[$term_slug] = $result['term_id'];
             $imported_terms[$mapping_key] = $result['term_id'];
             $imported_terms[$original_id] = $result['term_id'];
-            $imported_terms[ $mapping_key_id ] = $result['term_id'];
+            $imported_terms[$mapping_key_id] = $result['term_id'];
             if ($requires_remapping) {
                 $orphaned_terms[$result['term_id']] = $taxonomy;
             }
@@ -216,36 +221,39 @@ class Merlin_Importer {
     /**
      * Import categories
      */
-    function importCategories( array $cats ) {
-        return $this->importTerms( $cats );
+    function importCategories(array $cats)
+    {
+        return $this->importTerms($cats);
     }
 
     /**
      * Import categories
      */
-    function importTags( array $tags ) {
-        return $this->importTerms( $tags );
+    function importTags(array $tags)
+    {
+        return $this->importTerms($tags);
     }
 
     /**
      * Import posts
      */
-    function importPosts( array $posts ) {
+    function importPosts(array $posts)
+    {
         $imported_users = get_transient('_wxr_imported_users');
         $imported_terms = get_transient('_wxr_imported_terms');
         $imported_posts = get_transient('_wxr_imported_posts');
         $orphaned_posts = get_transient('_wxr_orphaned_posts');
 
-        if( ! is_array( $imported_users ) ) {
+        if (!is_array($imported_users)) {
             $imported_users = array();
         }
-        if( ! is_array( $imported_terms ) ) {
+        if (!is_array($imported_terms)) {
             $imported_terms = array();
         }
-        if( ! is_array( $imported_posts ) ) {
+        if (!is_array($imported_posts)) {
             $imported_posts = array();
         }
-        if( ! is_array( $orphaned_posts ) ) {
+        if (!is_array($orphaned_posts)) {
             $orphaned_posts = array();
         }
 
@@ -282,7 +290,7 @@ class Merlin_Importer {
             if (isset($imported_users[$post['post_author']])) {
                 $post['post_author'] = $imported_users[$post['post_author']];
             } else {
-                $post['meta'][] = array('key' => '_wxr_import_user_slug', 'value' => $post['post_author'] );
+                $post['meta'][] = array('key' => '_wxr_import_user_slug', 'value' => $post['post_author']);
                 $requires_remapping = true;
                 $post['post_author'] = get_current_user_id();
             }
@@ -310,14 +318,14 @@ class Merlin_Importer {
             } else {
                 $post_id = wp_insert_post($postdata, true);
             }
-            if ( is_wp_error( $post_id ) ) {
+            if (is_wp_error($post_id)) {
                 continue;
             }
-            if ( '1' === $post['is_sticky'] ) {
-                stick_post( $post_id );
+            if ('1' === $post['is_sticky']) {
+                stick_post($post_id);
             }
             $imported_posts[$original_id] = (int)$post_id;
-            if ( $requires_remapping ) {
+            if ($requires_remapping) {
                 $orphaned_posts[$post_id] = true;
             }
 
@@ -327,11 +335,11 @@ class Merlin_Importer {
 
                     $p_t_tax = $p_term['taxonomy'];
                     $p_t_id = false;
-                    if ( ! isset(  $p_t_ids[ $p_t_tax ] ) || ! is_array( $p_t_ids[ $p_t_tax ] ) ) {
-                        $p_t_ids[ $p_t_tax ] = array();
+                    if (!isset($p_t_ids[$p_t_tax]) || !is_array($p_t_ids[$p_t_tax])) {
+                        $p_t_ids[$p_t_tax] = array();
                     }
 
-                    $p_t_key =  $p_t_tax.'--'.$p_term['slug'];
+                    $p_t_key =  $p_t_tax . '--' . $p_term['slug'];
                     if (isset($imported_terms[$p_t_key])) {
                         $p_t_ids[$p_t_tax][] = $imported_terms[$p_t_key];
                     } else {
@@ -347,7 +355,7 @@ class Merlin_Importer {
                                     continue;
                                 }
                             }
-                            if (! empty($p_t_id)) {
+                            if (!empty($p_t_id)) {
                                 $p_t_ids[$p_t_tax][] = intval($p_t_id);
                             }
                         } else {
@@ -355,14 +363,11 @@ class Merlin_Importer {
                             $requires_remapping = true;
                         }
                     }
-
-
                 }
 
                 foreach ($p_t_ids as $tax => $ids) {
-                    $tt_ids = wp_set_post_terms( $post_id, $ids, $tax);
+                    $tt_ids = wp_set_post_terms($post_id, $ids, $tax);
                 }
-
             }
             if (!empty($post['comments'])) {
                 $this->importPostComments($post_id, $post, $imported_users, $post_exists);
@@ -381,44 +386,44 @@ class Merlin_Importer {
 
 
         //Assign default pages.
-        $shoppage = get_page_by_title( 'Shop' );
-        if ( $shoppage ) {
-            update_option( 'woocommerce_shop_page_id', $shoppage->ID );
+        $shoppage = ft_import_get_page_by_title('Shop');
+        if ($shoppage) {
+            update_option('woocommerce_shop_page_id', $shoppage->ID);
         }
-        $shoppage = get_page_by_title( 'Cart' );
-        if ( $shoppage ) {
-            update_option( 'woocommerce_cart_page_id', $shoppage->ID );
+        $shoppage = ft_import_get_page_by_title('Cart');
+        if ($shoppage) {
+            update_option('woocommerce_cart_page_id', $shoppage->ID);
         }
-        $shoppage = get_page_by_title( 'Checkout' );
-        if ( $shoppage ) {
-            update_option( 'woocommerce_checkout_page_id', $shoppage->ID );
+        $shoppage = ft_import_get_page_by_title('Checkout');
+        if ($shoppage) {
+            update_option('woocommerce_checkout_page_id', $shoppage->ID);
         }
-        $shoppage = get_page_by_title( 'My Account' );
-        if ( $shoppage ) {
-            update_option( 'woocommerce_myaccount_page_id', $shoppage->ID );
+        $shoppage = ft_import_get_page_by_title('My Account');
+        if ($shoppage) {
+            update_option('woocommerce_myaccount_page_id', $shoppage->ID);
         }
-        $homepage = get_page_by_title( apply_filters( 'merlin_content_home_page_title', 'Home' ) );
-        if ( $homepage ) {
-            update_option( 'page_on_front', $homepage->ID );
-            update_option( 'show_on_front', 'page' );
+        $homepage = ft_import_get_page_by_title(apply_filters('merlin_content_home_page_title', 'Home'));
+        if ($homepage) {
+            update_option('page_on_front', $homepage->ID);
+            update_option('show_on_front', 'page');
         }
-        $blogpage = get_page_by_title( apply_filters( 'merlin_content_blog_page_title', 'Blog' ) );
-        if ( $blogpage ) {
-            update_option( 'page_for_posts', $blogpage->ID );
-            update_option( 'show_on_front', 'page' );
+        $blogpage = ft_import_get_page_by_title(apply_filters('merlin_content_blog_page_title', 'Blog'));
+        if ($blogpage) {
+            update_option('page_for_posts', $blogpage->ID);
+            update_option('show_on_front', 'page');
         }
 
         // Update the Hello World! post by making it a draft.
-        $hello_world = get_page_by_title( 'Hello World!', OBJECT, 'post' );
+        $hello_world = ft_import_get_page_by_title('Hello World!', OBJECT, 'post');
 
-        if ( $blogpage ) {
+        if ($blogpage) {
             $my_post = array(
                 'ID'           => 1,
                 'post_status'   => 'draft',
             );
 
             // Update the post into the database.
-            wp_update_post( $my_post );
+            wp_update_post($my_post);
         }
 
         set_transient('_wxr_imported_posts', $imported_posts, DAY_IN_SECONDS);
@@ -437,29 +442,30 @@ class Merlin_Importer {
      * @param $config
      * @return array
      */
-    function replace_array( $data, $config ){
-        if ( ! is_array( $data ) ) {
+    function replace_array($data, $config)
+    {
+        if (!is_array($data)) {
             return $data;
         }
 
         $imported_terms = get_transient('_wxr_imported_terms');
         $processed_posts = get_transient('_wxr_imported_posts');
-        if( ! is_array( $imported_terms ) ) {
+        if (!is_array($imported_terms)) {
             $imported_terms = array();
         }
-        if ( ! is_array( $processed_posts ) ) {
+        if (!is_array($processed_posts)) {
             $processed_posts = array();
         }
 
-        foreach ( $data as $key => $value ) {
+        foreach ($data as $key => $value) {
 
-            if ( ! isset( $config[ $key ] ) ) {
+            if (!isset($config[$key])) {
                 continue;
             }
-            $type = $config[ $key ];
+            $type = $config[$key];
 
-            if ( is_array( $type ) ) {
-                if ( ! isset( $type['type'] ) ) {
+            if (is_array($type)) {
+                if (!isset($type['type'])) {
                     continue;
                 }
                 $input_type =  $type['type'];
@@ -467,70 +473,75 @@ class Merlin_Importer {
                 $input_type =  $type;
             }
 
-            switch ( $input_type ) {
+            switch ($input_type) {
                 case  'post':
-                    if ( isset( $processed_posts[ $value ] ) ) {
-                        $data[ $key ] = $processed_posts[ $value ];
+                    if (isset($processed_posts[$value])) {
+                        $data[$key] = $processed_posts[$value];
                     }
                     break;
-                case  'term': case  'tag': case  'category':
-                    if ( ! isset( $type['tax'] ) ) {
+                case  'term':
+                case  'tag':
+                case  'category':
+                    if (!isset($type['tax'])) {
                         $tax = 'category';
                     } else {
-                        $tax = $type['tax'] ;
+                        $tax = $type['tax'];
                     }
 
                     $value_is_array = true;
-                    if ( ! is_array( $value ) ) {
-                        $value = explode( ',', $value );
+                    if (!is_array($value)) {
+                        $value = explode(',', $value);
                         $value_is_array = false;
                     }
-                    if ( ! empty( $value ) && is_array( $value ) ) {
-                        foreach ( $value as $vk => $vv ) {
-                            if ( isset( $imported_terms[ $tax.'--'. $vv] ) ) {
-                                $value[ $vk ] = $imported_terms[ $tax.'--'. $vv ];
+                    if (!empty($value) && is_array($value)) {
+                        foreach ($value as $vk => $vv) {
+                            if (isset($imported_terms[$tax . '--' . $vv])) {
+                                $value[$vk] = $imported_terms[$tax . '--' . $vv];
                             }
                         }
                     }
-                    if ( ! $value_is_array ) {
-                        $data[ $key ] = join(',', $value );
+                    if (!$value_is_array) {
+                        $data[$key] = join(',', $value);
                     } else {
-                        $data[ $key ] = $value;
+                        $data[$key] = $value;
                     }
 
-                break;
-                case 'media': case 'image':case 'video':case 'audio':case 'attachment':
-                    if ( is_numeric( $value ) ) {
-                        if ( isset( $processed_posts[ $value ] ) ) {
-                            $data[ $key ] = $processed_posts[ $value ];
+                    break;
+                case 'media':
+                case 'image':
+                case 'video':
+                case 'audio':
+                case 'attachment':
+                    if (is_numeric($value)) {
+                        if (isset($processed_posts[$value])) {
+                            $data[$key] = $processed_posts[$value];
                         }
-                    }else {
-                        if ( is_array( $value ) ) {
-                            if ( isset( $value['id'] ) ) {
-                                if ( isset( $processed_posts[ $value['id'] ] ) ) {
-                                    $data[ $key ]['id'] = $processed_posts[ $value['id'] ];
+                    } else {
+                        if (is_array($value)) {
+                            if (isset($value['id'])) {
+                                if (isset($processed_posts[$value['id']])) {
+                                    $data[$key]['id'] = $processed_posts[$value['id']];
                                 }
                             }
                         }
                     }
-                break;
+                    break;
                 case 'group':
                 case 'groups':
-                    if ( is_array( $value ) ) {
-                        $data[ $key ] = $this->replace_array( $value, $config );
+                    if (is_array($value)) {
+                        $data[$key] = $this->replace_array($value, $config);
                     }
                     break;
                 case 'repeater':
                 case 'repeat':
                 case 'loop':
-                    if ( is_array( $value ) ) {
-                        foreach ( $value as $gk => $gv ) {
-                            $data[ $key ][ $gk ] = $this->replace_array( $gv, $config );
+                    if (is_array($value)) {
+                        foreach ($value as $gk => $gv) {
+                            $data[$key][$gk] = $this->replace_array($gv, $config);
                         }
                     }
                     break;
             }
-
         } // end loop data
 
         return $data;
@@ -540,25 +551,26 @@ class Merlin_Importer {
     /**
      * Import widgets
      */
-    function importWidgets( $data, $widgets_config = array() ) {
+    function importWidgets($data, $widgets_config = array())
+    {
         global $wp_filesystem, $wp_registered_widget_controls, $wp_registered_sidebars;
 
         //add_filter( 'sidebars_widgets', array( $this, '_unset_sidebar_widget' ) );
-        if ( empty( $data ) || ! is_array( $data ) ) {
-            return ;
+        if (empty($data) || !is_array($data)) {
+            return;
         }
-        if ( ! is_array( $widgets_config ) ) {
+        if (!is_array($widgets_config)) {
             $widgets_config = array();
         }
 
         $valid_sidebar = false;
         $widget_instances = array();
         $imported_terms = get_transient('_wxr_imported_terms');
-        if ( ! is_array( $imported_terms ) ) {
+        if (!is_array($imported_terms)) {
             $imported_terms = array();
         }
 
-        foreach ( $wp_registered_widget_controls as $widget_id => $widget ) {
+        foreach ($wp_registered_widget_controls as $widget_id => $widget) {
             $base_id = isset($widget['id_base']) ? $widget['id_base'] : null;
             if (!empty($base_id) && !isset($widget_instances[$base_id])) {
                 $widget_instances[$base_id] = get_option('widget_' . $base_id);
@@ -566,9 +578,9 @@ class Merlin_Importer {
         }
 
         // Delete old widgets
-        update_option('sidebars_widgets', array() );
+        update_option('sidebars_widgets', array());
 
-        foreach ( $data as $sidebar_id => $widgets ) {
+        foreach ($data as $sidebar_id => $widgets) {
             if ('wp_inactive_widgets' === $sidebar_id) {
                 continue;
             }
@@ -588,12 +600,12 @@ class Merlin_Importer {
                     $single_widget_instances = !empty($single_widget_instances) ? $single_widget_instances : array('_multiwidget' => 1);
 
                     $_config = array();
-                    if ( isset( $widgets_config[ $base_id ] ) ) {
-                        $_config = $widgets_config[ $base_id ];
+                    if (isset($widgets_config[$base_id])) {
+                        $_config = $widgets_config[$base_id];
                     }
-                    $widget = $this->replace_array( $widget, $_config );
+                    $widget = $this->replace_array($widget, $_config);
 
-                    $single_widget_instances[] = apply_filters( 'demo_contents_merlin_import_widget_data', $widget, $widget_instances[$base_id], $base_id );
+                    $single_widget_instances[] = apply_filters('demo_contents_merlin_import_widget_data', $widget, $widget_instances[$base_id], $base_id);
                     end($single_widget_instances);
                     $new_instance_id_number = key($single_widget_instances);
                     if ('0' === strval($new_instance_id_number)) {
@@ -614,7 +626,7 @@ class Merlin_Importer {
             }
         }
 
-        if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+        if (defined('DOING_AJAX') && DOING_AJAX) {
             return 'true';
         }
     }
@@ -622,7 +634,8 @@ class Merlin_Importer {
     /**
      * Import revo sliders
      */
-    function importRevSliders( $file ) {
+    function importRevSliders($file)
+    {
         if (!class_exists('RevSlider', false)) {
             return 'failed';
         }
@@ -638,7 +651,8 @@ class Merlin_Importer {
     /**
      * Import theme options
      */
-    function importThemeOptions( $customize_data = array() ) {
+    function importThemeOptions($customize_data = array())
+    {
         global $wp_customize;
 
         /*
@@ -662,10 +676,10 @@ class Merlin_Importer {
 
                 if (is_string($mod_value) && preg_match('/\.(jpg|jpeg|png|gif)/i', $mod_value)) {
                     $attachment = $this->fetchCustomizeImage($mod_value);
-                    if ( !is_wp_error($attachment) ) {
+                    if (!is_wp_error($attachment)) {
                         $mod_value = $attachment->url;
                         $index_key = $mod_key . '_data';
-                        if ( isset($customize_data['mods'][$index_key]) ) {
+                        if (isset($customize_data['mods'][$index_key])) {
                             $customize_data['mods'][$index_key] = $attachment;
                             update_post_meta($attachment->attachment_id, '_wp_attachment_is_custom_header', get_option('stylesheet'));
                         }
@@ -673,7 +687,7 @@ class Merlin_Importer {
                 }
                 if ('nav_menu_locations' === $mod_key) {
                     $imported_terms = get_transient('_wxr_imported_terms');
-                    if ( ! is_array( $imported_terms ) ) {
+                    if (!is_array($imported_terms)) {
                         $imported_terms = array();
                     }
                     foreach ($mod_value as $menu_location => $menu_term_id) {
@@ -681,18 +695,17 @@ class Merlin_Importer {
                     }
                 }
 
-                if ( 'custom_logo' == $mod_key ) {
+                if ('custom_logo' == $mod_key) {
                     $processed_posts = get_transient('_wxr_imported_posts');
-                    if ( ! is_array( $processed_posts ) ) {
+                    if (!is_array($processed_posts)) {
                         $processed_posts = array();
                     }
-                    $mod_value = isset( $processed_posts[ $mod_value ] ) ? $processed_posts[ $mod_value ] : $mod_value;
+                    $mod_value = isset($processed_posts[$mod_value]) ? $processed_posts[$mod_value] : $mod_value;
                 }
 
                 set_theme_mod($mod_key, $mod_value);
             }
         }
-
     }
 
 
@@ -703,7 +716,8 @@ class Merlin_Importer {
     /**
      * Re-map imported data.
      */
-    function remapImportedData() {
+    function remapImportedData()
+    {
         $orphaned_terms = get_transient('_wxr_orphaned_terms');
         $orphaned_posts = get_transient('_wxr_orphaned_posts');
         $orphaned_comments = get_transient('_wxr_orphaned_comments');
@@ -761,9 +775,9 @@ class Merlin_Importer {
         flush_rewrite_rules();
 
         // Move Hello world to trash
-        $post = get_page_by_title( 'Hello world!', OBJECT, 'post' );
-        if ( $post ) {
-            wp_update_post( array('ID'=> $post->ID , 'post_status' => 'trash' ) );
+        $post = ft_import_get_page_by_title('Hello world!', OBJECT, 'post');
+        if ($post) {
+            wp_update_post(array('ID' => $post->ID, 'post_status' => 'trash'));
         }
     }
 
@@ -878,7 +892,7 @@ class Merlin_Importer {
             }
             if ('_clever_mega_menu_item_meta_content' === $meta['key']) {
                 preg_match_all('~\[vc_wp_custommenu(\s*)[^\]]+\]~', $value, $matches);
-                if ( !empty($matches[0]) ) {
+                if (!empty($matches[0])) {
                     $custom_menu_shortcodes = array();
                     foreach ($matches[0] as $match) {
                         $custom_menu_id = filter_var($match, FILTER_SANITIZE_NUMBER_INT);
@@ -908,11 +922,11 @@ class Merlin_Importer {
     function importPostComments($post_id, $post, array $imported_users, $post_exists = false)
     {
         $imported_comments = get_transient('_wxr_imported_comments');
-        if ( ! is_array( $imported_comments ) ) {
+        if (!is_array($imported_comments)) {
             $imported_comments = array();
         }
         $orphaned_comments = get_transient('_wxr_orphaned_comments');
-        if ( ! is_array( $orphaned_comments ) ) {
+        if (!is_array($orphaned_comments)) {
             $orphaned_comments = array();
         }
 
@@ -1002,7 +1016,7 @@ class Merlin_Importer {
     {
         $file_name = basename($url);
 
-        $upload = wp_upload_bits($file_name, 0, '', $post['upload_date']);
+        $upload = wp_upload_bits($file_name, 0, '', $post['upload_date']); // phpcs:ignore
 
         if ($upload['error']) {
             return new WP_Error('upload_dir_error', $upload['error']);
@@ -1014,14 +1028,14 @@ class Merlin_Importer {
         ));
 
         if (is_wp_error($response)) {
-            unlink($upload['file']);
+            wp_delete_file($upload['file']);
             return $response;
         }
 
         $code = (int)wp_remote_retrieve_response_code($response);
 
         if (200 !== $code) {
-            unlink($upload['file']);
+            wp_delete_file($upload['file']);
             return new WP_Error('import_file_error', sprintf(esc_html__('Remote server returned %1$d %2$s for %3$s', '@@textdomain'), $code, get_status_header_desc($code), $url));
         }
 
@@ -1029,19 +1043,19 @@ class Merlin_Importer {
         $headers = wp_remote_retrieve_headers($response);
 
         if (isset($headers['content-length']) && $filesize !== (int) $headers['content-length']) {
-            unlink($upload['file']);
+            wp_delete_file($upload['file']);
             return new WP_Error('import_file_error', esc_html__('Remote file is incorrect size', '@@textdomain'));
         }
 
         if (0 === $filesize) {
-            unlink($upload['file']);
+            wp_delete_file($upload['file']);
             return new WP_Error('import_file_error', esc_html__('Zero size file downloaded.', '@@textdomain'));
         }
 
-        $max_size = apply_filters('_wxr_import_attachment_size_limit', 8*MB_IN_BYTES);
+        $max_size = apply_filters('_wxr_import_attachment_size_limit', 8 * MB_IN_BYTES);
 
         if (!empty($max_size) && $filesize > $max_size) {
-            unlink($upload['file']);
+            wp_delete_file($upload['file']);
             $message = sprintf(esc_html__('Remote file is too large, limit is %s.', '@@textdomain'), size_format($max_size));
             return new WP_Error('import_file_error', $message);
         }
@@ -1055,15 +1069,15 @@ class Merlin_Importer {
     function remapImportedPosts($mapping_posts)
     {
         $imported_users = get_transient('_wxr_imported_users');
-        if ( ! is_array( $imported_users ) ) {
+        if (!is_array($imported_users)) {
             $imported_users = array();
         }
         $imported_terms = get_transient('_wxr_imported_terms');
-        if ( ! is_array( $imported_terms ) ) {
+        if (!is_array($imported_terms)) {
             $imported_terms = array();
         }
         $imported_posts = get_transient('_wxr_imported_posts');
-        if ( ! is_array( $imported_posts ) ) {
+        if (!is_array($imported_posts)) {
             $imported_posts = array();
         }
 
@@ -1071,7 +1085,7 @@ class Merlin_Importer {
             $data = array();
             $_post = WP_Post::get_instance($post_id);
             $parent_id = get_post_meta($post_id, '_wxr_import_parent', true);
-            if (! empty($parent_id)) {
+            if (!empty($parent_id)) {
                 if (isset($imported_posts[$parent_id])) {
                     $data['post_parent'] = $imported_posts[$parent_id];
                 }
@@ -1133,27 +1147,27 @@ class Merlin_Importer {
     /**
      * Re-map comments
      */
-    function remapImportedComments( $comments_to_update = array() )
+    function remapImportedComments($comments_to_update = array())
     {
         $imported_users = get_transient('_wxr_imported_users');
-        if ( ! is_array( $imported_users ) ) {
+        if (!is_array($imported_users)) {
             $imported_users = array();
         }
         $imported_comments = get_transient('_wxr_imported_comments');
-        if ( ! is_array( $imported_comments ) ) {
+        if (!is_array($imported_comments)) {
             $imported_comments = array();
         }
 
         foreach ($comments_to_update as $comment_id => $update) {
             $data = array();
             $parent_id = get_comment_meta($comment_id, '_wxr_import_parent', true);
-            if (! empty($parent_id)) {
+            if (!empty($parent_id)) {
                 if (isset($imported_comments[$parent_id])) {
                     $data['comment_parent'] = $imported_comments[$parent_id];
                 }
             }
             $author_id = get_comment_meta($comment_id, '_wxr_import_user', true);
-            if (! empty($author_id)) {
+            if (!empty($author_id)) {
                 if (isset($imported_users[$author_id])) {
                     $data['user_id'] = $imported_users[$author_id];
                 }
@@ -1184,17 +1198,17 @@ class Merlin_Importer {
     function remapImportedTerms($terms_to_be_remapped)
     {
         $imported_terms = get_transient('_wxr_imported_terms');
-        if ( ! is_array( $imported_terms ) ) {
+        if (!is_array($imported_terms)) {
             $imported_terms = array();
         }
 
         foreach ($terms_to_be_remapped as $termid => $term_taxonomy) {
             $imported_terms['top'] = 0;
-            if(empty($termid) || !is_numeric($termid)) {
+            if (empty($termid) || !is_numeric($termid)) {
                 continue;
             }
             $term_id = (int)$termid;
-            if(empty($term_taxonomy)){
+            if (empty($term_taxonomy)) {
                 continue;
             }
             $data = array();
@@ -1270,7 +1284,7 @@ class Merlin_Importer {
      * @param array $term
      * @return bool|mixed
      */
-    function termExists( $term = array() )
+    function termExists($term = array())
     {
         static $exists = null;
 
@@ -1298,23 +1312,23 @@ class Merlin_Importer {
     {
         $data = new \stdClass();
 
-        if ( !function_exists('media_handle_sideload') ) {
+        if (!function_exists('media_handle_sideload')) {
             require ABSPATH . 'wp-admin/includes/media.php';
             require ABSPATH . 'wp-admin/includes/file.php';
             require ABSPATH . 'wp-admin/includes/image.php';
         }
 
-        if ( !empty($file) ) {
+        if (!empty($file)) {
             preg_match('/[^\?]+\.(jpe?g|jpe|gif|png)\b/i', $file, $matches);
             $file_array = array();
             $file_array['name'] = basename($matches[0]);
             $file_array['tmp_name'] = download_url($file);
-            if ( is_wp_error($file_array['tmp_name']) ) {
+            if (is_wp_error($file_array['tmp_name'])) {
                 return $file_array['tmp_name'];
             }
             $id = media_handle_sideload($file_array, 0);
-            if ( is_wp_error($id) ) {
-                unlink($file_array['tmp_name']);
+            if (is_wp_error($id)) {
+                wp_delete_file($file_array['tmp_name']);
                 return $id;
             }
             $meta                = wp_get_attachment_metadata($id);
@@ -1341,21 +1355,21 @@ class Merlin_Importer {
 
         $args = wp_parse_args($args);
 
-        if ( !is_array($wp_taxonomies) ) {
+        if (!is_array($wp_taxonomies)) {
             $wp_taxonomies = array();
         }
 
-        if ( empty($taxonomy) || strlen( $taxonomy ) > 32 ) {
-            _doing_it_wrong( __FUNCTION__, esc_html__( 'Taxonomy names must be between 1 and 32 characters in length.', '@@textdomain' ), '4.2.0' );
-            return new WP_Error( 'taxonomy_length_invalid', esc_html__( 'Taxonomy names must be between 1 and 32 characters in length.', '@@textdomain' ) );
+        if (empty($taxonomy) || strlen($taxonomy) > 32) {
+            _doing_it_wrong(__FUNCTION__, esc_html__('Taxonomy names must be between 1 and 32 characters in length.', '@@textdomain'), '4.2.0');
+            return new WP_Error('taxonomy_length_invalid', esc_html__('Taxonomy names must be between 1 and 32 characters in length.', '@@textdomain'));
         }
 
-        $taxonomy_object = new WP_Taxonomy( $taxonomy, $object_type, $args );
+        $taxonomy_object = new WP_Taxonomy($taxonomy, $object_type, $args);
         $taxonomy_object->add_rewrite_rules();
         $wp_taxonomies[$taxonomy] = $taxonomy_object;
         $taxonomy_object->add_hooks();
 
-        do_action( 'registered_taxonomy', $taxonomy, $object_type, (array)$taxonomy_object );
+        do_action('registered_taxonomy', $taxonomy, $object_type, (array)$taxonomy_object);
     }
 
     /**

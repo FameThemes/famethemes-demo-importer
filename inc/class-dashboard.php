@@ -84,7 +84,7 @@ class Demo_Content_Dashboard {
         wp_enqueue_script( 'underscore');
         wp_enqueue_script( 'demo-contents', DEMO_CONTENT_URL.'assets/js/importer.js', array( 'jquery', 'underscore' ) );
         wp_enqueue_media();
-        $run = isset( $_REQUEST['import_now'] ) && $_REQUEST['import_now'] == 1 ? 'run' : 'no';
+        $run = isset( $_REQUEST['import_now'] ) && absint($_REQUEST['import_now']) == 1 ? 'run' : 'no';
         $themes = $this->setup_themes( $this->is_theme_page ?  false : true );
         $tgm_url = '';
         // Localize the javascript.
@@ -590,7 +590,7 @@ class Demo_Content_Dashboard {
                 $link_all = '?page='.$this->page_slug;
                 $link_current_theme = '?page='.$this->page_slug.'&tab=current_theme';
                 $link_export= '?page='.$this->page_slug.'&tab=export';
-                $tab = isset( $_GET['tab'] )  ? $_GET['tab'] : '';
+                $tab = isset( $_GET['tab'] )  ? sanitize_text_field($_GET['tab']) : '';
                  ?>
                 <div class="wp-filter hide-if-no-js">
                     <div class="filter-count">

@@ -56,7 +56,7 @@ svn commit -m "Update new version" --no-auth-cache --non-interactive  --username
 
 echo "Removed folder SVN"
 # Remove folder if exists.
-rm -rf SVN
+rm -rf ./SVN
 
 
 echo "Plugin deployed!"
