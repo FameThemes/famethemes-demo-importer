@@ -1,6 +1,6 @@
 #https://github.com/10up/action-wordpress-plugin-deploy/blob/develop/deploy.sh
 
-source svn-config.cfg
+source ./svn-config.cfg
 
 # Remove folder if exists.
 rm -rf SVN
