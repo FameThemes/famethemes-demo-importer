@@ -3,7 +3,7 @@ Contributors: famethemes, shrimp2t
 Donate link: https://www.famethemes.com/
 Tags: import, demo data, oneclick, famethemes
 Requires at least: 4.5
-Tested up to: 6.5.3
+Tested up to: 6.7.1
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
