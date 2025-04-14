@@ -73,6 +73,9 @@ Yes you can! Join in on our [GitHub repository](https://github.com/FameThemes/fa
 
 
 == Changelog ==
+= 1.1.9
+* Fix plugin review issues for WordPress 6.8
+
 = 1.1.0
 * Bugs fixed.
 
