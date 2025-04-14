@@ -39,7 +39,7 @@ class Merlin_WXR_Parser {
 		$file = wp_normalize_path( $file );
 
 		if ( empty( $file ) ) {
-			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', '@@textdomain' ) );
+			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', 'famethemes-demo-importer' ) );
 		}
 
 		if ( extension_loaded( 'simplexml' ) ) {
@@ -47,7 +47,7 @@ class Merlin_WXR_Parser {
 		} elseif ( extension_loaded( 'xmlreader' ) ) {
 			return $this->xml_reader_parse( $file );
 		} else {
-			return new WP_Error( 'WXR_parse_error', esc_html__( 'No XML parser found.', '@@textdomain' ) );
+			return new WP_Error( 'WXR_parse_error', esc_html__( 'No XML parser found.', 'famethemes-demo-importer' ) );
 		}
 	}
 
@@ -64,7 +64,7 @@ class Merlin_WXR_Parser {
 		$xml = simplexml_load_file( $file );
 
 		if ( ! $xml ) {
-			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', '@@textdomain' ), libxml_get_errors() );
+			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', 'famethemes-demo-importer' ), libxml_get_errors() );
 		}
 
 		$wxr_version = $xml->xpath( '/rss/channel/wp:wxr_version' );
@@ -72,11 +72,11 @@ class Merlin_WXR_Parser {
 		$wxr_compare = version_compare( $wxr_version, '1.2' );
 
 		if ( ! $wxr_version || 1 === $wxr_compare ) {
-			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', '@@textdomain' ) );
+			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', 'famethemes-demo-importer' ) );
 		}
 
 		if ( ! preg_match( '/^\d+\.\d+$/', $wxr_version ) ) {
-			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', '@@textdomain' ) );
+			return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', 'famethemes-demo-importer' ) );
 		}
 
 		$base_url = $xml->xpath( '/rss/channel/wp:base_site_url' );
@@ -262,7 +262,7 @@ class Merlin_WXR_Parser {
 		$status = $reader->open( $file );
 
 		if ( ! $status ) {
-			return new WP_Error( 'WXR_parse_error', esc_html__( 'Could not open the file for parsing', '@@textdomain' ) );
+			return new WP_Error( 'WXR_parse_error', esc_html__( 'Could not open the file for parsing', 'famethemes-demo-importer' ) );
 		}
 
 		while ( $reader->read() ) {
@@ -274,7 +274,7 @@ class Merlin_WXR_Parser {
 					$version = $reader->readString();
 
 					if ( version_compare( $version, '1.2', '>' ) ) {
-						return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', '@@textdomain' ) );
+						return new WP_Error( 'WXR_parse_error', esc_html__( 'Invalid WXR file.', 'famethemes-demo-importer' ) );
 					}
 
 					$data['version'] = $version;

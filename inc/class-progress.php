@@ -53,12 +53,12 @@ class  Demo_Contents_Progress
         
         // Check nonce
         if (!wp_verify_nonce($nonce, 'ft_demo_import')) {
-            die(__('Security check', 'demo-contents'));
+            die(__('Security check', 'famethemes-demo-importer')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         } 
         
         // Check user permissions
         if (!current_user_can('import')) {
-            wp_send_json_error(__("You have not permissions to import.", 'demo-contents'));
+            wp_send_json_error(__("You have not permissions to import.", 'famethemes-demo-importer')); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         }
 
 
@@ -74,7 +74,7 @@ class  Demo_Contents_Progress
 
         $doing = isset($_REQUEST['doing']) ? sanitize_text_field($_REQUEST['doing']) : '';
         if (!$doing) {
-            wp_send_json_error(__("No actions to do", 'demo-contents'));
+            wp_send_json_error(__("No actions to do", 'famethemes-demo-importer'));
         }
 
         // Current theme for import
@@ -92,7 +92,7 @@ class  Demo_Contents_Progress
         $current_theme_slug = false;
         $current_theme_demo_version = false;
         if (!$current_theme || !is_array($current_theme) || !isset($current_theme['slug']) || !$current_theme['slug']) {
-            wp_send_json_error(__('Not theme selected', 'demo-contents'));
+            wp_send_json_error(__('Not theme selected', 'famethemes-demo-importer'));
         }
 
         $current_theme_slug = sanitize_text_field($current_theme['slug']);
@@ -104,28 +104,32 @@ class  Demo_Contents_Progress
         // if is_activate theme
         if ($doing == 'activate_theme') {
             switch_theme($current_theme_slug);
-            wp_send_json_success(array('msg' => sprintf(__('%s theme activated', 'demo-contents'), $themes[$current_theme_slug]['name'])));
+            wp_send_json_success(array('msg' => sprintf(
+                /* translators: 1: theme name */
+                __('%s theme activated', 'famethemes-demo-importer'), $themes[$current_theme_slug]['name'])));
         }
 
         if ($doing == 'checking_resources') {
             $file_data = $this->maybe_remote_download_data_files($current_theme);
             if (!$file_data || empty($file_data)) {
-                wp_send_json_error(sprintf(__('Demo data not found for <strong>%s</strong>. However you can import demo content by upload your demo files below.', 'demo-contents'), $themes[$current_theme_slug]['name']));
+                wp_send_json_error(sprintf(
+                    /* translators: 1: theme name */
+                    __('Demo data not found for <strong>%s</strong>. However you can import demo content by upload your demo files below.', 'famethemes-demo-importer'), $themes[$current_theme_slug]['name']));
             } else {
-                wp_send_json_success(__('Demo data ready for import.', 'demo-contents'));
+                wp_send_json_success(__('Demo data ready for import.', 'famethemes-demo-importer'));
             }
         }
 
         /// Check theme activate
         if (!isset($themes[$current_theme_slug])) {
-            wp_send_json_error(__('This theme have not installed.', 'demo-contents'));
+            wp_send_json_error(__('This theme have not installed.', 'famethemes-demo-importer'));
         }
 
 
         //wp_send_json_success(); // just for test
         $file_data = $this->maybe_remote_download_data_files($current_theme);
         if (!$file_data || empty($file_data)) {
-            wp_send_json_error(array('type' => 'no-files', 'msg' => __('Dummy data files not found', 'demo-contents'), 'files' => $file_data));
+            wp_send_json_error(array('type' => 'no-files', 'msg' => __('Dummy data files not found', 'famethemes-demo-importer'), 'files' => $file_data));
         }
 
         $transient_key = '_demo_content_' . $current_theme_slug;
@@ -143,7 +147,7 @@ class  Demo_Contents_Progress
         }
 
         if (is_wp_error($content)) {
-            wp_send_json_error(__('Dummy content empty', 'demo-contents'));
+            wp_send_json_error(__('Dummy content empty', 'famethemes-demo-importer'));
         }
 
         // Setup config

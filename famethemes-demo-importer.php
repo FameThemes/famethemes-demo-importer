@@ -6,7 +6,7 @@ Description: Demo data import tool for FameThemes's themes.
 Author: FameThemes
 Author URI:  http://www.famethemes.com/
 Version: 1.1.8
-Text Domain: demo-contents
+Text Domain: famethemes-demo-importer
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
@@ -213,9 +213,9 @@ class Demo_Contents
                 'blocking' => true,
                 'headers' => array(),
                 'cookies' => array(
-                    SECURE_AUTH_COOKIE => $_COOKIE[SECURE_AUTH_COOKIE],
-                    AUTH_COOKIE => $_COOKIE[AUTH_COOKIE],
-                    LOGGED_IN_COOKIE => $_COOKIE[LOGGED_IN_COOKIE],
+                    SECURE_AUTH_COOKIE => isset($_COOKIE[SECURE_AUTH_COOKIE]) ? sanitize_text_field($_COOKIE[SECURE_AUTH_COOKIE]) : null, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated	
+                    AUTH_COOKIE => isset($_COOKIE[AUTH_COOKIE]) ? sanitize_text_field($_COOKIE[AUTH_COOKIE]) : null, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated	
+                    LOGGED_IN_COOKIE => isset($_COOKIE[LOGGED_IN_COOKIE]) ? sanitize_text_field($_COOKIE[LOGGED_IN_COOKIE]) : null, // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated	
                 )
             )
         );
@@ -461,7 +461,7 @@ class Demo_Contents
         header('Content-Disposition: attachment; filename=' . $filename);
         header('Content-Type: application/xml; charset=' . get_option('blog_charset'), true);
 
-        echo Demo_Contents::generate_config();
+        echo Demo_Contents::generate_config(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         die();
     }
 

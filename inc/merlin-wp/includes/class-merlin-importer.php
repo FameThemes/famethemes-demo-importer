@@ -113,7 +113,7 @@ class Merlin_Importer
                 'last_name'    => isset($user['last_name']) ? $user['last_name'] : '',
                 'role'         => 'subscriber',
                 'rich_editing' => false,
-                'description'  => esc_html__('This user is created while installing demo content. You should delete or modify this user&#8217;s information now.', '@@textdomain'),
+                'description'  => esc_html__('This user is created while installing demo content. You should delete or modify this user&#8217;s information now.', 'famethemes-demo-importer'),
             );
             $user_id = wp_insert_user($userdata);
             if (is_wp_error($user_id)) {
@@ -170,7 +170,7 @@ class Merlin_Importer
                         'attribute_orderby' => 'menu_order',
                         'attribute_public'  => 0
                     );
-                    $inserted = $wpdb->insert($wpdb->prefix . 'woocommerce_attribute_taxonomies', $attribute_args);
+                    $inserted = $wpdb->insert($wpdb->prefix . 'woocommerce_attribute_taxonomies', $attribute_args); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
                     delete_transient('wc_attribute_taxonomies');
                     $registered = $this->register_custom_taxonomy($taxonomy, 'product', array(
                         'hierarchical' => true,
@@ -854,7 +854,7 @@ class Merlin_Importer
         $info = wp_check_filetype($upload['file']);
 
         if (!$info) {
-            return new WP_Error('attachment_processing_error', esc_html__('Invalid attachment file type!', '@@textdomain'));
+            return new WP_Error('attachment_processing_error', esc_html__('Invalid attachment file type!', 'famethemes-demo-importer'));
         }
 
         $post['post_mime_type'] = $info['type'];
@@ -1036,7 +1036,13 @@ class Merlin_Importer
 
         if (200 !== $code) {
             wp_delete_file($upload['file']);
-            return new WP_Error('import_file_error', sprintf(esc_html__('Remote server returned %1$d %2$s for %3$s', '@@textdomain'), $code, get_status_header_desc($code), $url));
+            return new WP_Error('import_file_error', sprintf(
+                /* translators: 1: remote server error code, 2: remote server error description, 3: remote file URL */
+                esc_html__('Remote server returned %1$d %2$s for %3$s', 'famethemes-demo-importer'),
+                $code,
+                get_status_header_desc($code),
+                $url
+            ));
         }
 
         $filesize = filesize($upload['file']);
@@ -1044,19 +1050,23 @@ class Merlin_Importer
 
         if (isset($headers['content-length']) && $filesize !== (int) $headers['content-length']) {
             wp_delete_file($upload['file']);
-            return new WP_Error('import_file_error', esc_html__('Remote file is incorrect size', '@@textdomain'));
+            return new WP_Error('import_file_error', esc_html__('Remote file is incorrect size', 'famethemes-demo-importer'));
         }
 
         if (0 === $filesize) {
             wp_delete_file($upload['file']);
-            return new WP_Error('import_file_error', esc_html__('Zero size file downloaded.', '@@textdomain'));
+            return new WP_Error('import_file_error', esc_html__('Zero size file downloaded.', 'famethemes-demo-importer'));
         }
 
         $max_size = apply_filters('_wxr_import_attachment_size_limit', 8 * MB_IN_BYTES);
 
         if (!empty($max_size) && $filesize > $max_size) {
             wp_delete_file($upload['file']);
-            $message = sprintf(esc_html__('Remote file is too large, limit is %s.', '@@textdomain'), size_format($max_size));
+            $message = sprintf(
+                /* translators: 1: attachment size limit */
+                esc_html__('Remote file is too large, limit is %s.', 'famethemes-demo-importer'),
+                size_format($max_size)
+            );
             return new WP_Error('import_file_error', $message);
         }
 
@@ -1247,7 +1257,7 @@ class Merlin_Importer
         if (null === $exists) {
             global $wpdb;
             $exists = array();
-            $db_posts = $wpdb->get_results("SELECT ID, guid FROM {$wpdb->posts}");
+            $db_posts = $wpdb->get_results("SELECT ID, guid FROM {$wpdb->posts}"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
             foreach ($db_posts as &$db_post) {
                 $exists[$db_post->guid] = $db_post->ID;
             }
@@ -1266,7 +1276,7 @@ class Merlin_Importer
         if (null === $exists) {
             global $wpdb;
             $exists = array();
-            $db_comments = $wpdb->get_results("SELECT comment_ID, comment_author, comment_date FROM {$wpdb->comments}");
+            $db_comments = $wpdb->get_results("SELECT comment_ID, comment_author, comment_date FROM {$wpdb->comments}"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
             foreach ($db_comments as &$db_comment) {
                 $db_hash = crc32($db_comment->comment_author . ':' . $db_comment->comment_date);
                 $exists[$db_hash] = $db_comment->comment_ID;
@@ -1291,7 +1301,7 @@ class Merlin_Importer
         if (null === $exists) {
             global $wpdb;
             $exists = array();
-            $db_terms = $wpdb->get_results("SELECT t.term_id, tt.taxonomy, t.slug FROM {$wpdb->terms} AS t JOIN {$wpdb->term_taxonomy} AS tt ON t.term_id = tt.term_id");
+            $db_terms = $wpdb->get_results("SELECT t.term_id, tt.taxonomy, t.slug FROM {$wpdb->terms} AS t JOIN {$wpdb->term_taxonomy} AS tt ON t.term_id = tt.term_id"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
             foreach ($db_terms as &$db_term) {
                 $db_hash = crc32($db_term->taxonomy . ':' . $db_term->slug);
                 $exists[$db_hash] = $db_term->term_id;
@@ -1360,8 +1370,8 @@ class Merlin_Importer
         }
 
         if (empty($taxonomy) || strlen($taxonomy) > 32) {
-            _doing_it_wrong(__FUNCTION__, esc_html__('Taxonomy names must be between 1 and 32 characters in length.', '@@textdomain'), '4.2.0');
-            return new WP_Error('taxonomy_length_invalid', esc_html__('Taxonomy names must be between 1 and 32 characters in length.', '@@textdomain'));
+            _doing_it_wrong(__FUNCTION__, esc_html__('Taxonomy names must be between 1 and 32 characters in length.', 'famethemes-demo-importer'), '4.2.0');
+            return new WP_Error('taxonomy_length_invalid', esc_html__('Taxonomy names must be between 1 and 32 characters in length.', 'famethemes-demo-importer'));
         }
 
         $taxonomy_object = new WP_Taxonomy($taxonomy, $object_type, $args);
