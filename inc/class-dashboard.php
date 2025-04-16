@@ -310,7 +310,7 @@ class Demo_Content_Dashboard
                                             </div>
 
                                             <div class="demo-contents--step demo-contents-import-categories demo-contents--waiting">
-                                                <div class="demo-contents--step-heading"><?php _esc_html_ee('Import Categories', 'famethemes-demo-importer'); ?></div>
+                                                <div class="demo-contents--step-heading"><?php esc_html_e('Import Categories', 'famethemes-demo-importer'); ?></div>
                                                 <div class="demo-contents--status demo-contents--completed"></div>
                                                 <div class="demo-contents--child-steps"></div>
                                             </div>
