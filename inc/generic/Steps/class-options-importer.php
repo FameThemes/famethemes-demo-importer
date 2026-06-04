@@ -212,7 +212,9 @@ class Options_Importer {
 		foreach ( $mods as $key => $value ) {
 			$resolved_key = (string) $key;
 			$resolved_val = $this->resolve_refs( $value, $ref_map, $warnings );
-			if ( str_ends_with( $resolved_key, '_ref' ) ) {
+			// PHP 7.4-compat suffix check — `str_ends_with()` would be
+			// cleaner but is PHP 8.0+, and the plugin baseline is 7.4.
+			if ( '_ref' === substr( $resolved_key, -4 ) ) {
 				$resolved_key = substr( $resolved_key, 0, -4 );
 			}
 			set_theme_mod( $resolved_key, $resolved_val );
@@ -594,7 +596,8 @@ class Options_Importer {
 			$out = [];
 			foreach ( $value as $k => $v ) {
 				$resolved_key = (string) $k;
-				if ( str_ends_with( $resolved_key, '_ref' ) && is_string( $v ) ) {
+				// PHP 7.4-compat suffix check (see apply_theme_mods()).
+				if ( '_ref' === substr( $resolved_key, -4 ) && is_string( $v ) ) {
 					$resolved_key = substr( $resolved_key, 0, -4 );
 				}
 				$out[ $resolved_key ] = $this->resolve_refs( $v, $ref_map, $warnings );

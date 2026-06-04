@@ -5,7 +5,10 @@ Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: Demo data import tool for FameThemes's themes.
 Author: FameThemes
 Author URI:  http://www.famethemes.com/
-Version: 1.2.0
+Version: 1.3.0
+Requires at least: 5.0
+Tested up to: 7.0
+Requires PHP: 7.4
 Text Domain: famethemes-demo-importer
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */

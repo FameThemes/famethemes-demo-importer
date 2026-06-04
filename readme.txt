@@ -2,17 +2,30 @@
 Contributors: famethemes, shrimp2t
 Donate link: https://www.famethemes.com/
 Tags: import, demo data, oneclick, famethemes
-Requires at least: 4.5
-Tested up to: 6.8
+Requires at least: 5.0
+Tested up to: 7.0
+Requires PHP: 7.4
 Stable tag: trunk
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-FameThemes Demo importer
+One-click demo importer — sync AJAX flow for FameThemes legacy themes, plus a React + background-job track for every other theme pulling templates from a Blocksify Design Studio.
 
 == Description ==
 
-Import your demo content, widgets and theme settings with one click for [FameThemes](https://www.famethemes.com/) official themes.
+Import demo content, widgets and theme settings with one click. The plugin auto-picks one of two import tracks based on the active theme:
+
+* **Legacy track** — the original synchronous AJAX importer for the FameThemes themes (OnePress, Screenr, plus their `-pro` / child variants by default; the slug list is filterable via `demo_contents_onepress_themes`). Demos are fetched from a GitHub repo (`FameThemes/famethemes-xml-demos` by default).
+
+* **Generic track** — a React-driven dashboard backed by a WP-Cron pipeline that pulls templates from a [Blocksify Design Studio](https://github.com/PressMaximum/blocksify-design-studio) server over the REST API. Five phases: download assets → install required plugins from wp.org → unzip uploads.zip → import terms/posts/menus with ref-mapped placeholders → apply core options, theme mods, customizer, widgets, plugin options. Theme adapters let a specific theme (e.g. Customify) nest the dashboard under its own admin menu and declare per-theme required plugins.
+
+Studio URL defaults to `https://design-library.pressmaximum.com/` and is overridable via the `FT_DEMO_IMPORTER_STUDIO_URL` `wp-config.php` constant or the Settings page.
+
+Original feature set still works:
+
+* One-click demo import for FameThemes official themes
+* Recommended plugins installation
+* Demo content (posts, pages, menus, customizer, widgets, theme mods)
 
 Get free support at [https://www.famethemes.com/]((https://www.famethemes.com/))
 
@@ -73,7 +86,23 @@ Yes you can! Join in on our [GitHub repository](https://github.com/FameThemes/fa
 
 
 == Changelog ==
-= 1.1.9
+= 1.3.0 =
+* New: Generic background-job import track for non-FameThemes themes — React dashboard + WP-Cron pipeline pulling from a Blocksify Design Studio over REST.
+* New: Per-theme adapters (`Theme_Adapter`) with built-in Customify adapter that nests the dashboard under Customify's own admin menu.
+* New: Studio URL configurable via `FT_DEMO_IMPORTER_STUDIO_URL` `wp-config.php` constant; defaults to `https://design-library.pressmaximum.com/`.
+* New: Plugins-row "Import demo" action link — destination depends on active theme (legacy themes → `ft_<slug>` page; others → Generic dashboard).
+* New: Activation redirect — sends admin to the right importer surface for the active theme.
+* Improved: Legacy code path relocated under `inc/legacy/` (frozen, unchanged behaviour); root plugin file slimmed down to ~165 LOC of routing + activation.
+* Improved: WP-Cron loopback gate now also catches `DOING_CRON` requests so background jobs actually fire.
+* Improved: `Asset_Fetcher` treats `uploads.zip` as optional — pattern-only templates no longer fatal during fetch.
+* Improved: Content importer rewrites `{{ref:post:N}}`, `{{SITE_URL}}`, multisite `/sites/N/` uploads prefix, `wp-image-N` classes, AND raw `"id":N` / `"ids":[…]` block attributes (attachment refs only).
+* Improved: Options importer now correctly walks `widgets.widget_*` keys (previously expected `widgets.options.widget_*` — every widget instance was silently dropped), substitutes `{{SITE_URL}}` in theme_mods + widgets, resolves `widget_media_*.attachment_id` (+ `attachment_url_to_postid()` fallback), `widget_media_gallery.ids[]`, `widget_nav_menu.nav_menu`, and runs block-markup rewriting inside `widget_block.content`.
+* Bumped: tested up to WordPress 7.0; requires WordPress 5.0+; requires PHP 7.4+.
+
+= 1.2.0 =
+* Internal: split importer into Legacy + Generic tracks (router based on active theme); no end-user behaviour change for OnePress / Screenr.
+
+= 1.1.9 =
 * Fix plugin review issues for WordPress 6.8
 
 = 1.1.0
