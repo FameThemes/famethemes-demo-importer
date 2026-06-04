@@ -17,6 +17,8 @@
  *   5. Customizer       (gated)  — same shape as theme mods.
  *   6. Widgets          (gated)  — sidebars_widgets + per-widget option keys.
  *   7. Plugin options   (gated)  — whitelisted `wp_options` rows.
+ *   8. Fonts            (gated)  — `theme.fonts[]` → WP 6.5+ Font Library
+ *                                   (wp_font_family + wp_font_face CPTs).
  *
  * Gated layers run only when `opts.replace_settings === true`. On first
  * successful gated run, `ft_demo_importer_settings_applied=1` marker is
@@ -129,6 +131,7 @@ class Options_Importer {
 			$applied['customizer']     = $this->apply_customizer( $parsed, $ref_map, $warnings );
 			$applied['widgets']        = $this->apply_widgets( $parsed, $ref_map, $warnings );
 			$applied['plugin_options'] = $this->apply_plugin_options( $parsed, $ref_map, $warnings );
+			$applied['fonts']          = $this->apply_fonts( $parsed, $ref_map, $warnings );
 			update_option( self::OPTION_SETTINGS_APPLIED, 1, true );
 		}
 
@@ -314,6 +317,232 @@ class Options_Importer {
 		}
 
 		return true;
+	}
+
+	/**
+	 * `theme.fonts[]` layer — registers each exported font family into
+	 * WP 6.5+ Font Library (wp_font_family / wp_font_face CPTs) so the
+	 * Site Editor's typography picker surfaces them, matching what the
+	 * source site had.
+	 *
+	 * Per the submitter doc §`theme.fonts shape + rewrite`:
+	 *   - Pattern submit ships only used fonts; site submit ships every
+	 *     active family.
+	 *   - Each face's `src[]` is one of four kinds:
+	 *       (a) `{{SITE_URL}}/wp-content/uploads/fonts/X.woff2`
+	 *           → Font Library upload — file extracted from uploads.zip
+	 *             at Step 3 of the runner.
+	 *       (b) absolute URL inside `/wp-content/themes/<source>/...`
+	 *           → ships with the theme — importer leaves it alone (the
+	 *             URL still points at source's host, which is fine if
+	 *             the theme is the same and bundled the same files).
+	 *       (c) remote URL (`https://fonts.gstatic.com/…`)
+	 *           → hotlink — preserve as-is.
+	 *       (d) `data:font/woff2;base64,…`
+	 *           → embedded — preserve verbatim.
+	 *
+	 * Idempotency: families are upserted by slug (`post_name`); on
+	 * re-import the title + content refresh, existing children are
+	 * wiped and faces re-inserted (so re-runs after the source site
+	 * dropped a weight don't leave stale faces behind). Font Library
+	 * uploads added by the admin on the target site are preserved as
+	 * long as their slug doesn't collide with the manifest.
+	 *
+	 * Gated by Font Library availability (`post_type_exists('wp_font_family')`)
+	 * — WP < 6.5 has no API for this, so we log a warning and skip.
+	 */
+	private function apply_fonts( array $parsed, array $ref_map, array &$warnings ): bool {
+		$fonts = $parsed['theme']['fonts'] ?? null;
+		if ( ! is_array( $fonts ) || empty( $fonts ) ) {
+			return false;
+		}
+		if ( ! post_type_exists( 'wp_font_family' ) || ! post_type_exists( 'wp_font_face' ) ) {
+			$warnings[] = sprintf(
+				'Font Library not available (WP %s — requires 6.5+). Skipped %d font family(ies).',
+				get_bloginfo( 'version' ),
+				count( $fonts )
+			);
+			return false;
+		}
+
+		$upload  = wp_get_upload_dir();
+		$basedir = (string) ( $upload['basedir'] ?? '' );
+
+		foreach ( $fonts as $font ) {
+			if ( ! is_array( $font ) || empty( $font['slug'] ) ) {
+				continue;
+			}
+			$slug = sanitize_title( (string) $font['slug'] );
+			if ( '' === $slug ) {
+				continue;
+			}
+			$name        = (string) ( $font['name']       ?? $slug );
+			$font_family = (string) ( $font['fontFamily'] ?? $name );
+
+			// Family-level payload — Font Library reads `post_content` as
+			// JSON to surface the family in `wp_get_global_settings()`.
+			$family_payload = array(
+				'slug'       => $slug,
+				'name'       => $name,
+				'fontFamily' => $font_family,
+			);
+
+			$family_id = $this->upsert_font_family( $slug, $name, $family_payload );
+			if ( $family_id <= 0 ) {
+				$warnings[] = "Font family '$slug' could not be saved.";
+				continue;
+			}
+
+			// Wipe + reinsert faces. wp_delete_post(force=true) clears
+			// children so the re-imported set is authoritative.
+			$existing_faces = get_posts( array(
+				'post_type'      => 'wp_font_face',
+				'post_parent'    => $family_id,
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			) );
+			foreach ( $existing_faces as $face_id ) {
+				wp_delete_post( (int) $face_id, true );
+			}
+
+			$faces = isset( $font['fontFace'] ) && is_array( $font['fontFace'] ) ? $font['fontFace'] : array();
+			foreach ( $faces as $face ) {
+				if ( ! is_array( $face ) ) {
+					continue;
+				}
+				$face_payload = $this->normalize_font_face( $face, $font_family, $ref_map, $warnings, $basedir );
+				if ( null === $face_payload ) {
+					continue;
+				}
+				$face_id = wp_insert_post( wp_slash( array(
+					'post_type'    => 'wp_font_face',
+					'post_parent'  => $family_id,
+					'post_status'  => 'publish',
+					'post_title'   => sprintf(
+						'%s %s %s',
+						$face_payload['fontFamily'],
+						$face_payload['fontStyle']  ?: 'normal',
+						$face_payload['fontWeight'] ?: '400'
+					),
+					'post_content' => wp_json_encode( $face_payload ),
+				) ), true );
+				if ( ! is_wp_error( $face_id ) && $face_id > 0 ) {
+					update_post_meta( (int) $face_id, '_ft_source_ref', 'font:' . $slug );
+				}
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Idempotent insert/update for `wp_font_family`. Looks up by slug
+	 * (`post_name`) — the canonical Font Library identity — so re-imports
+	 * refresh content instead of duplicating.
+	 *
+	 * @param array<string,mixed> $payload  Family JSON (slug, name, fontFamily).
+	 * @return int Local post ID, 0 on failure.
+	 */
+	private function upsert_font_family( string $slug, string $name, array $payload ): int {
+		$existing = get_posts( array(
+			'post_type'      => 'wp_font_family',
+			'name'           => $slug,
+			'post_status'    => 'any',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		) );
+
+		$args = array(
+			'post_type'    => 'wp_font_family',
+			'post_status'  => 'publish',
+			'post_title'   => $name,
+			'post_name'    => $slug,
+			'post_content' => wp_json_encode( $payload ),
+		);
+
+		if ( ! empty( $existing ) ) {
+			$args['ID'] = (int) $existing[0];
+			$id         = wp_update_post( wp_slash( $args ), true );
+		} else {
+			$id = wp_insert_post( wp_slash( $args ), true );
+		}
+
+		if ( is_wp_error( $id ) || ! $id ) {
+			return 0;
+		}
+		$id = (int) $id;
+		update_post_meta( $id, '_ft_source_ref', 'font:' . $slug );
+		return $id;
+	}
+
+	/**
+	 * Normalize a face entry from options.json into the shape Font
+	 * Library stores in `wp_font_face.post_content`:
+	 *
+	 *   { fontFamily, fontStyle, fontWeight, src: [absolute URLs] }
+	 *
+	 * Each `src` is resolved through {@see resolve_refs} (so `{{SITE_URL}}`
+	 * + multisite-prefix strip already ran upstream), then checked for
+	 * disk presence when it points under our uploads basedir — broken
+	 * uploads paths get a warning but stay in the payload (the Editor
+	 * shows the family with a missing-file marker instead of dropping it
+	 * silently).
+	 *
+	 * Returns null when no usable src remains AND the face had any src
+	 * at all (system-stack families with no faces are emitted by the
+	 * caller with no fontFace[], so they never reach this helper).
+	 *
+	 * @return array<string,mixed>|null
+	 */
+	private function normalize_font_face( array $face, string $family_fallback, array $ref_map, array &$warnings, string $basedir ) {
+		$srcs       = isset( $face['src'] ) ? (array) $face['src'] : array();
+		$resolved   = array();
+		$site_host  = '' !== $this->site_url ? wp_parse_url( $this->site_url, PHP_URL_HOST ) : '';
+		foreach ( $srcs as $src ) {
+			if ( ! is_string( $src ) || '' === $src ) {
+				continue;
+			}
+			// Resolve {{SITE_URL}} + multisite strip + any embedded refs
+			// (refs unlikely inside font src, but cheap to share the helper).
+			$src_resolved = $this->resolve_refs( $src, $ref_map, $warnings );
+			if ( ! is_string( $src_resolved ) || '' === $src_resolved ) {
+				continue;
+			}
+
+			// If the URL points at our uploads dir, verify the file is
+			// on disk (extracted from uploads.zip). Missing file → warn
+			// but still emit the entry so admins can see the broken
+			// reference in Site Editor's typography panel.
+			if ( '' !== $site_host && '' !== $basedir ) {
+				$src_host = wp_parse_url( $src_resolved, PHP_URL_HOST );
+				$path     = wp_parse_url( $src_resolved, PHP_URL_PATH );
+				if ( $src_host === $site_host && is_string( $path ) && false !== strpos( $path, '/wp-content/uploads/' ) ) {
+					$rel = substr( $path, strpos( $path, '/wp-content/uploads/' ) + strlen( '/wp-content/uploads/' ) );
+					if ( false !== $rel && ! file_exists( trailingslashit( $basedir ) . $rel ) ) {
+						$warnings[] = "Font file missing on disk: $rel";
+					}
+				}
+			}
+
+			$resolved[] = $src_resolved;
+		}
+
+		// If the source had `src` entries but ALL of them failed to
+		// resolve to a usable string, drop the face entirely — there's
+		// no point creating a wp_font_face row with an empty src.
+		if ( ! empty( $srcs ) && empty( $resolved ) ) {
+			return null;
+		}
+
+		return array(
+			'fontFamily' => (string) ( $face['fontFamily'] ?? $family_fallback ),
+			'fontStyle'  => (string) ( $face['fontStyle']  ?? 'normal' ),
+			'fontWeight' => (string) ( $face['fontWeight'] ?? '400' ),
+			'src'        => $resolved,
+		);
 	}
 
 	/**
