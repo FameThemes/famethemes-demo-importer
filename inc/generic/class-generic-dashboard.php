@@ -96,8 +96,8 @@ class Generic_Dashboard {
 
 		add_submenu_page(
 			$parent,
-			__( 'Demo Contents', 'famethemes-demo-importer' ),
-			__( 'Demo Contents', 'famethemes-demo-importer' ),
+			__( 'Starter Templates', 'famethemes-demo-importer' ),
+			__( 'Starter Templates', 'famethemes-demo-importer' ),
 			'manage_options',
 			self::PAGE_SLUG,
 			[ $this, 'dashboard' ]
@@ -168,7 +168,7 @@ class Generic_Dashboard {
 			'pollIntervalMs'   => 2000,
 			'currentTheme'     => get_option( 'template' ),
 			'currentStylesheet' => get_option( 'stylesheet' ),
-			'adapterLabel'     => $adapter ? $adapter->admin_label() : __( 'Demo Contents', 'famethemes-demo-importer' ),
+			'adapterLabel'     => $adapter ? $adapter->admin_label() : __( 'Starter Templates', 'famethemes-demo-importer' ),
 			'studioConfigured' => $this->options->has_credentials(),
 			'settingsUrl'      => admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&tab=' . Settings_Page::TAB_SETTINGS ),
 			'home'             => home_url( '/' ),
@@ -184,7 +184,7 @@ class Generic_Dashboard {
 		}
 
 		$adapter = apply_filters( 'ft_demo_importer_active_adapter', null );
-		$label   = $adapter ? $adapter->admin_label() : __( 'Demo Contents', 'famethemes-demo-importer' );
+		$label   = $adapter ? $adapter->admin_label() : __( 'Starter Templates', 'famethemes-demo-importer' );
 		?>
 		<div class="wrap demo-contents">
 			<h1 class="wp-heading-inline"><?php echo esc_html( $label ); ?></h1>

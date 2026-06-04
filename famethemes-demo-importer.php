@@ -10,10 +10,12 @@ Text Domain: famethemes-demo-importer
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
-if ( ! defined( 'ABSPATH' ) ) { exit; }
+if (! defined('ABSPATH')) {
+    exit;
+}
 
-define( 'DEMO_CONTENT_URL',  trailingslashit( plugins_url( '', __FILE__ ) ) );
-define( 'DEMO_CONTENT_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
+define('DEMO_CONTENT_URL',  trailingslashit(plugins_url('', __FILE__)));
+define('DEMO_CONTENT_PATH', trailingslashit(plugin_dir_path(__FILE__)));
 
 /**
  * Boot the importer.
@@ -44,31 +46,32 @@ define( 'DEMO_CONTENT_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
  * routes would never register (a REST request has `is_admin() === false`),
  * and the React UI in wp-admin would 404 on every call.
  */
-function demo_contents__init() {
-	// REST_REQUEST is defined inside parse_request (after plugins_loaded),
-	// so it's not yet set when this hook fires. Sniff the URL the way WP
-	// core itself does before the constant is available.
-	$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
-	$rest_prefix = trailingslashit( rest_get_url_prefix() );
-	$is_rest     = isset( $_GET['rest_route'] )
-		|| ( '' !== $rest_prefix && false !== strpos( $request_uri, '/' . trim( $rest_prefix, '/' ) . '/' ) );
+function demo_contents__init()
+{
+    // REST_REQUEST is defined inside parse_request (after plugins_loaded),
+    // so it's not yet set when this hook fires. Sniff the URL the way WP
+    // core itself does before the constant is available.
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+    $rest_prefix = trailingslashit(rest_get_url_prefix());
+    $is_rest     = isset($_GET['rest_route'])
+        || ('' !== $rest_prefix && false !== strpos($request_uri, '/' . trim($rest_prefix, '/') . '/'));
 
-	$needs_boot = is_admin()
-		|| ( defined( 'DOING_AJAX' )    && DOING_AJAX )
-		|| $is_rest;
-	if ( ! $needs_boot ) {
-		return;
-	}
+    $needs_boot = is_admin()
+        || (defined('DOING_AJAX')    && DOING_AJAX)
+        || $is_rest;
+    if (! $needs_boot) {
+        return;
+    }
 
-	$template = (string) get_option( 'template' );
+    $template = (string) get_option('template');
 
-	if ( demo_contents_is_legacy_theme( $template ) ) {
-		require_once DEMO_CONTENT_PATH . 'inc/legacy/bootstrap.php';
-	} else {
-		require_once DEMO_CONTENT_PATH . 'inc/generic/bootstrap.php';
-	}
+    if (demo_contents_is_legacy_theme($template)) {
+        require_once DEMO_CONTENT_PATH . 'inc/legacy/bootstrap.php';
+    } else {
+        require_once DEMO_CONTENT_PATH . 'inc/generic/bootstrap.php';
+    }
 }
-add_action( 'plugins_loaded', 'demo_contents__init' );
+add_action('plugins_loaded', 'demo_contents__init');
 
 /**
  * Determine whether the given theme slug routes to the Legacy track.
@@ -83,55 +86,49 @@ add_action( 'plugins_loaded', 'demo_contents__init' );
  * @param string $template Active parent theme stylesheet.
  * @return bool
  */
-function demo_contents_is_legacy_theme( $template ) {
-	$themes = apply_filters(
-		'demo_contents_onepress_themes',
-		array(
-			'slugs' => array(
-				'onepress',
-				'screenr',
-				'accelerate',
-				'bizland',
-				'oblique',
-				'shapely',
-				'crispmag',
-				'sparkling',
-				'cleanblock',
-			),
-			'prefixes' => array(
-				'onepress-',
-				'accelerate-',
-			),
-		),
-		$template
-	);
+function demo_contents_is_legacy_theme($template)
+{
+    $themes = apply_filters(
+        'demo_contents_onepress_themes',
+        array(
+            'slugs' => array(
+                'onepress',
+                'screenr',
+            ),
+            'prefixes' => array(
+                'onepress-',
+                'accelerate-',
+            ),
+        ),
+        $template
+    );
 
-	// Back-compat shim: a filter that returns a flat string[] gets
-	// treated as just the slug list.
-	if ( is_array( $themes ) && ! isset( $themes['slugs'] ) && ! isset( $themes['prefixes'] ) ) {
-		$themes = array( 'slugs' => array_values( $themes ), 'prefixes' => array() );
-	}
+    // Back-compat shim: a filter that returns a flat string[] gets
+    // treated as just the slug list.
+    if (is_array($themes) && ! isset($themes['slugs']) && ! isset($themes['prefixes'])) {
+        $themes = array('slugs' => array_values($themes), 'prefixes' => array());
+    }
 
-	$slugs    = isset( $themes['slugs'] )    && is_array( $themes['slugs'] )    ? $themes['slugs']    : array();
-	$prefixes = isset( $themes['prefixes'] ) && is_array( $themes['prefixes'] ) ? $themes['prefixes'] : array();
+    $slugs    = isset($themes['slugs'])    && is_array($themes['slugs'])    ? $themes['slugs']    : array();
+    $prefixes = isset($themes['prefixes']) && is_array($themes['prefixes']) ? $themes['prefixes'] : array();
 
-	$is_legacy = in_array( $template, $slugs, true );
-	if ( ! $is_legacy ) {
-		foreach ( $prefixes as $prefix ) {
-			if ( '' !== (string) $prefix && 0 === strpos( $template, (string) $prefix ) ) {
-				$is_legacy = true;
-				break;
-			}
-		}
-	}
+    $is_legacy = in_array($template, $slugs, true);
+    if (! $is_legacy) {
+        foreach ($prefixes as $prefix) {
+            if ('' !== (string) $prefix && 0 === strpos($template, (string) $prefix)) {
+                $is_legacy = true;
+                break;
+            }
+        }
+    }
 
-	/**
-	 * Filter — force-override the track decision.
-	 *
-	 * @param bool   $is_legacy  Whether the Legacy track will load.
-	 * @param string $template   Active parent theme stylesheet.
-	 */
-	return (bool) apply_filters( 'demo_contents_use_onepress_track', $is_legacy, $template );
+    /**
+     * Filter — force-override the track decision.
+     *
+     * @param bool   $is_legacy  Whether the Legacy track will load.
+     * @param string $template   Active parent theme stylesheet.
+     */
+    return (bool) apply_filters('demo_contents_use_onepress_track', $is_legacy, $template);
 }
 
 /**
@@ -147,17 +144,18 @@ function demo_contents_is_legacy_theme( $template ) {
  * `plugins_loaded` callback runs, so a hook registered inside a track
  * bootstrap wouldn't catch it.
  */
-function demo_contents_importer_plugin_activate( $plugin, $network_wide = false ) {
-	if ( $network_wide || $plugin !== plugin_basename( __FILE__ ) ) {
-		return;
-	}
-	$template = (string) get_option( 'template' );
-	if ( demo_contents_is_legacy_theme( $template ) ) {
-		$url = admin_url( 'admin.php?page=ft_' . sanitize_key( $template ) . '&tab=demo-data-importer' );
-	} else {
-		$url = admin_url( 'admin.php?page=famethemes-demo-importer' );
-	}
-	wp_safe_redirect( $url );
-	exit;
+function demo_contents_importer_plugin_activate($plugin, $network_wide = false)
+{
+    if ($network_wide || $plugin !== plugin_basename(__FILE__)) {
+        return;
+    }
+    $template = (string) get_option('template');
+    if (demo_contents_is_legacy_theme($template)) {
+        $url = admin_url('admin.php?page=ft_' . sanitize_key($template) . '&tab=demo-data-importer');
+    } else {
+        $url = admin_url('admin.php?page=famethemes-demo-importer');
+    }
+    wp_safe_redirect($url);
+    exit;
 }
-add_action( 'activated_plugin', 'demo_contents_importer_plugin_activate', 90, 2 );
+add_action('activated_plugin', 'demo_contents_importer_plugin_activate', 90, 2);

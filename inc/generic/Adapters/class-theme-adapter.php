@@ -101,7 +101,7 @@ abstract class Theme_Adapter {
 	 * to brand the importer per theme (e.g. "Customify Sites").
 	 */
 	public function admin_label(): string {
-		return __( 'Demo Contents', 'famethemes-demo-importer' );
+		return __( 'Starter Templates', 'famethemes-demo-importer' );
 	}
 
 	/**
