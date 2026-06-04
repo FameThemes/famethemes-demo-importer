@@ -1,0 +1,346 @@
+/**
+ * Generic-track admin styles.
+ *
+ * The template grid inherits OnePress's `.demo-contents-themes-listing >
+ * .themes > .theme` styling from the plugin-root `style.css` (enqueued
+ * before this file). The preview overlay is ours — ported from
+ * blocksify-design-importer's TemplateDetail markup with the prefix
+ * rebranded to `.ft-demo-preview__*` so it lives alongside both
+ * stylesheets without collision.
+ *
+ * Layout:
+ *   .ft-demo-preview
+ *     .ft-demo-preview__main      (iframe pane, fills remaining width)
+ *     .ft-demo-preview__sidebar   (320px right rail, header + body + footer)
+ */
+
+.ft-demo-importer-loading {
+	text-align: center;
+	padding: 40px 0;
+	color: #50575e;
+
+	p { margin-top: 12px; }
+}
+
+.ft-demo-importer-grid {
+	margin-top: 16px;
+}
+
+.ft-demo-importer-count {
+	color: #646970;
+	font-size: 12px;
+	margin: 16px 0 8px;
+}
+
+// ─────────────────────────────────────────── Preview overlay (right sidebar)
+
+// Full viewport overlay — covers the admin bar as well so the preview
+// reads as a focused "modal app" rather than a panel docked under chrome.
+// `<body>` gets `.ft-demo-preview-open` from PreviewPanel.jsx on mount,
+// which locks page scroll so the iframe + sidebar are the only scrollable
+// regions in the viewport (no double-scrollbar against wp-admin content
+// behind the modal).
+.ft-demo-preview {
+	position: fixed;
+	inset: 0;
+	background: #fff;
+	z-index: 100000; // above WP admin bar (z-index: 99999)
+	display: flex;
+	flex-direction: row;
+	overflow: hidden;
+}
+
+body.ft-demo-preview-open {
+	overflow: hidden;
+}
+
+// Main pane: iframe (left of the sidebar, fills remaining width).
+.ft-demo-preview__main {
+	flex: 1;
+	min-width: 0;
+	background: #f0f0f1;
+	display: flex;
+	flex-direction: column;
+}
+.ft-demo-preview__iframe {
+	flex: 1;
+	width: 100%;
+	border: 0;
+	background: #fff;
+}
+.ft-demo-preview__iframe-fallback {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #f6f7f7;
+	color: #9ca3af;
+	font-size: 13px;
+}
+
+// Sidebar (left, 320px) — header + scrolling body + footer pinned to bottom.
+.ft-demo-preview__sidebar {
+	width: 320px;
+	flex-shrink: 0;
+	border-right: 1px solid #e6e6e6;
+	background: #fafafa;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+.ft-demo-preview__sb-header {
+	padding: 16px 18px;
+	border-bottom: 1px solid #e6e6e6;
+	background: #fff;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+
+	h2 {
+		margin: 0;
+		font-size: 15px;
+		font-weight: 600;
+		color: #1e1e1e;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+.ft-demo-preview__close {
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	color: #6b7280;
+	font-size: 22px;
+	line-height: 1;
+	padding: 4px 8px;
+	border-radius: 4px;
+	flex-shrink: 0;
+
+	&:hover {
+		background: #f0f0f1;
+		color: #1e1e1e;
+	}
+}
+.ft-demo-preview__sb-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 16px 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+
+	&::-webkit-scrollbar { width: 6px; }
+	&::-webkit-scrollbar-track  { background: transparent; }
+	&::-webkit-scrollbar-thumb  {
+		background: #d4d6d9;
+		border-radius: 999px;
+		&:hover { background: #a7a9aa; }
+	}
+}
+.ft-demo-preview__sb-footer {
+	padding: 12px 18px;
+	border-top: 1px solid #e6e6e6;
+	background: #fff;
+	flex-shrink: 0;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+}
+
+// Sections inside the body.
+.ft-demo-preview__section h3 {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #6b7280;
+	margin: 0 0 8px;
+}
+.ft-demo-preview__error {
+	color: #b32d2e;
+	font-size: 13px;
+	padding: 8px 10px;
+	background: #fcf0f1;
+	border: 1px solid #f1d1d1;
+	border-radius: 4px;
+}
+
+// Logo picker — dashed drop-zone; click opens `wp.media()`.
+.ft-demo-preview__logo {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border: 1.5px dashed #c3c4c7;
+	border-radius: 6px;
+	background: #fff;
+	color: #6b7280;
+	font-size: 12px;
+	cursor: pointer;
+	transition: border-color 120ms, color 120ms, background 120ms;
+	gap: 6px;
+
+	&:hover {
+		border-color: #2271b1;
+		color: #2271b1;
+		background: #f6fbff;
+	}
+	svg {
+		width: 18px;
+		height: 18px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	&.is-set {
+		border-style: solid;
+		padding: 0;
+		overflow: hidden;
+		position: relative;
+		img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+	}
+}
+
+.ft-demo-preview__plugins {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 10px;
+		background: #fff;
+		border: 1px solid #eef0f3;
+		border-radius: 6px;
+		font-size: 13px;
+	}
+	.name {
+		flex: 1;
+		min-width: 0;
+		font-weight: 500;
+		color: #1e1e1e;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.source-tag {
+		font-size: 10px;
+		font-weight: 600;
+		color: #757575;
+		background: #f0f0f1;
+		padding: 2px 6px;
+		border-radius: 3px;
+		text-transform: uppercase;
+		letter-spacing: 0.3px;
+		flex-shrink: 0;
+	}
+}
+
+// Import progress (replaces the idle Logo + Plugins blocks while a job runs).
+.ft-demo-preview__phases {
+	list-style: none;
+	margin: 0 0 12px;
+	padding: 0;
+}
+.ft-demo-preview__phase {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 0;
+	font-size: 13px;
+	color: #8c8f94;
+
+	.dot {
+		width: 14px;
+		height: 14px;
+		border: 2px solid #c3c4c7;
+		border-radius: 50%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+	&.is-completed {
+		color: #1e1e1e;
+		.dot {
+			background: #00a32a;
+			border-color: #00a32a;
+			&::after { content: "✓"; color: #fff; font-size: 10px; line-height: 1; }
+		}
+	}
+	&.is-running {
+		color: #2271b1;
+		font-weight: 600;
+		.dot {
+			border-color: #2271b1;
+			border-top-color: transparent;
+			animation: ft-demo-preview-spin 0.8s linear infinite;
+		}
+	}
+	&.is-failed {
+		color: #d63638;
+		.dot {
+			background: #d63638;
+			border-color: #d63638;
+			&::after { content: "!"; color: #fff; font-weight: 700; }
+		}
+	}
+}
+.ft-demo-preview__bar {
+	background: #f0f0f1;
+	height: 6px;
+	border-radius: 3px;
+	overflow: hidden;
+	margin-top: 8px;
+}
+.ft-demo-preview__bar-fill {
+	background: #2271b1;
+	height: 100%;
+	transition: width 0.3s ease;
+}
+.ft-demo-preview__msg {
+	font-size: 12px;
+	color: #50575e;
+	margin: 6px 0 0;
+}
+.ft-demo-preview__status {
+	margin-top: 12px;
+	padding: 8px 10px;
+	border-radius: 4px;
+	font-size: 13px;
+	font-weight: 500;
+
+	&.is-success { background: #ecf6e8; color: #00733e; border: 1px solid #b8dbb8; }
+	&.is-error   { background: #fcf0f1; color: #b32d2e; border: 1px solid #f1d1d1; }
+	&.is-warning { background: #fcf9e8; color: #8a6c0a; border: 1px solid #f0e2a1; }
+}
+.ft-demo-preview__warnings {
+	margin-top: 12px;
+	padding: 8px 10px;
+	background: #fcf9e8;
+	border: 1px solid #f0e2a1;
+	border-radius: 4px;
+	font-size: 12px;
+
+	summary { cursor: pointer; font-weight: 600; }
+	ul { margin: 8px 0 0 18px; }
+}
+
+@keyframes ft-demo-preview-spin {
+	to { transform: rotate(360deg); }
+}

@@ -210,7 +210,20 @@ class Demo_Content_Dashboard
 
     function add_menu()
     {
-        add_management_page(__('Demo Contents', 'famethemes-demo-importer'), __('Demo Contents', 'famethemes-demo-importer'), 'manage_options', $this->page_slug, array($this, 'dashboard'));
+        // Hidden submenu — `parent_slug = null` registers the page
+        // callback without adding a sidebar entry. URL stays the same
+        // (`admin.php?page=famethemes-demo-importer`); access from
+        // outside (FameTheme welcome screens, links from other plugins)
+        // continues to work. Mirrors the Generic track's registration
+        // so behaviour is consistent across themes.
+        add_submenu_page(
+            null,
+            __('Demo Contents', 'famethemes-demo-importer'),
+            __('Demo Contents', 'famethemes-demo-importer'),
+            'manage_options',
+            $this->page_slug,
+            array($this, 'dashboard')
+        );
     }
 
     function get_allowed_authors()
