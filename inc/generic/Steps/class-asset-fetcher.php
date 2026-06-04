@@ -24,6 +24,14 @@ use FT_Demo_Importer\Studio\Remote_Client;
 
 class Asset_Fetcher {
 
+	/** Required assets — both must be present or the import fatals. */
+	public const REQUIRED_KINDS = [ 'content', 'options' ];
+
+	/** Optional assets — manifest may have `null` for these (pattern-only
+	 *  templates ship no `uploads.zip`; many ship no `customizer`). The
+	 *  downstream phases short-circuit on an empty path. */
+	public const OPTIONAL_KINDS = [ 'uploads' ];
+
 	public const ASSET_KINDS = [ 'content', 'options', 'uploads' ];
 
 	private Remote_Client $client;
@@ -33,11 +41,15 @@ class Asset_Fetcher {
 	}
 
 	/**
-	 * Download the 3 assets for $template_id into a tmp folder named after $job_id.
+	 * Download the template's assets into a tmp folder named after $job_id.
+	 *
+	 * Returns absolute paths per kind. Optional kinds (`uploads`) return
+	 * `''` when the manifest didn't ship them — callers MUST check before
+	 * touching the path (`Uploads_Extractor::extract('')` will fatal).
 	 *
 	 * @return array{content:string, options:string, uploads:string, dir:string}
 	 *
-	 * @throws \RuntimeException When the manifest is missing an asset or a download fails.
+	 * @throws \RuntimeException When a required asset is missing or a download fails.
 	 */
 	public function download( int $template_id, string $job_id ): array {
 		$res = $this->client->get( "templates/{$template_id}" );
@@ -58,16 +70,36 @@ class Asset_Fetcher {
 			throw new \RuntimeException( 'Could not create tmp dir: ' . $tmp_dir );
 		}
 
-		$paths = [];
+		$paths = [
+			'content' => '',
+			'options' => '',
+			'uploads' => '',
+		];
+
 		foreach ( self::ASSET_KINDS as $kind ) {
-			$entry = $assets[ $kind ] ?? null;
-			if ( ! is_array( $entry ) || empty( $entry['url'] ) ) {
-				throw new \RuntimeException( sprintf( 'Template %d missing asset: %s', $template_id, $kind ) );
+			$entry      = $assets[ $kind ] ?? null;
+			$is_present = is_array( $entry ) && ! empty( $entry['url'] );
+
+			if ( ! $is_present ) {
+				if ( in_array( $kind, self::REQUIRED_KINDS, true ) ) {
+					throw new \RuntimeException( sprintf(
+						'Template %d missing required asset: %s',
+						$template_id,
+						$kind
+					) );
+				}
+				// Optional kind — leave the path empty and move on.
+				continue;
 			}
+
 			$ext    = 'uploads' === $kind ? 'zip' : 'json';
 			$target = trailingslashit( $tmp_dir ) . "{$kind}.{$ext}";
 			if ( ! $this->client->download( (string) $entry['url'], $target ) ) {
-				throw new \RuntimeException( sprintf( 'Failed to download asset %s (URL: %s).', $kind, (string) $entry['url'] ) );
+				throw new \RuntimeException( sprintf(
+					'Failed to download asset %s (URL: %s).',
+					$kind,
+					(string) $entry['url']
+				) );
 			}
 			$paths[ $kind ] = $target;
 		}

@@ -133,10 +133,17 @@ class Importer_Runner {
 			if ( $adapter ) { $adapter->after_phase( Job_Store::STATUS_INSTALLING_PLUGINS, (array) $this->jobs->get( $job_id ), $this ); }
 
 			// (3) Extract uploads. 30 → 45 %
+			//
+			// Two ways the step gets skipped without warning:
+			//   - User unchecked "import uploads" in the wizard (config flag false).
+			//   - Template's manifest didn't ship an `uploads.zip` at all
+			//     (Asset_Fetcher returns an empty path for that kind, since
+			//     it's optional — many pattern-only templates have no zip).
 			if ( $this->cancelled( $job_id ) ) { $fetcher->cleanup( $job_id ); return; }
-			if ( ! empty( $config['import_uploads'] ) ) {
+			$uploads_path = (string) ( $paths['uploads'] ?? '' );
+			if ( ! empty( $config['import_uploads'] ) && '' !== $uploads_path ) {
 				$this->jobs->set_status( $job_id, Job_Store::STATUS_EXTRACTING, __( 'Extracting media files…', 'famethemes-demo-importer' ) );
-				$ext_result = $extractor->extract( $paths['uploads'] ?? '', ! empty( $config['overwrite_existing'] ) );
+				$ext_result = $extractor->extract( $uploads_path, ! empty( $config['overwrite_existing'] ) );
 				foreach ( $ext_result['warnings'] as $w ) {
 					$this->jobs->warn( $job_id, $w );
 				}
@@ -145,8 +152,10 @@ class Importer_Runner {
 					$ext_result['written'],
 					$ext_result['skipped']
 				) );
-			} else {
+			} elseif ( empty( $config['import_uploads'] ) ) {
 				$this->jobs->log( $job_id, 'Uploads step skipped by request.' );
+			} else {
+				$this->jobs->log( $job_id, 'Uploads step skipped — template has no uploads.zip.' );
 			}
 			$this->jobs->set_progress( $job_id, 45 );
 			if ( $adapter ) { $adapter->after_phase( Job_Store::STATUS_EXTRACTING, (array) $this->jobs->get( $job_id ), $this ); }

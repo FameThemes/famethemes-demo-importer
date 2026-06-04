@@ -346,8 +346,9 @@ class Content_Importer {
 	// ---------------------------------------------------------- Rewrite
 
 	/**
-	 * Replace `{{ref:(post|term):N(:missing)?}}`, `{{SITE_URL}}` and
-	 * `wp-image-{source_id}` CSS classes inside post_content / post_excerpt.
+	 * Replace `{{ref:(post|term):N(:missing)?}}`, `{{SITE_URL}}`,
+	 * `wp-image-{source_id}` CSS classes, multisite uploads path prefix,
+	 * AND raw `"id":N` JSON block attrs that point at attachments.
 	 */
 	private function rewrite_refs_and_urls( string $value, array $ref_map, string $site_url, array &$warnings ): string {
 		if ( '' === $value ) {
@@ -373,10 +374,38 @@ class Content_Importer {
 			$value
 		);
 
-		// (b) site URL placeholder
+		// (b) site URL placeholder — flip {{SITE_URL}} to the live home URL.
 		$value = str_replace( '{{SITE_URL}}', $site_url, $value );
 
-		// (c) wp-image-{source_id} → wp-image-{new_id}
+		// (b.1) Multisite uploads-path strip.
+		//
+		// When the source site was a multisite CHILD, attachment URLs in
+		// block markup carry the `wp-content/uploads/sites/N/` prefix
+		// (`wp_get_attachment_url` baked it in during export). The
+		// uploads.zip we unpacked is rooted at the destination's plain
+		// uploads basedir — files land at `wp-content/uploads/2018/03/…`
+		// WITHOUT the `sites/N/` segment. Without this strip, every
+		// image in the post points at a 404.
+		//
+		// We only touch URLs whose host already matches our home (anchored
+		// via the just-replaced `{{SITE_URL}}`), so external links never
+		// get rewritten by accident.
+		$home_no_slash = untrailingslashit( $site_url );
+		if ( '' !== $home_no_slash ) {
+			$value = (string) preg_replace(
+				'#(' . preg_quote( $home_no_slash, '#' ) . '/wp-content/uploads/)sites/\d+/#',
+				'$1',
+				$value
+			);
+		}
+
+		// Build attachment-only ID pair map for (c) + (d). Plain posts in
+		// `ref_map` are excluded — block JSON `"id":N` attrs that aren't
+		// attachment refs (e.g. an Image block's `"id":42` IS an
+		// attachment; a navigation block's `"id":7` is the menu's post id)
+		// shouldn't get rewritten by the broad regex in (d), so we gate
+		// strictly on attachment status.
+		$attachment_pairs = array();
 		foreach ( $ref_map as $ref => $new_id ) {
 			if ( 0 !== strpos( $ref, 'post:' ) ) {
 				continue;
@@ -386,9 +415,62 @@ class Content_Importer {
 			if ( $old_id <= 0 || $new_id <= 0 || $old_id === $new_id ) {
 				continue;
 			}
+			$local = get_post( $new_id );
+			if ( ! $local || 'attachment' !== $local->post_type ) {
+				continue;
+			}
+			$attachment_pairs[ $old_id ] = $new_id;
+		}
+
+		// (c) wp-image-{source_id} → wp-image-{new_id}
+		foreach ( $attachment_pairs as $old_id => $new_id ) {
 			$value = (string) preg_replace(
 				'/\bwp-image-' . $old_id . '\b/',
 				'wp-image-' . $new_id,
+				$value
+			);
+		}
+
+		// (d) Block JSON `"id":N` → `"id":<local>` for attachment refs.
+		//
+		// Gutenberg image / cover / video / gallery (single) / file blocks
+		// carry the attachment ID inside the block-comment JSON attribute
+		// block — the submitter doesn't rewrite this to a `{{ref:post:N}}`
+		// placeholder, so we have to walk raw integers here.
+		//
+		// Restricting to `$attachment_pairs` (built above) makes this
+		// strict: a numeric `"id"` that doesn't belong to an attachment
+		// passes through unchanged. Blocks that store `"ids":[…]` for
+		// galleries are handled separately just below.
+		if ( ! empty( $attachment_pairs ) ) {
+			$value = (string) preg_replace_callback(
+				'/"id"\s*:\s*(\d+)/',
+				static function ( array $m ) use ( $attachment_pairs ): string {
+					$src = (int) $m[1];
+					if ( isset( $attachment_pairs[ $src ] ) ) {
+						return '"id":' . $attachment_pairs[ $src ];
+					}
+					return $m[0];
+				},
+				$value
+			);
+
+			// `"ids":[1,2,3]` — gallery block list of attachment IDs.
+			$value = (string) preg_replace_callback(
+				'/"ids"\s*:\s*\[([^\]]*)\]/',
+				static function ( array $m ) use ( $attachment_pairs ): string {
+					$rewritten = preg_replace_callback(
+						'/\d+/',
+						static function ( array $n ) use ( $attachment_pairs ): string {
+							$src = (int) $n[0];
+							return isset( $attachment_pairs[ $src ] )
+								? (string) $attachment_pairs[ $src ]
+								: $n[0];
+						},
+						$m[1]
+					);
+					return '"ids":[' . $rewritten . ']';
+				},
 				$value
 			);
 		}

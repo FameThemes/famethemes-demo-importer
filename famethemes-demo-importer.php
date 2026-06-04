@@ -36,15 +36,21 @@ define('DEMO_CONTENT_PATH', trailingslashit(plugin_dir_path(__FILE__)));
  * The `demo_contents_use_onepress_track` filter force-overrides the
  * decision (useful for staging / debugging).
  *
- * Bootstrap fires for three request types:
+ * Bootstrap fires for four request types:
  *   - admin pageviews    (`is_admin() === true`)
  *   - AJAX               (`DOING_AJAX`) — Legacy's sync importer worker
  *   - REST API           (`REST_REQUEST`) — Generic's `/ft-demo-importer/v1/...` routes
+ *   - WP-Cron            (`DOING_CRON`)   — Generic's `ft_demo_importer_run_job`
+ *                                            event needs its action handler
+ *                                            registered when wp-cron.php
+ *                                            processes the queue
  *
  * Front-end (public site) requests are skipped — the importer has no
  * front-end surface. Without the REST branch the Generic track's REST
  * routes would never register (a REST request has `is_admin() === false`),
- * and the React UI in wp-admin would 404 on every call.
+ * and the React UI in wp-admin would 404 on every call. Without the
+ * cron branch the import job would forever sit at `queued` — wp-cron.php
+ * fires the event but no callback exists.
  */
 function demo_contents__init()
 {
@@ -58,6 +64,7 @@ function demo_contents__init()
 
     $needs_boot = is_admin()
         || (defined('DOING_AJAX')    && DOING_AJAX)
+        || (defined('DOING_CRON')    && DOING_CRON)
         || $is_rest;
     if (! $needs_boot) {
         return;
