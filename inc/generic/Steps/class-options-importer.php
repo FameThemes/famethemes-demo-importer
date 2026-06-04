@@ -22,6 +22,27 @@
  * successful gated run, `ft_demo_importer_settings_applied=1` marker is
  * stamped so subsequent imports can show a "settings already applied —
  * really replace?" confirmation in the wizard.
+ *
+ * Value-rewrite rules (applied by {@see resolve_refs()} on every leaf):
+ *   - `"post:N"` / `"term:N"` strings              → numeric local ID (ref_map lookup)
+ *   - `{{ref:(post|term):N(:missing)?}}` markers   → numeric local ID
+ *   - `{{SITE_URL}}` placeholder                   → target `home_url()`
+ *   - `home_url/wp-content/uploads/sites/\d+/`     → strip multisite prefix
+ *   - Array keys ending in `_ref`                  → suffix dropped on output
+ *   - Anything else (scalars, nested arrays)        → recurse / verbatim
+ *
+ * Widget-specific extras (on top of resolve_refs):
+ *   - `widget_media_*.attachment_id`               → ref_map then `attachment_url_to_postid()` fallback
+ *   - `widget_media_gallery.ids[]`                 → ref_map (per element)
+ *   - `widget_nav_menu.nav_menu`                   → ref_map (term ID)
+ *   - `widget_block.content` block markup          → wp-image-N + `"id":N` + `"ids":[...]`
+ *                                                    rewritten the same way
+ *                                                    Content_Importer does
+ *                                                    inside post_content.
+ *
+ * Theme-mod Path B custom keys with raw integer IDs (e.g. `mytheme_logo_id: 42`)
+ * are intentionally NOT auto-rewritten — see site-submit.md §`theme.mods rewrite
+ * rules`. Themes that need it ship a Theme_Adapter that registers the keys.
  */
 
 namespace FT_Demo_Importer\Steps;
@@ -33,6 +54,20 @@ class Options_Importer {
 	/** Sticky marker — UI checks this to decide whether to show the
 	 *  Confirm step on subsequent imports. Set once, never auto-cleared. */
 	public const OPTION_SETTINGS_APPLIED = 'ft_demo_importer_settings_applied';
+
+	/** Cached target home URL — set once per `apply()` call so resolve_refs
+	 *  doesn't keep re-calling `untrailingslashit( home_url() )`. */
+	private string $site_url = '';
+
+	/** Cached map of source attachment ID → local attachment ID. Built
+	 *  from `ref_map` (filtered to attachment post types). Used by the
+	 *  widget-media + block-content rewriters. */
+	private array $attachment_pairs = [];
+
+	/** Cached map of source term ID → local term ID. Built from
+	 *  `ref_map`'s `term:N` entries. Used by widget-menu / widget-tag-
+	 *  cloud / widget-categories handlers that store raw term IDs. */
+	private array $term_pairs = [];
 
 	/**
 	 * @param string                  $options_json_path
@@ -70,6 +105,13 @@ class Options_Importer {
 			// options.json wins on conflict — explicit per template trumps
 			// adapter's theme-wide default.
 		}
+
+		// Cache target home URL + build the attachment + term ref
+		// subsets so the value-rewrite helpers don't have to re-derive
+		// them per call.
+		$this->site_url         = untrailingslashit( home_url() );
+		$this->attachment_pairs = $this->build_attachment_pairs( $ref_map );
+		$this->term_pairs       = $this->build_term_pairs( $ref_map );
 
 		$applied         = [];
 		$warnings        = [];
@@ -196,8 +238,9 @@ class Options_Importer {
 	 * theme settings and looks visually nothing like the source — Astra
 	 * stores layout config in `astra-settings`, not theme_mods.
 	 *
-	 * Defensive: anything prefixed `pmbd_` is rejected so the importer
-	 * site's own state can't be corrupted by a malicious manifest.
+	 * Defensive: anything prefixed `pmbd_` or `ft_demo_importer_` is
+	 * rejected so the importer's own state can't be corrupted by a
+	 * malicious manifest.
 	 */
 	private function apply_plugin_options( array $parsed, array $ref_map, array &$warnings ): bool {
 		$plugin_options = $parsed['plugin_options'] ?? null;
@@ -219,37 +262,304 @@ class Options_Importer {
 		return true;
 	}
 
+	/**
+	 * `widgets` layer — saves the sidebar map verbatim and walks every
+	 * `widget_*` option key directly (per site-submit.md §`widgets shape +
+	 * rewrite`).
+	 *
+	 * Previous shape was `widgets.options.widget_text` (a nested wrapper)
+	 * which never appeared in the wire format — the bug silently dropped
+	 * every widget instance. Now matches the doc: `widgets.widget_text`,
+	 * `widgets.widget_media_image`, etc. at the top level.
+	 */
 	private function apply_widgets( array $parsed, array $ref_map, array &$warnings ): bool {
 		$widgets = $parsed['widgets'] ?? null;
 		if ( ! is_array( $widgets ) ) {
 			return false;
 		}
-		if ( isset( $widgets['sidebars_widgets'] ) ) {
+
+		// (a) Sidebars layout — verbatim except the `array_version` marker
+		//     which WP's update routine ignores but some plugins choke on
+		//     when present without other fields. Pass through as-is; WP
+		//     handles its own normalization.
+		if ( isset( $widgets['sidebars_widgets'] ) && is_array( $widgets['sidebars_widgets'] ) ) {
 			update_option( 'sidebars_widgets', $widgets['sidebars_widgets'] );
 		}
-		if ( isset( $widgets['options'] ) && is_array( $widgets['options'] ) ) {
-			foreach ( $widgets['options'] as $option_name => $option_value ) {
-				update_option( (string) $option_name, $option_value );
+
+		// (b) Per-widget option keys (`widget_*`).
+		foreach ( $widgets as $option_name => $option_value ) {
+			if ( 'sidebars_widgets' === $option_name ) {
+				continue;
 			}
+			if ( 0 !== strpos( (string) $option_name, 'widget_' ) ) {
+				continue;
+			}
+			if ( ! is_array( $option_value ) ) {
+				continue;
+			}
+
+			// (b.1) Generic URL + ref rewrite walks every string leaf.
+			$resolved = $this->resolve_refs( $option_value, $ref_map, $warnings );
+
+			// (b.2) Widget-specific attachment ID rewriting (media widgets
+			//       + Block widget content). Pass `option_name` so the
+			//       rewriter knows when to target Block widget content.
+			if ( is_array( $resolved ) ) {
+				$resolved = $this->rewrite_widget_instances( (string) $option_name, $resolved );
+			}
+
+			update_option( (string) $option_name, $resolved );
 		}
+
 		return true;
 	}
 
 	/**
+	 * Per-widget-option attachment / term / block-content rewriter.
+	 *
+	 * The generic resolve_refs() walk handles URLs + ref strings but NOT
+	 * the raw integers that core widgets store under known keys per the
+	 * submitter doc §`widgets shape + rewrite`:
+	 *
+	 *   - `widget_media_image / _video / _audio`.attachment_id  →  attachment ref
+	 *   - `widget_media_gallery.ids[]`                          →  attachment ref (per element)
+	 *   - `widget_nav_menu.nav_menu`                            →  term ref (menu term_id)
+	 *   - `widget_block.content`                                →  block markup
+	 *                                                              (wp-image-N + "id":N
+	 *                                                               handled like
+	 *                                                               post_content)
+	 *
+	 * Attachment IDs use {@see resolve_attachment_id()} which falls back
+	 * to `attachment_url_to_postid()` against the instance's companion
+	 * `url` field when the ref_map doesn't have a hit (covers uploads-
+	 * only attachments that never got a wp_posts row through content.json).
+	 *
+	 * Term IDs are ref_map-only — there's no URL equivalent of
+	 * `attachment_url_to_postid` for terms, and slug-based fallback risks
+	 * matching wrong terms on hosts with overlapping menu slugs.
+	 */
+	private function rewrite_widget_instances( string $option_name, array $option_value ): array {
+		$is_block_widget    = 'widget_block'    === $option_name;
+		$is_nav_menu_widget = 'widget_nav_menu' === $option_name;
+
+		foreach ( $option_value as $iid => &$instance ) {
+			if ( ! is_array( $instance ) ) {
+				continue;
+			}
+
+			// `widget_media_image / widget_media_video / widget_media_audio`
+			// keep the attachment under `attachment_id` (singular).
+			if ( isset( $instance['attachment_id'] ) && is_numeric( $instance['attachment_id'] ) ) {
+				$local = $this->resolve_attachment_id(
+					(int) $instance['attachment_id'],
+					isset( $instance['url'] ) && is_string( $instance['url'] ) ? $instance['url'] : ''
+				);
+				if ( $local > 0 ) {
+					$instance['attachment_id'] = $local;
+				}
+			}
+
+			// `widget_media_gallery` keeps a list under `ids`. URL fallback
+			// isn't applicable per-id, so this path is ref_map-only.
+			if ( isset( $instance['ids'] ) && is_array( $instance['ids'] ) ) {
+				$instance['ids'] = array_map(
+					function ( $src ) {
+						if ( ! is_numeric( $src ) ) {
+							return $src;
+						}
+						$src = (int) $src;
+						return $this->attachment_pairs[ $src ] ?? $src;
+					},
+					$instance['ids']
+				);
+			}
+
+			// `widget_nav_menu` keeps the menu under `nav_menu` (term_id).
+			// Without rewriting, the widget renders empty because the
+			// source-site term ID points at no menu locally — even when
+			// Content_Importer recreated the menu under a different ID.
+			if ( $is_nav_menu_widget && isset( $instance['nav_menu'] ) && is_numeric( $instance['nav_menu'] ) ) {
+				$src = (int) $instance['nav_menu'];
+				if ( isset( $this->term_pairs[ $src ] ) ) {
+					$instance['nav_menu'] = $this->term_pairs[ $src ];
+				}
+			}
+
+			// Block widget content — full block markup string. Rewrite
+			// the same `wp-image-N` + `"id":N` + `"ids":[…]` patterns
+			// Content_Importer handles inside post_content.
+			if ( $is_block_widget && isset( $instance['content'] ) && is_string( $instance['content'] ) ) {
+				$instance['content'] = $this->rewrite_block_markup( $instance['content'] );
+			}
+		}
+		unset( $instance );
+
+		return $option_value;
+	}
+
+	/**
+	 * Resolve a single attachment ID:
+	 *   1. Cached ref_map lookup (source ID → local ID, attachment posts only).
+	 *   2. URL fallback — `attachment_url_to_postid()` against the widget's
+	 *      companion `url` field, after `{{SITE_URL}}` + multisite strip
+	 *      have already been applied (the URL passed in here has already
+	 *      been resolved by resolve_refs at step (b.1)).
+	 *
+	 * Returns 0 when neither path resolves — caller leaves the raw value
+	 * in place so editors can still see "broken image" UX instead of a
+	 * silent zero.
+	 */
+	private function resolve_attachment_id( int $source_id, string $resolved_url ): int {
+		if ( $source_id > 0 && isset( $this->attachment_pairs[ $source_id ] ) ) {
+			return (int) $this->attachment_pairs[ $source_id ];
+		}
+		if ( '' !== $resolved_url ) {
+			$by_url = (int) attachment_url_to_postid( $resolved_url );
+			if ( $by_url > 0 ) {
+				return $by_url;
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Sibling of `Content_Importer::rewrite_refs_and_urls` for block
+	 * markup strings stored OUTSIDE post_content (currently only
+	 * `widget_block.content`). Applies the three attachment-aware
+	 * rewrites that the generic resolve_refs walk doesn't cover:
+	 *
+	 *   wp-image-{source} → wp-image-{local}
+	 *   "id":{source}     → "id":{local}        (gated on attachment refs)
+	 *   "ids":[…]         → resolved IDs       (gated likewise)
+	 *
+	 * Does NOT do `{{ref:post:N}}` or `{{SITE_URL}}` substitution — those
+	 * already ran via resolve_refs at the leaf-walk stage.
+	 */
+	private function rewrite_block_markup( string $value ): string {
+		if ( '' === $value || empty( $this->attachment_pairs ) ) {
+			return $value;
+		}
+
+		// wp-image-{source_id} → wp-image-{new_id}
+		foreach ( $this->attachment_pairs as $old_id => $new_id ) {
+			$value = (string) preg_replace(
+				'/\bwp-image-' . $old_id . '\b/',
+				'wp-image-' . $new_id,
+				$value
+			);
+		}
+
+		// "id":{N} — attachment refs only.
+		$pairs = $this->attachment_pairs;
+		$value = (string) preg_replace_callback(
+			'/"id"\s*:\s*(\d+)/',
+			static function ( array $m ) use ( $pairs ): string {
+				$src = (int) $m[1];
+				if ( isset( $pairs[ $src ] ) ) {
+					return '"id":' . $pairs[ $src ];
+				}
+				return $m[0];
+			},
+			$value
+		);
+
+		// "ids":[1,2,3] — gallery block.
+		$value = (string) preg_replace_callback(
+			'/"ids"\s*:\s*\[([^\]]*)\]/',
+			static function ( array $m ) use ( $pairs ): string {
+				$rewritten = preg_replace_callback(
+					'/\d+/',
+					static function ( array $n ) use ( $pairs ): string {
+						$src = (int) $n[0];
+						return isset( $pairs[ $src ] ) ? (string) $pairs[ $src ] : $n[0];
+					},
+					$m[1]
+				);
+				return '"ids":[' . $rewritten . ']';
+			},
+			$value
+		);
+
+		return $value;
+	}
+
+	/**
+	 * Filter the full ref_map down to entries whose local post type is
+	 * `attachment`. The map's keys remain `post:N` and the local
+	 * attachment ID becomes the value — same flat shape Content_Importer
+	 * builds when it does the wp-image / "id":N rewrite on post_content.
+	 *
+	 * @param array<string,int> $ref_map
+	 * @return array<int,int> source_id => local_id
+	 */
+	private function build_attachment_pairs( array $ref_map ): array {
+		$pairs = [];
+		foreach ( $ref_map as $ref => $new_id ) {
+			if ( 0 !== strpos( (string) $ref, 'post:' ) ) {
+				continue;
+			}
+			$old_id = (int) substr( (string) $ref, 5 );
+			$new_id = (int) $new_id;
+			if ( $old_id <= 0 || $new_id <= 0 || $old_id === $new_id ) {
+				continue;
+			}
+			$local = get_post( $new_id );
+			if ( ! $local || 'attachment' !== $local->post_type ) {
+				continue;
+			}
+			$pairs[ $old_id ] = $new_id;
+		}
+		return $pairs;
+	}
+
+	/**
+	 * Flatten ref_map's `term:N` entries down to source_id → local_id.
+	 * Unlike attachment_pairs we don't filter by taxonomy here — the
+	 * widget handlers that consume this (widget_nav_menu, etc.) already
+	 * have enough context to skip wrong-taxonomy hits at use time, and
+	 * narrowing here would require an extra get_term() lookup per ref
+	 * for no payoff. Identity pairs (old === new) are dropped so the
+	 * widget handler can `?? $src` cheaply.
+	 *
+	 * @param array<string,int> $ref_map
+	 * @return array<int,int> source_id => local_id
+	 */
+	private function build_term_pairs( array $ref_map ): array {
+		$pairs = [];
+		foreach ( $ref_map as $ref => $new_id ) {
+			if ( 0 !== strpos( (string) $ref, 'term:' ) ) {
+				continue;
+			}
+			$old_id = (int) substr( (string) $ref, 5 );
+			$new_id = (int) $new_id;
+			if ( $old_id <= 0 || $new_id <= 0 || $old_id === $new_id ) {
+				continue;
+			}
+			$pairs[ $old_id ] = $new_id;
+		}
+		return $pairs;
+	}
+
+	/**
 	 * Walk arbitrary values, replacing synthetic refs (`{{ref:post:N}}`
-	 * markers + bare `post:N`/`term:N` strings) with resolved local IDs.
-	 * Also strips `_ref` suffix from array keys so callers can use either
-	 * `key` or `key_ref` form interchangeably.
+	 * markers + bare `post:N`/`term:N` strings), substituting
+	 * `{{SITE_URL}}` with the target home URL, stripping any leftover
+	 * multisite `/sites/N/` uploads prefix, and dropping `_ref` suffixes
+	 * from array keys.
 	 *
 	 * @param mixed $value
 	 * @return mixed
 	 */
 	private function resolve_refs( $value, array $ref_map, array &$warnings ) {
 		if ( is_string( $value ) ) {
+			// (a) bare `"post:N"` / `"term:N"` — used by submitter's Path A
+			//     theme_mods (e.g. `custom_logo_ref: "post:99"`).
 			if ( preg_match( '/^post:\d+$/', $value ) || preg_match( '/^term:\d+$/', $value ) ) {
 				return (int) ( $ref_map[ $value ] ?? 0 );
 			}
-			return (string) preg_replace_callback(
+
+			// (b) `{{ref:(post|term):N(:missing)?}}` embedded markers.
+			$value = (string) preg_replace_callback(
 				'/\{\{ref:(post|term):(\d+)(:missing)?\}\}/',
 				static function ( array $m ) use ( $ref_map ): string {
 					$ref = "{$m[1]}:{$m[2]}";
@@ -257,6 +567,28 @@ class Options_Importer {
 				},
 				$value
 			);
+
+			// (c) `{{SITE_URL}}` → target home URL. Submitter uses this
+			//     placeholder for URLs anywhere in theme.mods / widgets /
+			//     plugin_options.
+			if ( '' !== $this->site_url ) {
+				$value = str_replace( '{{SITE_URL}}', $this->site_url, $value );
+			}
+
+			// (d) Strip multisite `/wp-content/uploads/sites/N/` prefix
+			//     left over from a source that was a multisite child.
+			//     Uploads.zip extracts files WITHOUT the prefix, so URLs
+			//     carrying it would 404. Restricted to our own home host
+			//     so external URLs aren't touched.
+			if ( '' !== $this->site_url ) {
+				$value = (string) preg_replace(
+					'#(' . preg_quote( $this->site_url, '#' ) . '/wp-content/uploads/)sites/\d+/#',
+					'$1',
+					$value
+				);
+			}
+
+			return $value;
 		}
 		if ( is_array( $value ) ) {
 			$out = [];
