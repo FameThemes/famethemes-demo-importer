@@ -1,325 +1,876 @@
 /**
- * Generic-track admin styles.
+ * Generic-track admin styles (mockup3 — fdi-* namespace).
  *
- * The template grid inherits OnePress's `.demo-contents-themes-listing >
- * .themes > .theme` styling from the plugin-root `style.css` (enqueued
- * before this file). The preview overlay is ours — ported from
- * blocksify-design-importer's TemplateDetail markup with the prefix
- * rebranded to `.ft-demo-preview__*` so it lives alongside both
- * stylesheets without collision.
+ * Color scheme inherits the WP admin's primary accent via
+ * `--wp-admin-theme-color` so the importer matches whichever admin
+ * scheme the user picked (Blue / Light / Midnight / etc.). Buttons,
+ * focus rings, tile selection state, progress bar fill and the step
+ * indicator all derive from that single variable — no hardcoded
+ * #2271b1 anywhere in this file. The legacy `style.css` at the
+ * plugin root still loads but its selectors target `.theme-*` /
+ * `.demo-contents-*` markup the new tree doesn't emit.
  *
- * Layout:
- *   .ft-demo-preview
- *     .ft-demo-preview__main      (iframe pane, fills remaining width)
- *     .ft-demo-preview__sidebar   (320px right rail, header + body + footer)
+ * Layout reference: docs/ux-research/mockup3.html.
  */
 
-.ft-demo-importer-loading {
+// Inherit WP admin scheme. The two fallbacks cover (a) the rare
+// admin pre-3.7 case + (b) Site Editor pages that load this style
+// without the wp-admin :root vars (unlikely but cheap insurance).
+$accent:        var(--wp-admin-theme-color, #2271b1);
+$accent-darker: var(--wp-admin-theme-color-darker-10, #135e96);
+$accent-rgb:    var(--wp-admin-theme-color--rgb, 34, 113, 177);
+:root {
+	--fdi-spacing: 20px;
+	--fdi-spacing-half: calc(var(--fdi-spacing) / 2);
+}
+
+// ─────────────────────────────────────────────────────────────────── Page
+
+.fdi-grid-page {
+	margin: 0 auto;
+}
+
+.fdi-page-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: 8px 0 16px;
+	flex-wrap: wrap;
+	gap: 12px;
+
+	h1.wp-heading-inline {
+		font-size: 23px;
+		font-weight: 400;
+		color: #1d2327;
+		margin: 0;
+		padding: 0;
+	}
+}
+
+
+.fdi-topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+	padding: 12px 0 var(--fdi-spacing);
+	margin-bottom: var(--fdi-spacing);
+	border-bottom: 1px solid #dcdcde;
+}
+
+.fdi-categories {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+
+	&__pill {
+		background: transparent;
+		border: 1px solid transparent;
+		padding: 8px 16px;
+		border-radius: 999px;
+		font-size: 13px;
+		color: #50575e;
+		font-weight: 500;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+
+		&:hover {
+			background: #fff;
+			border-color: #dcdcde;
+			color: #1d2327;
+		}
+		&.is-active {
+			background: #1d2327;
+			border-color: #1d2327;
+			color: #fff;
+		}
+		&:focus {
+			outline: 0;
+			box-shadow: 0 0 0 2px rgba($accent-rgb, 0.4);
+		}
+	}
+
+	&__count {
+		opacity: 0.7;
+		font-weight: 400;
+	}
+}
+
+.fdi-search {
+	position: relative;
+	flex-shrink: 0;
+
+	input {
+		border: 1px solid #dcdcde;
+		border-radius: 8px;
+		padding: 8px 14px 8px 34px;
+		font-size: 13px;
+		width: 260px;
+		max-width: 100%;
+		font-family: inherit;
+		color: #1e1e1e;
+		background: #fff;
+		transition: border-color 120ms ease, box-shadow 120ms ease;
+
+		&:focus {
+			outline: 0;
+			border-color: $accent;
+			box-shadow: 0 0 0 3px rgba($accent-rgb, 0.15);
+		}
+	}
+
+	&::before {
+		content: "";
+		position: absolute;
+		left: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 14px;
+		height: 14px;
+		background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+		pointer-events: none;
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────── Grid
+
+.fdi-loading {
 	text-align: center;
-	padding: 40px 0;
+	padding: 48px 0;
 	color: #50575e;
 
 	p { margin-top: 12px; }
 }
 
-.ft-demo-importer-grid {
-	margin-top: 16px;
+.fdi-empty {
+	text-align: center;
+	padding: 60px 24px;
+	color: #6b7280;
+	font-size: 14px;
 }
 
-.ft-demo-importer-count {
-	color: #646970;
-	font-size: 12px;
-	margin: 16px 0 8px;
+.fdi-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--fdi-spacing);
+
+	@media (max-width: 1200px) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	@media (max-width: 782px) {
+		grid-template-columns: 1fr;
+	}
 }
 
-// ─────────────────────────────────────────── Preview overlay (right sidebar)
+.fdi-load-more {
+	text-align: center;
+	margin: 24px 0 0;
+}
 
-// Full viewport overlay — covers the admin bar as well so the preview
-// reads as a focused "modal app" rather than a panel docked under chrome.
-// `<body>` gets `.ft-demo-preview-open` from PreviewPanel.jsx on mount,
-// which locks page scroll so the iframe + sidebar are the only scrollable
-// regions in the viewport (no double-scrollbar against wp-admin content
-// behind the modal).
-.ft-demo-preview {
+.fdi-card {
+	position: relative;
+	cursor: pointer;
+	background: #fff;
+	border: 1px solid rgba(0, 0, 0, 0.1);
+	border-radius: 8px;
+	box-sizing: border-box;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+
+	&:focus,
+	&.is-focus {
+		border-color: $accent;
+		box-shadow: 0 0 0 var(--wp-admin-border-width-focus, 1.5px) $accent;
+		outline: 2px solid transparent;
+	}
+
+	&__thumb {
+		display: block;
+		position: relative;
+		overflow: hidden;
+		cursor: pointer;
+		background: linear-gradient(135deg, #c3c4c7, #f0f0f1);
+		color: rgba(255, 255, 255, 0.85);
+		font-family: Georgia, serif;
+		font-size: 28px;
+		letter-spacing: 0.04em;
+		transition: opacity 0.2s ease-in-out;
+		-webkit-backface-visibility: hidden;
+
+		// Fixed 3:2 aspect ratio to match WP's `.theme-screenshot`.
+		&::before {
+			content: "";
+			display: block;
+			padding-top: 66.66666%;
+		}
+
+		img {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			object-position: top center;
+			display: block;
+			transition: opacity 0.2s ease-in-out;
+		}
+
+		&:focus {
+			outline: 0;
+			box-shadow: inset 0 0 0 3px rgba($accent-rgb, 0.5);
+		}
+	}
+
+	&:hover .fdi-card__thumb,
+	&.is-focus .fdi-card__thumb {
+		background: #fff;
+	}
+
+	&:hover .fdi-card__thumb img,
+	&.is-focus .fdi-card__thumb img {
+		opacity: 0.4;
+	}
+
+	&__thumb-label {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+	}
+
+	&__pro-badge {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		z-index: 2;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		background: #f59e0b;
+		color: #1f2937;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.8px;
+		text-transform: uppercase;
+		padding: 4px 9px;
+		border-radius: 999px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+
+	&__body {
+		position: relative;
+		margin: 0;
+		padding: 16px 15px;
+		height: 18px;
+		border-top: 1px solid rgba(0, 0, 0, 0.1);
+		background: #fff;
+		font-size: 15px;
+		font-weight: 600;
+		line-height: 18px;
+	}
+
+	&__title {
+		display: block;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		color: #1e1e1e;
+	}
+
+	&__actions {
+		opacity: 0;
+		transition: opacity 0.1s ease-in-out;
+		position: absolute;
+		top: 50%;
+		right: 0;
+		transform: translateY(-50%);
+		padding: 9px 12px;
+		background: rgba(246, 247, 247, 0.7);
+		border-left: 1px solid rgba(0, 0, 0, 0.05);
+		box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.1);
+		display: flex;
+		gap: 6px;
+		align-items: center;
+
+		// Mirror `.theme-browser .theme .theme-actions .button` from
+		// wp-admin/css/themes.css so primary + secondary buttons here
+		// look identical to WP's themes.php card actions.
+		.components-button {
+			min-height: 32px;
+			line-height: 2.30769231; // 30px line-height for 32px min-height
+			padding: 0 12px;
+			margin: 0;
+
+			&.is-secondary {
+				background: #fff;
+
+				&:hover {
+					background: #f0f0f0;
+				}
+				&:focus {
+					background: #fff;
+				}
+			}
+		}
+	}
+
+	&:hover .fdi-card__actions,
+	&.is-focus .fdi-card__actions,
+	&:focus-within .fdi-card__actions {
+		opacity: 1;
+	}
+}
+
+// ─────────────────────────────────────────────────────────────── Wizard
+
+body.fdi-wizard-open {
+	overflow: hidden;
+}
+
+.fdi-wizard {
 	position: fixed;
 	inset: 0;
-	background: #fff;
-	z-index: 100000; // above WP admin bar (z-index: 99999)
+	z-index: 100000; // sits above WP admin bar (99999)
+	background: #ececec;
+	display: flex;
+	flex-direction: column;
+}
+
+
+
+.fdi-wizard__body {
+	flex: 1;
+	min-height: 0;
 	display: flex;
 	flex-direction: row;
 	overflow: hidden;
+	padding: var(--fdi-spacing-half);;
 }
 
-body.ft-demo-preview-open {
-	overflow: hidden;
-}
+// ── Sidebar (left 320px)
 
-// Main pane: iframe (left of the sidebar, fills remaining width).
-.ft-demo-preview__main {
-	flex: 1;
-	min-width: 0;
-	background: #f0f0f1;
-	display: flex;
-	flex-direction: column;
-}
-.ft-demo-preview__iframe {
-	flex: 1;
-	width: 100%;
-	border: 0;
-	background: #fff;
-}
-.ft-demo-preview__iframe-fallback {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: #f6f7f7;
-	color: #9ca3af;
-	font-size: 13px;
-}
-
-// Sidebar (left, 320px) — header + scrolling body + footer pinned to bottom.
-.ft-demo-preview__sidebar {
-	width: 320px;
+.fdi-sidebar {
+	width: 280px;
 	flex-shrink: 0;
-	border-right: 1px solid #e6e6e6;
-	background: #fafafa;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-}
-.ft-demo-preview__sb-header {
-	padding: 16px 18px;
-	border-bottom: 1px solid #e6e6e6;
-	background: #fff;
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
+	overflow: hidden;
+	// padding-left: var(--fdi-spacing-half);
 
-	h2 {
-		margin: 0;
-		font-size: 15px;
-		font-weight: 600;
-		color: #1e1e1e;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+	&__header {
+		flex-shrink: 0;
+		padding: var(--fdi-spacing-half) var(--fdi-spacing-half) 0 var(--fdi-spacing-half);
+		
+	}
+	&__divider {
+		border-bottom: 3px double #c3c4c7;
+		margin-top: var(--fdi-spacing);
+		display: block;
+		width: 100%;
+	}
+
+	&__title {
+		font-size: 12px;
+		font-weight: 500;
+		color: #6b7280;
+		min-width: 0;
+		line-height: 1.4;
+
+		strong {
+			display: block;
+			font-size: 20px;
+			font-weight: 600;
+			color: #1e1e1e;
+			margin-top: 6px;
+			letter-spacing: -0.01em;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+	}
+
+	&__body {
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+		overflow-y: auto;
+		overflow-x: hidden;
+		padding: var(--fdi-spacing) var(--fdi-spacing-half);
+
+		&::-webkit-scrollbar { width: 6px; }
+		&::-webkit-scrollbar-track { background: transparent; }
+		&::-webkit-scrollbar-thumb {
+			background: #d4d6d9;
+			border-radius: 999px;
+			&:hover { background: #a7a9aa; }
+		}
+	}
+
+	&__footer {
+		flex-shrink: 0;
+		padding: calc(var(--fdi-spacing) / 2);
+		background: transparent;
 	}
 }
-.ft-demo-preview__close {
-	background: transparent;
-	border: 0;
-	cursor: pointer;
-	color: #6b7280;
-	font-size: 22px;
-	line-height: 1;
-	padding: 4px 8px;
-	border-radius: 4px;
-	flex-shrink: 0;
 
-	&:hover {
-		background: #f0f0f1;
-		color: #1e1e1e;
-	}
-}
-.ft-demo-preview__sb-body {
+// ── Preview pane (right, fills remaining width)
+
+.fdi-preview {
 	flex: 1;
-	overflow-y: auto;
-	padding: 16px 18px;
+	min-width: 0;
+	padding: var(--fdi-spacing);
 	display: flex;
-	flex-direction: column;
-	gap: 18px;
 
-	&::-webkit-scrollbar { width: 6px; }
-	&::-webkit-scrollbar-track  { background: transparent; }
-	&::-webkit-scrollbar-thumb  {
-		background: #d4d6d9;
-		border-radius: 999px;
-		&:hover { background: #a7a9aa; }
+	&__iframe {
+		width: 100%;
+		height: 100%;
+		border: 2px solid #fff;
+		background: #fff;
+		border-radius: 14px;
+		overflow: hidden;
+		box-shadow:
+			0 12px 32px rgba(0, 0, 0, 0.15),
+			0 2px  8px  rgba(0, 0, 0, 0.08);
+	}
+
+	&__fallback {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f6f7f7;
+		color: #9ca3af;
+		font-size: 13px;
+		border-radius: 14px;
 	}
 }
-.ft-demo-preview__sb-footer {
-	padding: 12px 18px;
-	border-top: 1px solid #e6e6e6;
-	background: #fff;
-	flex-shrink: 0;
-	display: flex;
-	gap: 8px;
-	justify-content: space-between;
+
+// ── Step typography
+
+.fdi-step__heading {
+	font-size: 16px;
+	font-weight: 600;
+	color: #1e1e1e;
+	margin: 0 0 6px;
+	letter-spacing: -0.01em;
 }
 
-// Sections inside the body.
-.ft-demo-preview__section h3 {
-	font-size: 11px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	color: #6b7280;
-	margin: 0 0 8px;
+.fdi-step__lede {
+	font-size: 13px;
+	color: #50575e;
+	margin: 0 0 18px;
+	line-height: 1.5;
 }
-.ft-demo-preview__error {
+
+.fdi-step__hint {
+	color: #6b7280;
+	font-size: 13px;
+	margin-top: 12px;
+}
+
+.fdi-error {
 	color: #b32d2e;
 	font-size: 13px;
 	padding: 8px 10px;
 	background: #fcf0f1;
 	border: 1px solid #f1d1d1;
 	border-radius: 4px;
+	margin: 12px 0;
 }
 
-// Logo picker — dashed drop-zone; click opens `wp.media()`.
-.ft-demo-preview__logo {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	aspect-ratio: 16 / 9;
-	border: 1.5px dashed #c3c4c7;
+.fdi-warning {
+	background: #fcf9e8;
+	border: 1px solid #f0e2a1;
+	color: #8a6c0a;
+	padding: 10px 12px;
 	border-radius: 6px;
-	background: #fff;
-	color: #6b7280;
 	font-size: 12px;
+	margin-top: 12px;
+}
+
+// ── Sub-sections inside the merged Style / Content steps
+
+.fdi-style-section {
+	margin-bottom: 28px;
+
+	&:last-child { margin-bottom: 0; }
+}
+
+.fdi-style-subheading {
+	font-size: 11px;
+	font-weight: 700;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.8px;
+	margin: 0 0 14px;
+}
+
+// ── Tile grid (palette + typography)
+
+.fdi-tile-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 10px;
+}
+
+.fdi-tile {
+	background: #fff;
+	border: 1px solid #e6e6e6;
+	border-radius: 10px;
+	padding: 12px 14px;
+	text-align: left;
 	cursor: pointer;
-	transition: border-color 120ms, color 120ms, background 120ms;
-	gap: 6px;
+	transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	font-family: inherit;
+	min-width: 0;
+	color: #1e1e1e;
 
 	&:hover {
-		border-color: #2271b1;
-		color: #2271b1;
-		background: #f6fbff;
+		border-color: #b4b9be;
+		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+		transform: translateY(-1px);
 	}
-	svg {
-		width: 18px;
-		height: 18px;
-		stroke: currentColor;
-		fill: none;
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+	&.is-selected {
+		border-color: $accent;
+		box-shadow:
+			0 0 0 3px rgba($accent-rgb, 0.14),
+			0 4px 14px rgba($accent-rgb, 0.08);
 	}
-	&.is-set {
-		border-style: solid;
-		padding: 0;
-		overflow: hidden;
-		position: relative;
-		img {
-			width: 100%;
-			height: 100%;
-			object-fit: contain;
-		}
-	}
-}
 
-.ft-demo-preview__plugins {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
+	&--skip { background: #fafafa; }
 
-	li {
+	&__swatches {
 		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 8px 10px;
-		background: #fff;
-		border: 1px solid #eef0f3;
-		border-radius: 6px;
-		font-size: 13px;
+		gap: 0;
+		border-radius: 4px;
+		overflow: hidden;
+		height: 26px;
+		width: 52px;
+		flex-shrink: 0;
+		border: 1px solid rgba(0, 0, 0, 0.05);
 	}
-	.name {
+	&__swatch { flex: 1; }
+	&__label {
 		flex: 1;
-		min-width: 0;
+		font-size: 12px;
 		font-weight: 500;
 		color: #1e1e1e;
+		line-height: 1.3;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.source-tag {
-		font-size: 10px;
-		font-weight: 600;
-		color: #757575;
-		background: #f0f0f1;
-		padding: 2px 6px;
-		border-radius: 3px;
-		text-transform: uppercase;
-		letter-spacing: 0.3px;
+	&__skip-dash {
+		width: 52px;
+		height: 26px;
 		flex-shrink: 0;
+		border: 1.5px dashed #c3c4c7;
+		border-radius: 4px;
+		position: relative;
+
+		&::after {
+			content: "—";
+			position: absolute;
+			inset: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #8c8f94;
+			font-size: 14px;
+		}
+	}
+	&--font &__font-heading {
+		font-size: 22px;
+		line-height: 1;
+		color: #1e1e1e;
+		letter-spacing: -0.02em;
+		width: 52px;
+		flex-shrink: 0;
+		text-align: center;
 	}
 }
 
-// Import progress (replaces the idle Logo + Plugins blocks while a job runs).
-.ft-demo-preview__phases {
-	list-style: none;
-	margin: 0 0 12px;
-	padding: 0;
-}
-.ft-demo-preview__phase {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 6px 0;
-	font-size: 13px;
-	color: #8c8f94;
+// ── Plugin / option toggle cards (used by steps 1 + 2)
 
-	.dot {
-		width: 14px;
-		height: 14px;
+.fdi-plugins {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+.fdi-plugins-section {
+	&__title {
+		font-size: 13px;
+		font-weight: 600;
+		color: #1e1e1e;
+		margin: 0 0 4px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+	}
+
+	&__bulk {
+		background: transparent;
+		border: 0;
+		padding: 0;
+		color: $accent;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		font-family: inherit;
+
+		&:hover { text-decoration: underline; }
+	}
+}
+
+.fdi-plugins-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 10px;
+}
+
+.fdi-plugin {
+	background: #fff;
+	border: 1px solid #e6e6e6;
+	border-radius: 10px;
+	padding: 10px 14px;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	text-align: left;
+	font-family: inherit;
+	color: #1e1e1e;
+	min-width: 0;
+	transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+
+	&:hover:not(.is-installed):not(.is-required) {
+		border-color: #b4b9be;
+		box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+	}
+	&.is-checked {
+		border-color: $accent;
+		box-shadow: 0 0 0 3px rgba(var(--wp-admin-theme-color--rgb), .14), 0 4px 14px rgba(var(--wp-admin-theme-color--rgb), .08);
+	}
+	&.is-required {
+		cursor: default;
+		// border-color: #cfd8e3;
+		// background: #f7faff;
+	}
+	&.is-installed {
+		background: #f6f7f7;
+		cursor: default;
+		opacity: 0.7;
+	}
+
+	&__head {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 20px;
+	}
+
+	&__check {
+		width: 20px;
+		height: 20px;
 		border: 2px solid #c3c4c7;
-		border-radius: 50%;
+		border-radius: 4px;
+		background: #fff;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		font-size: 13px;
+		line-height: 1;
+		box-sizing: border-box;
 	}
-	&.is-completed {
+	&.is-checked &__check {
+		background: $accent;
+		border-color: $accent;
+		color: #fff;
+
+		&::after { content: "✓"; }
+	}
+	&.is-required.is-checked &__check {
+		background: #c3c4c7;
+		border-color: #c3c4c7;
+		color: #fff;
+	}
+
+	&__name {
+		font-weight: 600;
+		font-size: 14px;
+		line-height: 20px;
 		color: #1e1e1e;
-		.dot {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	&__source {
+		font-size: 9px;
+		font-weight: 700;
+		color: #757575;
+		background: #f0f0f1;
+		padding: 1px 6px;
+		border-radius: 3px;
+		text-transform: uppercase;
+		letter-spacing: 0.3px;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	&__installed-tag {
+		font-size: 11px;
+		color: #00733e;
+		font-weight: 600;
+		background: #ecf6e8;
+		padding: 2px 8px;
+		border-radius: 10px;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	&__desc {
+		font-size: 11px;
+		color: #6b7280;
+		line-height: 1.35;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+}
+
+// ── Step action bar (footer)
+
+.fdi-step-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+
+	&__spacer { flex: 1; }
+}
+
+// ── Install screen
+
+.fdi-install {
+	display: flex;
+	flex-direction: column;
+	gap: var(--fdi-spacing);
+
+	&__overall {
+		text-align: center;
+		margin-bottom: 4px;
+	}
+
+	&__pct {
+		font-size: 36px;
+		font-weight: 600;
+		color: #1e1e1e;
+		line-height: 1.1;
+	}
+
+	&__label {
+		font-size: 14px;
+		color: #6b7280;
+		margin-top: 4px;
+	}
+
+	&__bar {
+		width: 100%;
+		height: 6px;
+		background: #f0f0f1;
+		border-radius: 3px;
+		overflow: hidden;
+		margin: 12px 0 0;
+	}
+
+	&__bar-fill {
+		height: 100%;
+		background: $accent;
+		transition: width 0.4s ease;
+	}
+
+	&__phases {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	&__phase {
+		display: grid;
+		grid-template-columns: 28px 1fr;
+		gap: 12px;
+		align-items: center;
+		padding: 12px 14px;
+		background: #fff;
+		border: 1px solid #e6e6e6;
+		border-radius: 8px;
+		margin-bottom: 8px;
+		font-size: 13px;
+		color: #1e1e1e;
+
+		&.is-pending { opacity: 0.55; }
+		&.is-running .fdi-install__phase-icon {
+			border-color: $accent;
+			border-top-color: transparent;
+			animation: fdi-spin 0.8s linear infinite;
+		}
+		&.is-done .fdi-install__phase-icon {
 			background: #00a32a;
 			border-color: #00a32a;
-			&::after { content: "✓"; color: #fff; font-size: 10px; line-height: 1; }
+			color: #fff;
+
+			&::after { content: "✓"; }
 		}
-	}
-	&.is-running {
-		color: #2271b1;
-		font-weight: 600;
-		.dot {
-			border-color: #2271b1;
-			border-top-color: transparent;
-			animation: ft-demo-preview-spin 0.8s linear infinite;
-		}
-	}
-	&.is-failed {
-		color: #d63638;
-		.dot {
+		&.is-failed .fdi-install__phase-icon {
 			background: #d63638;
 			border-color: #d63638;
-			&::after { content: "!"; color: #fff; font-weight: 700; }
+			color: #fff;
+
+			&::after { content: "!"; font-weight: 700; }
 		}
 	}
+
+	&__phase-icon {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		border: 2px solid #c3c4c7;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+		color: #8c8f94;
+		background: #fff;
+	}
+
+	&__phase-label {
+		font-weight: 500;
+		color: #1e1e1e;
+	}
 }
-.ft-demo-preview__bar {
-	background: #f0f0f1;
-	height: 6px;
-	border-radius: 3px;
-	overflow: hidden;
-	margin-top: 8px;
+
+@keyframes fdi-spin {
+	to { transform: rotate(360deg); }
 }
-.ft-demo-preview__bar-fill {
-	background: #2271b1;
-	height: 100%;
-	transition: width 0.3s ease;
-}
-.ft-demo-preview__msg {
-	font-size: 12px;
-	color: #50575e;
-	margin: 6px 0 0;
-}
-.ft-demo-preview__status {
-	margin-top: 12px;
+
+.fdi-status {
+	margin-top: 4px;
 	padding: 8px 10px;
 	border-radius: 4px;
 	font-size: 13px;
@@ -329,8 +880,9 @@ body.ft-demo-preview-open {
 	&.is-error   { background: #fcf0f1; color: #b32d2e; border: 1px solid #f1d1d1; }
 	&.is-warning { background: #fcf9e8; color: #8a6c0a; border: 1px solid #f0e2a1; }
 }
-.ft-demo-preview__warnings {
-	margin-top: 12px;
+
+.fdi-warnings {
+	margin-top: 4px;
 	padding: 8px 10px;
 	background: #fcf9e8;
 	border: 1px solid #f0e2a1;
@@ -341,6 +893,44 @@ body.ft-demo-preview-open {
 	ul { margin: 8px 0 0 18px; }
 }
 
-@keyframes ft-demo-preview-spin {
-	to { transform: rotate(360deg); }
+// ── Done screen
+
+.fdi-done {
+	text-align: center;
+	padding: 16px 0;
+
+	&__check {
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		background: #ecf6e8;
+		color: #00a32a;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 32px;
+		margin-bottom: 16px;
+	}
+
+	&__heading {
+		font-size: 22px;
+		margin-bottom: 6px;
+		color: #1e1e1e;
+	}
+
+	&__lede {
+		color: #50575e;
+		margin-bottom: 20px;
+		font-size: 13px;
+	}
+
+	&__actions {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch; // stacked WP buttons fill the column width
+		gap: 8px;
+		margin-top: 8px;
+
+		.components-button { justify-content: center; }
+	}
 }

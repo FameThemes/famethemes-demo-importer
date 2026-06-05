@@ -183,12 +183,8 @@ class Generic_Dashboard {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'famethemes-demo-importer' ) );
 		}
 
-		$adapter = apply_filters( 'ft_demo_importer_active_adapter', null );
-		$label   = $adapter ? $adapter->admin_label() : __( 'Starter Templates', 'famethemes-demo-importer' );
 		?>
 		<div class="wrap demo-contents">
-			<h1 class="wp-heading-inline"><?php echo esc_html( $label ); ?></h1>
-
 			<?php if ( $this->build_missing ) : ?>
 				<div class="notice notice-error">
 					<p>

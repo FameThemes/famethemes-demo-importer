@@ -22,6 +22,13 @@
  *
  * `required: false` entries follow the legacy soft-fail behaviour —
  * warnings only, the import proceeds.
+ *
+ * Blocksify is *always* injected into the merged plugin list with
+ * `required: true` and a wordpress.org source, even when neither the
+ * template manifest nor the adapter declare it. The importer needs the
+ * Blocksify block library to render Studio templates, so the install
+ * step verifies it's present + active on every run. Any wizard-provided
+ * skip flag for `blocksify` is dropped before the install loop.
  */
 
 namespace FT_Demo_Importer\Steps;
@@ -29,6 +36,9 @@ namespace FT_Demo_Importer\Steps;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Plugin_Installer {
+
+	/** Slug of the baseline plugin always force-installed before any template applies. */
+	private const BLOCKSIFY_SLUG = 'blocksify';
 
 	/**
 	 * @param string                                            $options_json_path
@@ -72,12 +82,31 @@ class Plugin_Installer {
 			}
 		}
 
+		// Baseline importer dependency — Blocksify must be present + active
+		// on every run, no matter what the manifest declares. Merge AFTER
+		// options/adapter so their declared `file`/`source`/`name` win,
+		// then force `required: true`.
+		$blocksify_existing = isset( $plugins[ self::BLOCKSIFY_SLUG ] ) && is_array( $plugins[ self::BLOCKSIFY_SLUG ] )
+			? $plugins[ self::BLOCKSIFY_SLUG ]
+			: [];
+		$plugins[ self::BLOCKSIFY_SLUG ] = array_merge(
+			[
+				'slug'   => self::BLOCKSIFY_SLUG,
+				'name'   => 'Blocksify',
+				'source' => 'wordpress.org',
+			],
+			$blocksify_existing,
+			[ 'required' => true ]
+		);
+
 		if ( empty( $plugins ) ) {
 			return $result;
 		}
 
 		$this->ensure_admin_loaded();
 		$skip_set = array_flip( $plugins_skip );
+		// Defensive — never honour a wizard skip flag for Blocksify.
+		unset( $skip_set[ self::BLOCKSIFY_SLUG ] );
 
 		foreach ( $plugins as $plugin ) {
 			$slug     = (string) ( $plugin['slug']   ?? '' );
