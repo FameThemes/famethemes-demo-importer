@@ -9,7 +9,10 @@
  * Phase ordering matters:
  *   - Plugins install BEFORE content so plugin-registered CPTs exist
  *     when Content_Importer walks posts (it skips unknown post_types
- *     with a warning otherwise).
+ *     with a warning otherwise). If the manifest marks any plugin
+ *     `required: true` and it ends up not active, this step throws —
+ *     content/options never run, the job moves to `failed`. Filter
+ *     `ft_demo_importer_required_plugin_block` can downgrade.
  *   - Uploads extract before content so attachments resolve to local
  *     files instead of remote URLs.
  *   - Options apply LAST so any settings the user has already tweaked
@@ -129,6 +132,41 @@ class Importer_Runner {
 				count( $plugin_result['installed'] ),
 				count( $plugin_result['activated'] )
 			) );
+
+			// Hard gate — any `required: true` plugin that didn't end
+			// up active is fatal. Importing content for a missing
+			// plugin's CPT would silently drop posts (Content_Importer
+			// guards on post_type_exists with just a warning) and
+			// options/widgets/theme_mods scoped to that plugin would
+			// never take effect, leaving the site visibly broken. A
+			// clean abort is better than a half-imported template.
+			//
+			// Filterable so power users can downgrade to a warning
+			// (e.g. a CI run where the user knows they'll install the
+			// plugin manually right after).
+			$blocking = apply_filters(
+				'ft_demo_importer_required_plugin_block',
+				$plugin_result['required_missing'],
+				$plugin_result,
+				$job_id
+			);
+			if ( ! empty( $blocking ) ) {
+				$lines = [];
+				foreach ( $blocking as $miss ) {
+					$lines[] = sprintf(
+						'%s (%s, source: %s, reason: %s)',
+						$miss['name']   ?? $miss['slug'],
+						$miss['slug']   ?? '?',
+						$miss['source'] ?? 'unknown',
+						$miss['reason'] ?? 'missing'
+					);
+				}
+				throw new \RuntimeException(
+					'Required plugins not installed — aborting before content import: '
+					. implode( '; ', $lines )
+				);
+			}
+
 			$this->jobs->set_progress( $job_id, 30 );
 			if ( $adapter ) { $adapter->after_phase( Job_Store::STATUS_INSTALLING_PLUGINS, (array) $this->jobs->get( $job_id ), $this ); }
 

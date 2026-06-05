@@ -6,15 +6,22 @@
  * with the added `$adapter_extra` parameter so an adapter can layer
  * theme-specific recommendations on top of what options.json declares.
  *
- * Flow per plugin:
- *   already active                  → nothing
- *   present on disk, inactive       → activate_plugin()
- *   missing, source = wordpress.org → plugins_api + Plugin_Upgrader::install → activate
- *   missing, other source           → warning + skip (no download URL)
+ * Flow per plugin (matches `docs/submitter/site-submit.md` §Theme adapter steps):
+ *   already active                                  → nothing
+ *   present on disk, inactive                       → activate_plugin()
+ *   missing, source = wordpress.org                 → plugins_api + Plugin_Upgrader::install → activate
+ *   missing, source != wordpress.org, required=true → recorded in `required_missing[]` (no download URL — caller must surface)
+ *   missing, source != wordpress.org, required=false → warning + skip
  *
- * Errors never throw — every failure becomes a warning so content import
- * can still proceed. Posts whose CPT was provided by a missing plugin
- * get skipped downstream by Content_Importer's post_type_exists guard.
+ * `required: true` entries that end up not active for ANY reason (missing
+ * + no wp.org source, install error, activation error) are pushed into
+ * `required_missing[]`. The runner reads that array and aborts the job
+ * before content/options apply — content for a missing plugin's CPT
+ * would silently fail and options for it would never take effect, so
+ * partial completion is worse than a clean abort.
+ *
+ * `required: false` entries follow the legacy soft-fail behaviour —
+ * warnings only, the import proceeds.
  */
 
 namespace FT_Demo_Importer\Steps;
@@ -26,15 +33,16 @@ class Plugin_Installer {
 	/**
 	 * @param string                                            $options_json_path
 	 * @param string[]                                          $plugins_skip   Slugs the wizard step asked to skip.
-	 * @param array<int, array{slug:string, name?:string, file?:string, source?:string}> $adapter_extra
+	 * @param array<int, array{slug:string, name?:string, file?:string, source?:string, required?:bool}> $adapter_extra
 	 *
-	 * @return array{installed:string[], activated:string[], warnings:string[]}
+	 * @return array{installed:string[], activated:string[], warnings:string[], required_missing:array<int, array{slug:string, name:string, source:string, reason:string}>}
 	 */
 	public function install_and_activate( string $options_json_path, array $plugins_skip = [], array $adapter_extra = [] ): array {
 		$result = [
-			'installed' => [],
-			'activated' => [],
-			'warnings'  => [],
+			'installed'        => [],
+			'activated'        => [],
+			'warnings'         => [],
+			'required_missing' => [],
 		];
 
 		// Merge options.json requirements with adapter extras. Options
@@ -72,13 +80,17 @@ class Plugin_Installer {
 		$skip_set = array_flip( $plugins_skip );
 
 		foreach ( $plugins as $plugin ) {
-			$slug   = (string) ( $plugin['slug']   ?? '' );
-			$file   = (string) ( $plugin['file']   ?? '' );
-			$source = (string) ( $plugin['source'] ?? 'wordpress.org' );
+			$slug     = (string) ( $plugin['slug']   ?? '' );
+			$name     = (string) ( $plugin['name']   ?? $slug );
+			$file     = (string) ( $plugin['file']   ?? '' );
+			$source   = (string) ( $plugin['source'] ?? 'wordpress.org' );
+			$required = ! empty( $plugin['required'] );
 			if ( '' === $slug ) {
 				continue;
 			}
 			if ( isset( $skip_set[ $slug ] ) ) {
+				// User explicitly opted out — never blocks even when
+				// the manifest marks it required.
 				continue;
 			}
 
@@ -95,29 +107,62 @@ class Plugin_Installer {
 			}
 
 			if ( file_exists( WP_PLUGIN_DIR . '/' . $file ) ) {
-				$this->activate( $slug, $file, $result );
+				if ( ! $this->activate( $slug, $file, $result ) && $required ) {
+					$this->mark_required_missing( $result, $slug, $name, $source, 'activation_failed' );
+				}
 				continue;
 			}
 
 			if ( 'wordpress.org' === $source ) {
 				if ( $this->install_from_wporg( $slug, $result ) ) {
-					$this->activate( $slug, $file, $result );
+					if ( ! $this->activate( $slug, $file, $result ) && $required ) {
+						$this->mark_required_missing( $result, $slug, $name, $source, 'activation_failed_after_install' );
+					}
+				} elseif ( $required ) {
+					$this->mark_required_missing( $result, $slug, $name, $source, 'install_failed' );
 				}
 			} else {
+				// Non-wp.org source with no download URL in the manifest.
+				// For required-true plugins this is fatal — the user needs
+				// to install it manually before retrying. The warning still
+				// fires for required-false so the surface is uniform.
 				$result['warnings'][] = sprintf(
 					'Plugin "%s" not installed and source "%s" is not on wordpress.org — skipped.',
 					$slug,
 					$source ?: 'unknown'
 				);
+				if ( $required ) {
+					$this->mark_required_missing( $result, $slug, $name, $source, 'missing_no_source' );
+				}
 			}
 		}
 
 		return $result;
 	}
 
+	/**
+	 * Push a required-plugin failure into the result.
+	 *
+	 * Idempotent on slug — repeated calls (e.g. activation_failed after
+	 * install_failed in a weird retry path) keep only the first reason.
+	 */
+	private function mark_required_missing( array &$result, string $slug, string $name, string $source, string $reason ): void {
+		foreach ( $result['required_missing'] as $existing ) {
+			if ( $existing['slug'] === $slug ) {
+				return;
+			}
+		}
+		$result['required_missing'][] = [
+			'slug'   => $slug,
+			'name'   => $name,
+			'source' => $source ?: 'unknown',
+			'reason' => $reason,
+		];
+	}
+
 	// ----------------------------------------------------------------------
 
-	private function activate( string $slug, string $file, array &$result ): void {
+	private function activate( string $slug, string $file, array &$result ): bool {
 		$res = activate_plugin( $file );
 		if ( is_wp_error( $res ) ) {
 			$result['warnings'][] = sprintf(
@@ -125,9 +170,10 @@ class Plugin_Installer {
 				$slug,
 				$res->get_error_message()
 			);
-			return;
+			return false;
 		}
 		$result['activated'][] = $slug;
+		return true;
 	}
 
 	private function install_from_wporg( string $slug, array &$result ): bool {
