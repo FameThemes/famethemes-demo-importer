@@ -90,9 +90,37 @@ abstract class Theme_Adapter {
 	 * (e.g. a Customify-branded importer pointing at customify.io's
 	 * Studio without forcing the user to type the URL).
 	 *
+	 * Bootstrap registers a callback on `ft_demo_importer_default_studio_url`
+	 * that consults this method — return a non-empty string to override,
+	 * `null` to leave whatever Settings / wp-config has.
+	 *
 	 * @return string|null Absolute base URL or null.
 	 */
 	public function studio_server_url(): ?string {
+		return null;
+	}
+
+	/**
+	 * Override the Studio `read`-scope API key for THIS theme. Default
+	 * `null` means use whatever the user configured (or nothing — most
+	 * Studio read endpoints are public).
+	 *
+	 * Useful for vendor-bundled adapters that ship with a Studio
+	 * provisioned for them (e.g. a Customify-branded importer where
+	 * customify.io has issued a dedicated key for the entire theme
+	 * userbase). Bootstrap registers a callback on the
+	 * `ft_demo_importer_studio_key` filter that consults this method.
+	 *
+	 * Return policy:
+	 *   - Non-empty string  → adapter's key is used for every request,
+	 *                         overriding the saved option (matches how
+	 *                         `studio_server_url()` overrides URL).
+	 *   - `null` / empty    → fall through to wp-config constant /
+	 *                         saved option / empty (= unauthenticated).
+	 *
+	 * @return string|null
+	 */
+	public function studio_api_key(): ?string {
 		return null;
 	}
 

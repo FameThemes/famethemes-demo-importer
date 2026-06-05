@@ -81,6 +81,41 @@ add_filter( 'ft_demo_importer_active_adapter', function () {
 	return $cached;
 }, 10, 0 );
 
+// -- Adapter → Studio credentials bridges.
+//
+// The abstract Theme_Adapter exposes `studio_server_url()` and
+// `studio_api_key()` so theme-bundled adapters can ship default
+// credentials without forcing the user to fill in Settings. Those
+// methods are inert by themselves — Options_Store has no awareness
+// of the adapter layer. These two callbacks close the loop: every
+// call to `studio_url()` / `studio_key()` runs through the active
+// adapter, which decides whether to override.
+//
+// Adapter returning a non-empty string overrides the local value.
+// Returning null / empty leaves the saved option (or wp-config
+// constant) intact.
+add_filter( 'ft_demo_importer_default_studio_url', function ( $url ) {
+	$adapter = apply_filters( 'ft_demo_importer_active_adapter', null );
+	if ( $adapter && method_exists( $adapter, 'studio_server_url' ) ) {
+		$override = $adapter->studio_server_url();
+		if ( is_string( $override ) && '' !== trim( $override ) ) {
+			return $override;
+		}
+	}
+	return $url;
+}, 10, 1 );
+
+add_filter( 'ft_demo_importer_studio_key', function ( $key, $source ) {
+	$adapter = apply_filters( 'ft_demo_importer_active_adapter', null );
+	if ( $adapter && method_exists( $adapter, 'studio_api_key' ) ) {
+		$override = $adapter->studio_api_key();
+		if ( is_string( $override ) && '' !== trim( $override ) ) {
+			return $override;
+		}
+	}
+	return $key;
+}, 10, 2 );
+
 /*
  * Plugins-row "Import demo" action link.
  *

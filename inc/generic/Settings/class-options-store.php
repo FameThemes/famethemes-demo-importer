@@ -85,9 +85,46 @@ class Options_Store {
 		return '' !== trim( (string) constant( self::CONST_STUDIO_URL ) );
 	}
 
+	/**
+	 * Resolve the API key with this priority order (mirrors {@see studio_url()}):
+	 *
+	 *   1. wp-config constant `FT_DEMO_IMPORTER_STUDIO_KEY` (highest)
+	 *   2. Saved `ft_demo_importer_studio_key` option
+	 *   3. Empty string (= unauthenticated; public read endpoints still work)
+	 *
+	 * The `ft_demo_importer_studio_key` filter runs last so a theme
+	 * adapter (or any other consumer) can inject its own bundled key
+	 * without forcing the user to copy/paste one into Settings. The
+	 * second arg `$source` says where the base value came from so
+	 * adapter callbacks can decide to only override when nothing
+	 * was configured locally:
+	 *
+	 *   add_filter( 'ft_demo_importer_studio_key', function ( $key, $source ) {
+	 *       return ( 'empty' === $source ) ? 'pmbd_live_xxx' : $key;
+	 *   }, 10, 2 );
+	 */
 	public function studio_key(): string {
-		$key = (string) get_option( self::OPT_STUDIO_KEY, '' );
+		if ( $this->is_studio_key_locked() ) {
+			$key    = (string) constant( self::CONST_STUDIO_KEY );
+			$source = 'constant';
+		} else {
+			$key    = (string) get_option( self::OPT_STUDIO_KEY, '' );
+			$source = '' !== trim( $key ) ? 'saved' : 'empty';
+		}
+		$key = (string) apply_filters( 'ft_demo_importer_studio_key', $key, $source );
 		return trim( $key );
+	}
+
+	/**
+	 * True when the wp-config constant is defined + non-empty. Same
+	 * semantics as {@see is_studio_url_locked()} — UI disables the
+	 * input + `set_studio_key()` becomes a no-op.
+	 */
+	public function is_studio_key_locked(): bool {
+		if ( ! defined( self::CONST_STUDIO_KEY ) ) {
+			return false;
+		}
+		return '' !== trim( (string) constant( self::CONST_STUDIO_KEY ) );
 	}
 
 	public function has_credentials(): bool {
@@ -110,6 +147,11 @@ class Options_Store {
 	}
 
 	public function set_studio_key( string $key ): bool {
+		// No-op when locked by wp-config — see set_studio_url() for the
+		// "don't persist a value studio_key() will ignore" rationale.
+		if ( $this->is_studio_key_locked() ) {
+			return false;
+		}
 		$key = trim( $key );
 		if ( '' === $key ) {
 			return delete_option( self::OPT_STUDIO_KEY );
