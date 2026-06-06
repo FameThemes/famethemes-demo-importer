@@ -1,1 +1,1747 @@
-(()=>{"use strict";var e={n:s=>{var t=s&&s.__esModule?()=>s.default:()=>s;return e.d(t,{a:t}),t},d:(s,t)=>{for(var i in t)e.o(t,i)&&!e.o(s,i)&&Object.defineProperty(s,i,{enumerable:!0,get:t[i]})},o:(e,s)=>Object.prototype.hasOwnProperty.call(e,s)};const s=window.wp.element,t=window.wp.domReady;var i=e.n(t);const a=window.wp.components,r=window.wp.i18n,n=window.wp.primitives,l=window.ReactJSXRuntime;var o=(0,l.jsx)(n.SVG,{xmlns:"http://www.w3.org/2000/svg",viewBox:"0 0 24 24",children:(0,l.jsx)(n.Path,{fillRule:"evenodd",clipRule:"evenodd",d:"M6 5.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H6a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5zM4 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm11-.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5zM13 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2V6zm5 8.5h-3a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5zM15 13a2 2 0 00-2 2v3a2 2 0 002 2h3a2 2 0 002-2v-3a2 2 0 00-2-2h-3zm-9 1.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H6a.5.5 0 01-.5-.5v-3a.5.5 0 01.5-.5zM4 15a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z"})});const d=window.wp.apiFetch;var m=e.n(d);const c="/ft-demo-importer/v1";window.ftDemoImporter&&window.ftDemoImporter.restNonce&&m().use(m().createNonceMiddleware(window.ftDemoImporter.restNonce));const p={me:()=>m()({path:`${c}/studio/me`}),listTemplates(e={}){const s=new URLSearchParams;Object.entries(e).forEach(([e,t])=>{null!=t&&""!==t&&s.append(e,t)});const t=s.toString()?`?${s}`:"";return m()({path:`${c}/studio/templates${t}`})},getTemplate:e=>m()({path:`${c}/studio/templates/${e}`}),listCategories:()=>m()({path:`${c}/studio/categories`})},h=e=>m()({path:`${c}/theme/jobs`,method:"POST",data:e}),f=e=>m()({path:`${c}/theme/jobs/${e}`}),u=e=>m()({path:`${c}/theme/jobs/${e}/cancel`,method:"POST"});function _({template:e,onSelect:s}){const t=e.preview_image,i=t?.full?.url||t?.medium?.url||t?.url||e.thumb_url||"",n=e.title||e.name||`#${e.id}`,o=Boolean(e.is_pro||e.pro),d=e.demo_url||e.frame_url||e.preview_route||"",m=()=>s(e),c=e=>{e.preventDefault(),m()};return(0,l.jsxs)("article",{className:"fdi-card","data-template-id":e.id,children:[(0,l.jsxs)("div",{className:"fdi-card__thumb",onClick:c,role:"button",tabIndex:0,onKeyDown:e=>{"Enter"===e.key&&c(e)},"aria-label":n,children:[o&&(0,l.jsx)("span",{className:"fdi-card__pro-badge",children:(0,r.__)("Pro","famethemes-demo-importer")}),i&&(0,l.jsx)("img",{src:i,alt:"",loading:"lazy"})]}),(0,l.jsxs)("div",{className:"fdi-card__body",children:[(0,l.jsx)("div",{className:"fdi-card__title",title:n,children:n}),(0,l.jsxs)("div",{className:"fdi-card__actions",children:[(0,l.jsx)(a.Button,{variant:"secondary",onClick:e=>{e.preventDefault(),d?window.open(d,"_blank","noopener,noreferrer"):m()},children:(0,r.__)("Preview","famethemes-demo-importer")}),(0,l.jsx)(a.Button,{variant:"primary",onClick:m,children:(0,r.__)("Import","famethemes-demo-importer")})]})]})]})}function g({onSelect:e}){const[t,i]=(0,s.useState)([]),[n,d]=(0,s.useState)(0),[m,c]=(0,s.useState)(1),[h,f]=(0,s.useState)(!0),[u,g]=(0,s.useState)(null),[j,x]=(0,s.useState)([]),[y,w]=(0,s.useState)("all"),[b,v]=(0,s.useState)("");(0,s.useEffect)(()=>{let e=!1;return p.listCategories().then(s=>{if(e)return;const t=Array.isArray(s)?s:s?.categories||s?.items||[];x(t)}).catch(()=>{}),()=>{e=!0}},[]),(0,s.useEffect)(()=>{let e=!1;return f(!0),p.listTemplates({page:m,per_page:24,search:b}).then(s=>{if(e)return;const t=Array.isArray(s?.items)?s.items:[];i(e=>1===m?t:[...e,...t]),d(s?.meta?.total??s?.total??t.length),g(null)}).catch(s=>{e||g(s.message||(0,r.__)("Failed to load templates.","famethemes-demo-importer"))}).finally(()=>{e||f(!1)}),()=>{e=!0}},[m,b]);const N=(0,s.useMemo)(()=>"all"===y?t:t.filter(e=>(Array.isArray(e.category_slugs)?e.category_slugs:Array.isArray(e.categories)?e.categories.map(e=>e.slug||e):[]).includes(y)),[t,y]),k=t.length<n,S=!("undefined"==typeof window||!window.ftDemoImporter?.embedded);return(0,l.jsxs)("div",{className:"fdi-grid-page"+(S?" is-embedded":""),children:[!S&&(0,l.jsx)("header",{className:"fdi-page-header",children:(0,l.jsx)("h1",{className:"wp-heading-inline",children:(0,r.__)("Starter Templates","famethemes-demo-importer")})}),u&&(0,l.jsx)(a.Notice,{status:"error",isDismissible:!1,children:u}),(0,l.jsxs)("div",{className:"fdi-topbar",children:[(0,l.jsx)("div",{className:"fdi-categories",children:(()=>{const e=(0,r.__)("All","famethemes-demo-importer"),s=[{label:e,value:"all"},...j.map(e=>{const s=e.slug||e.id||e.name;return{label:e.name||e.label||s,value:String(s)}})],t=s.find(e=>e.value===String(y)),i=t?t.label:e;return(0,l.jsx)(a.DropdownMenu,{icon:o,text:i,label:(0,r.__)("Filter by category","famethemes-demo-importer"),toggleProps:{className:"fdi-categories__toggle"},popoverProps:{placement:"bottom-start"},children:({onClose:e})=>(0,l.jsx)(a.MenuGroup,{children:(0,l.jsx)(a.MenuItemsChoice,{choices:s,value:String(y),onSelect:s=>{w(s),e()}})})})})()}),(0,l.jsx)("div",{className:"fdi-search",children:(0,l.jsx)(a.SearchControl,{__nextHasNoMarginBottom:!0,value:b,onChange:e=>{v(e),c(1)},placeholder:(0,r.__)("Search templates…","famethemes-demo-importer"),label:(0,r.__)("Search templates","famethemes-demo-importer"),hideLabelFromVision:!0})})]}),h&&0===t.length?(0,l.jsxs)("div",{className:"fdi-loading",children:[(0,l.jsx)(a.Spinner,{}),(0,l.jsx)("p",{children:(0,r.__)("Loading templates from Studio…","famethemes-demo-importer")})]}):0===N.length?(0,l.jsx)("div",{className:"fdi-empty",children:b||"all"!==y?(0,r.__)("No templates match your filter.","famethemes-demo-importer"):(0,r.__)("No templates available yet.","famethemes-demo-importer")}):(0,l.jsx)("div",{className:"fdi-grid",children:N.map(s=>(0,l.jsx)(_,{template:s,onSelect:e},s.id))}),k&&!h&&(0,l.jsx)("p",{className:"fdi-load-more",children:(0,l.jsx)(a.Button,{variant:"secondary",onClick:()=>c(e=>e+1),isBusy:h,disabled:h,children:(0,r.__)("Load more","famethemes-demo-importer")})})]})}const j=["completed","failed","cancelled"],x=window.ftDemoImporter&&window.ftDemoImporter.pollIntervalMs||2e3,y=[{id:"warm",name:"Warm Sunset",colors:["#1c1c1c","#e85d04","#faa307","#ffd6a5"]},{id:"cool",name:"Ocean Cool",colors:["#0f1f3a","#2196f3","#87ceeb","#f7f9fc"]},{id:"forest",name:"Forest",colors:["#1f3a23","#6b8e23","#c4d8a2","#f1f5e8"]},{id:"mono",name:"Monochrome",colors:["#0a0a0a","#404040","#b0b0b0","#f4f4f4"]},{id:"bold",name:"Bold Pop",colors:["#d81b60","#fdd835","#1a237e","#fafafa"]}],w=[{id:"inter-inter",heading:"Inter",body:"Inter",weight:600},{id:"playfair-source",heading:"Playfair Display",body:"Source Sans 3",weight:600},{id:"lora-merri",heading:"Lora",body:"Merriweather",weight:400},{id:"poppins-roboto",heading:"Poppins",body:"Roboto",weight:600},{id:"mont-opensans",heading:"Montserrat",body:"Open Sans",weight:600},{id:"bebas-lato",heading:"Bebas Neue",body:"Lato",weight:400}];function b(){if("undefined"!=typeof window){const e=window.ftDemoImporter?.palettes;if(Array.isArray(e)&&e.length>0)return e}return y}function v(){if("undefined"!=typeof window){const e=window.ftDemoImporter?.fonts;if(Array.isArray(e)&&e.length>0)return e}return w}const N=[{key:"style",label:(0,r.__)("Style","famethemes-demo-importer")},{key:"plugins",label:(0,r.__)("Plugins","famethemes-demo-importer")},{key:"content",label:(0,r.__)("Content & options","famethemes-demo-importer")}],k="blocksify",S=(0,r.__)("Block library required to render Studio templates.","famethemes-demo-importer"),C=[{key:"fetching",from:0,to:10,label:(0,r.__)("Fetching template assets","famethemes-demo-importer")},{key:"installing_plugins",from:10,to:30,label:(0,r.__)("Installing required plugins","famethemes-demo-importer")},{key:"extracting",from:30,to:45,label:(0,r.__)("Extracting uploads","famethemes-demo-importer")},{key:"importing_content",from:45,to:90,label:(0,r.__)("Importing content","famethemes-demo-importer")},{key:"applying_options",from:90,to:100,label:(0,r.__)("Applying theme options","famethemes-demo-importer")}];function I({template:e,onClose:t}){const[i,n]=(0,s.useState)(null),[o,d]=(0,s.useState)(null),[m,c]=(0,s.useState)(0),[_,g]=(0,s.useState)(null),[y,w]=(0,s.useState)(null),[I,q]=(0,s.useState)([]),[A,$]=(0,s.useState)(!0),[P,T]=(0,s.useState)(!0),[R,L]=(0,s.useState)(!0),[W,O]=(0,s.useState)(null),[F,V]=(0,s.useState)(!1),[H,K]=(0,s.useState)(null),U=(0,s.useRef)(null),G=(0,s.useMemo)(()=>b(),[]),Y=(0,s.useMemo)(()=>v(),[]),J=(0,s.useMemo)(()=>_&&G.find(e=>e.id===_)||null,[_,G]),X=(0,s.useMemo)(()=>y&&Y.find(e=>e.id===y)||null,[y,Y]),Q=(0,s.useCallback)(()=>{const e=U.current?.contentWindow;if(e)try{e.postMessage({type:"fdi-preview-style",palette:J,font:X},"*")}catch(e){}},[J,X]);(0,s.useEffect)(()=>{Q()},[Q]),(0,s.useEffect)(()=>{const e=e=>{"fdi-preview-ready"===e?.data?.type&&U.current?.contentWindow===e.source&&Q()};return window.addEventListener("message",e),()=>window.removeEventListener("message",e)},[Q]);const{job:Z}=function(e){const[t,i]=(0,s.useState)(null),[a,r]=(0,s.useState)(null),n=(0,s.useRef)(null);return(0,s.useEffect)(()=>{if(!e)return;let s=!1;const t=()=>{f(e).then(e=>{s||(i(e),j.includes(e.status)||(n.current=setTimeout(t,x)))}).catch(e=>{s||r(e.message||"Failed to poll job.")})};return t(),()=>{s=!0,n.current&&(clearTimeout(n.current),n.current=null)}},[e]),{job:t,error:a}}(W),ee=null!==W,se=Z?.status||(ee?"queued":"idle"),te=0|Z?.progress?.percent,ie="completed"===se||"failed"===se||"cancelled"===se;(0,s.useEffect)(()=>{let s=!1;return n(null),d(null),p.getTemplate(e.id).then(e=>{s||n(e)}).catch(e=>{s||d(e?.message||String(e))}),()=>{s=!0}},[e.id]),(0,s.useEffect)(()=>(document.body.classList.add("fdi-wizard-open"),()=>{document.body.classList.remove("fdi-wizard-open")}),[]);const ae=e.title||e.name||`#${e.id}`,re=i?.frame_url||i?.preview_route||i?.demo_url||i?.preview_url||e.preview_url||"",ne=(0,s.useMemo)(()=>{if(!re)return"";const s=re.includes("?")?"&":"?";return re+s+"_fdi_cb="+e.id},[re,e.id]),le=(0,s.useMemo)(()=>{const e=(Array.isArray(i?.requirements?.plugins)?i.requirements.plugins:[]).map(e=>({slug:e.slug,name:e.name||e.slug,required:Boolean(e.required),installed:Boolean(e.installed),source:e.source||"",desc:e.description||e.desc||""})),s=e.findIndex(e=>e.slug===k),t=s>=0?e.splice(s,1)[0]:null;return[t?{...t,required:!0}:{slug:k,name:"Blocksify",required:!0,installed:!1,source:"wordpress.org",desc:S},...e]},[i]),oe=le.filter(e=>e.required),de=le.filter(e=>!e.required),me=de.length>0&&de.filter(e=>!e.installed).every(e=>I.includes(e.slug)),ce=()=>{if(ee&&!ie){if(!window.confirm((0,r.__)("Importing in the background. Are you sure you want to leave?","famethemes-demo-importer")))return;u(W).catch(()=>{})}"completed"!==se?t():window.location.reload()},pe=()=>{if(m>=N.length-1)return K(null),V(!0),void h({template_id:e.id,import_content:A,import_uploads:!0,replace_settings:P||R,plugins_skip:I,style:{palette:_,font:y}}).then(e=>{e?.job_id&&O(e.job_id)}).catch(e=>{K(e.message||(0,r.__)("Failed to start import job.","famethemes-demo-importer"))}).finally(()=>{V(!1)});c(e=>e+1)},he=0===m,fe=m===N.length-1,ue=!ee,_e=ee&&!("completed"===se),ge="completed"===se,je=!A&&(P||R);return(0,l.jsx)("div",{className:"fdi-wizard",role:"dialog","aria-modal":"true","aria-labelledby":"fdi-wizard-title",children:(0,l.jsxs)("div",{className:"fdi-wizard__body",children:[(0,l.jsxs)("aside",{className:"fdi-sidebar",children:[(0,l.jsxs)("header",{className:"fdi-sidebar__header",children:[(0,l.jsxs)("div",{className:"fdi-sidebar__title",children:[(0,r.__)("Setting up:","famethemes-demo-importer"),(0,l.jsx)("strong",{id:"fdi-wizard-title",children:ae})]}),(0,l.jsx)("div",{className:"fdi-sidebar__divider"})]}),(0,l.jsxs)("div",{className:"fdi-sidebar__body",children:[o&&(0,l.jsx)("div",{className:"fdi-error",children:o}),ue&&(0,l.jsxs)(l.Fragment,{children:[0===m&&(0,l.jsx)(B,{palette:_,setPalette:g,typography:y,setTypography:w}),1===m&&(0,l.jsx)(M,{required:oe,recommended:de,isChecked:e=>!(e.installed||!e.required&&I.includes(e.slug)),onToggle:e=>{q(s=>s.includes(e)?s.filter(s=>s!==e):[...s,e])},bulkLabel:me?(0,r.__)("Check all","famethemes-demo-importer"):(0,r.__)("Uncheck all","famethemes-demo-importer"),onBulkToggle:()=>{const e=de.filter(e=>!e.installed);q(me?[]:e.map(e=>e.slug))},loadingDetail:!i}),2===m&&(0,l.jsx)(z,{contentEnabled:A,setContentEnabled:$,optWidgets:P,setOptWidgets:T,optCustomizer:R,setOptCustomizer:L,showWarning:je}),H&&(0,l.jsx)("div",{className:"fdi-error",children:H})]}),_e&&(0,l.jsx)(D,{status:se,percent:te,phases:C,message:Z?.progress?.message||"",error:Z?.error,warnings:Z?.warnings}),ge&&(0,l.jsx)(E,{onClose:ce,home:window.ftDemoImporter?.home||"/"})]}),(0,l.jsxs)("footer",{className:"fdi-sidebar__footer",children:[ue&&(0,l.jsxs)("div",{className:"fdi-step-actions",children:[(0,l.jsx)(a.Button,{variant:"tertiary",onClick:he?ce:()=>c(e=>Math.max(0,e-1)),children:he?(0,r.__)("Close","famethemes-demo-importer"):(0,r.__)("← Back","famethemes-demo-importer")}),(0,l.jsx)("div",{className:"fdi-step-actions__spacer"}),(0,l.jsx)(a.Button,{variant:"tertiary",onClick:pe,children:(0,r.__)("Skip","famethemes-demo-importer")}),(0,l.jsx)(a.Button,{variant:"primary",onClick:pe,isBusy:F,disabled:F,children:fe?F?(0,r.__)("Starting…","famethemes-demo-importer"):(0,r.__)("Start →","famethemes-demo-importer"):(0,r.__)("Next →","famethemes-demo-importer")})]}),_e&&(0,l.jsxs)("div",{className:"fdi-step-actions",children:[(0,l.jsx)("div",{className:"fdi-step-actions__spacer"}),(0,l.jsx)(a.Button,{variant:"secondary",isDestructive:!0,onClick:ce,children:(0,r.__)("Cancel import","famethemes-demo-importer")})]})]})]}),(0,l.jsx)("div",{className:"fdi-preview",children:ne?(0,l.jsx)("iframe",{ref:U,className:"fdi-preview__iframe",src:ne,title:(0,r.sprintf)(/* translators: %s: template title */ /* translators: %s: template title */(0,r.__)("Preview of %s","famethemes-demo-importer"),ae),loading:"lazy",onLoad:Q}):(0,l.jsx)("div",{className:"fdi-preview__fallback",children:i?(0,r.__)("No preview URL available.","famethemes-demo-importer"):(0,l.jsx)(a.Spinner,{})})})]})})}function B({palette:e,setPalette:t,typography:i,setTypography:a}){const n=b(),o=v();return(0,s.useEffect)(()=>{const e=new Map,s=(s,t)=>{if(!s)return;const i=e.get(s)||new Set;i.add(400),t&&i.add(t),e.set(s,i)};o.forEach(e=>{s(e.heading,e.weight),e.body!==e.heading&&s(e.body,400)}),e.forEach((e,s)=>{const t="fdi-font-"+s.toLowerCase().replace(/[^a-z0-9]+/g,"-");if(document.getElementById(t))return;const i=document.createElement("link");i.id=t,i.rel="stylesheet";const a=encodeURIComponent(s).replace(/%20/g,"+"),r=Array.from(e).sort((e,s)=>e-s).join(",");i.href=`https://fonts.googleapis.com/css?family=${a}:${r}&display=swap`,document.head.appendChild(i)})},[o]),(0,l.jsxs)("section",{children:[(0,l.jsx)("h3",{className:"fdi-step__heading",children:(0,r.__)("Choose a style","famethemes-demo-importer")}),(0,l.jsx)("p",{className:"fdi-step__lede",children:(0,r.__)("Pick a color palette and font pair. Both apply after content is imported and can be changed later from the Customizer.","famethemes-demo-importer")}),(0,l.jsxs)("div",{className:"fdi-style-section",children:[(0,l.jsx)("h4",{className:"fdi-style-subheading",children:(0,r.__)("Color palette","famethemes-demo-importer")}),(0,l.jsxs)("div",{className:"fdi-tile-grid",children:[(0,l.jsxs)("button",{type:"button",className:"fdi-tile fdi-tile--skip"+(null===e?" is-selected":""),onClick:()=>t(null),children:[(0,l.jsx)("span",{className:"fdi-tile__skip-dash"}),(0,l.jsx)("span",{className:"fdi-tile__label",children:(0,r.__)("Keep current","famethemes-demo-importer")})]}),n.map(s=>(0,l.jsxs)("button",{type:"button",className:"fdi-tile"+(e===s.id?" is-selected":""),onClick:()=>t(s.id),children:[(0,l.jsx)("span",{className:"fdi-tile__swatches",children:s.colors.map((e,s)=>(0,l.jsx)("span",{className:"fdi-tile__swatch",style:{background:e}},s))}),(0,l.jsx)("span",{className:"fdi-tile__label",children:s.name})]},s.id))]})]}),(0,l.jsxs)("div",{className:"fdi-style-section",children:[(0,l.jsx)("h4",{className:"fdi-style-subheading",children:(0,r.__)("Typography","famethemes-demo-importer")}),(0,l.jsxs)("div",{className:"fdi-tile-grid",children:[(0,l.jsxs)("button",{type:"button",className:"fdi-tile fdi-tile--skip"+(null===i?" is-selected":""),onClick:()=>a(null),children:[(0,l.jsx)("span",{className:"fdi-tile__skip-dash"}),(0,l.jsx)("span",{className:"fdi-tile__label",children:(0,r.__)("Keep current","famethemes-demo-importer")})]}),o.map(e=>{const s={fontFamily:`'${e.heading}', serif`,fontWeight:e.weight};return(0,l.jsxs)("button",{type:"button",className:"fdi-tile fdi-tile--font"+(i===e.id?" is-selected":""),onClick:()=>a(e.id),children:[(0,l.jsx)("span",{className:"fdi-tile__font-heading",style:s,children:"Ag"}),(0,l.jsxs)("span",{className:"fdi-tile__label",style:s,children:[e.heading," · ",e.body]})]},e.id)})]})]})]})}function M({required:e,recommended:s,isChecked:t,onToggle:i,bulkLabel:n,onBulkToggle:o,loadingDetail:d}){const m=e=>{const s=t(e),a=["fdi-plugin"];s&&a.push("is-checked"),e.installed&&a.push("is-installed"),e.required&&a.push("is-required");const n=e.required||e.installed,o=e.installed?(0,l.jsx)("span",{className:"fdi-plugin__installed-tag",children:(0,r.__)("Already installed","famethemes-demo-importer")}):e.source&&"wordpress.org"!==e.source?(0,l.jsx)("span",{className:"fdi-plugin__source",children:e.source}):null,d=!n,m=d?()=>i(e.slug):void 0,c=d?s=>{" "!==s.key&&"Enter"!==s.key||(s.preventDefault(),i(e.slug))}:void 0;return(0,l.jsxs)("div",{className:a.join(" "),role:d?"checkbox":void 0,"aria-checked":d?s:void 0,"aria-disabled":n||void 0,tabIndex:d?0:void 0,onClick:m,onKeyDown:c,children:[(0,l.jsxs)("div",{className:"fdi-plugin__head",children:[(0,l.jsx)("span",{className:"fdi-plugin__name",children:e.name}),o,(0,l.jsx)("span",{className:"fdi-plugin__check","aria-hidden":"true"})]}),e.desc&&(0,l.jsx)("div",{className:"fdi-plugin__desc",children:e.desc})]},e.slug)};return(0,l.jsxs)("section",{children:[(0,l.jsx)("h3",{className:"fdi-step__heading",children:(0,r.__)("Required & recommended plugins","famethemes-demo-importer")}),(0,l.jsx)("p",{className:"fdi-step__lede",children:(0,r.__)("Required plugins are needed for the demo to work and will be installed automatically. You can uncheck any recommended one you don’t want.","famethemes-demo-importer")}),d?(0,l.jsx)("div",{className:"fdi-loading",children:(0,l.jsx)(a.Spinner,{})}):(0,l.jsxs)("div",{className:"fdi-plugins",children:[e.length>0&&(0,l.jsxs)("div",{className:"fdi-plugins-section",children:[(0,l.jsx)("h4",{className:"fdi-plugins-section__title",children:(0,r.__)("Required","famethemes-demo-importer")}),(0,l.jsx)("div",{className:"fdi-plugins-grid",children:e.map(m)})]}),s.length>0&&(0,l.jsxs)("div",{className:"fdi-plugins-section",children:[(0,l.jsxs)("h4",{className:"fdi-plugins-section__title",children:[(0,r.__)("Recommended","famethemes-demo-importer"),(0,l.jsx)("button",{type:"button",className:"fdi-plugins-section__bulk",onClick:o,children:n})]}),(0,l.jsx)("div",{className:"fdi-plugins-grid",children:s.map(m)})]}),0===e.length&&0===s.length&&(0,l.jsx)("p",{className:"fdi-step__hint",children:(0,r.__)("This template doesn’t require any plugins.","famethemes-demo-importer")})]})]})}function z({contentEnabled:e,setContentEnabled:s,optWidgets:t,setOptWidgets:i,optCustomizer:a,setOptCustomizer:n,showWarning:o}){const d=(e,s,t,i)=>(0,l.jsxs)("button",{type:"button",className:"fdi-plugin"+(e?" is-checked":""),onClick:i,"aria-pressed":e,children:[(0,l.jsxs)("div",{className:"fdi-plugin__head",children:[(0,l.jsx)("span",{className:"fdi-plugin__name",children:s}),(0,l.jsx)("span",{className:"fdi-plugin__check","aria-hidden":"true"})]}),(0,l.jsx)("div",{className:"fdi-plugin__desc",children:t})]});return(0,l.jsxs)("section",{children:[(0,l.jsx)("h3",{className:"fdi-step__heading",children:(0,r.__)("Content & options","famethemes-demo-importer")}),(0,l.jsx)("p",{className:"fdi-step__lede",children:(0,r.__)("Choose what to import: demo content, widgets and Customizer settings.","famethemes-demo-importer")}),(0,l.jsxs)("div",{className:"fdi-style-section",children:[(0,l.jsx)("h4",{className:"fdi-style-subheading",children:(0,r.__)("Demo content","famethemes-demo-importer")}),(0,l.jsx)("div",{className:"fdi-plugins-grid",children:d(e,(0,r.__)("Import demo content","famethemes-demo-importer"),(0,r.__)("Sample posts, pages, categories and media so the site matches the demo.","famethemes-demo-importer"),()=>s(!e))}),o&&(0,l.jsx)("div",{className:"fdi-warning",children:(0,r.__)("⚠ Widgets & menus may reference pages that won’t exist if you skip demo content.","famethemes-demo-importer")})]}),(0,l.jsxs)("div",{className:"fdi-style-section",children:[(0,l.jsx)("h4",{className:"fdi-style-subheading",children:(0,r.__)("Theme options","famethemes-demo-importer")}),(0,l.jsxs)("div",{className:"fdi-plugins-grid",children:[d(t,(0,r.__)("Widgets","famethemes-demo-importer"),(0,r.__)("Sidebar and footer widget areas from the demo.","famethemes-demo-importer"),()=>i(!t)),d(a,(0,r.__)("Customizer settings","famethemes-demo-importer"),(0,r.__)("Header, footer, blog layout, container width, social links… (theme mods)","famethemes-demo-importer"),()=>n(!a))]})]})]})}function D({status:e,percent:s,phases:t,message:i,error:a,warnings:n}){const o=Math.max(0,Math.min(100,s));return(0,l.jsxs)("section",{className:"fdi-install",children:[(0,l.jsxs)("div",{className:"fdi-install__overall",children:[(0,l.jsxs)("div",{className:"fdi-install__pct",children:[o,"%"]}),(0,l.jsx)("div",{className:"fdi-install__label",children:"failed"===e?(0,r.__)("Failed","famethemes-demo-importer"):"queued"===e?(0,r.__)("Starting…","famethemes-demo-importer"):i||(0,r.__)("Working…","famethemes-demo-importer")}),(0,l.jsx)("div",{className:"fdi-install__bar",children:(0,l.jsx)("div",{className:"fdi-install__bar-fill",style:{width:`${o}%`}})})]}),(0,l.jsx)("ol",{className:"fdi-install__phases",children:t.map(t=>{let i="is-pending";return s>=t.to?i="is-done":s>=t.from&&(i="failed"===e?"is-failed":"is-running"),(0,l.jsxs)("li",{className:`fdi-install__phase ${i}`,children:[(0,l.jsx)("span",{className:"fdi-install__phase-icon","aria-hidden":"true"}),(0,l.jsx)("span",{className:"fdi-install__phase-label",children:t.label})]},t.key)})}),"failed"===e&&(0,l.jsxs)("div",{className:"fdi-status is-error",children:["✗ ",a||(0,r.__)("Import failed.","famethemes-demo-importer")]}),"cancelled"===e&&(0,l.jsx)("div",{className:"fdi-status is-warning",children:(0,r.__)("Import cancelled.","famethemes-demo-importer")}),Array.isArray(n)&&n.length>0&&(0,l.jsxs)("details",{className:"fdi-warnings",children:[(0,l.jsxs)("summary",{children:[(0,r.__)("Warnings","famethemes-demo-importer")," (",n.length,")"]}),(0,l.jsx)("ul",{children:n.map((e,s)=>(0,l.jsx)("li",{children:e},s))})]})]})}function E({onClose:e,home:s}){return(0,l.jsxs)("section",{className:"fdi-done",children:[(0,l.jsx)("div",{className:"fdi-done__check",children:"✓"}),(0,l.jsx)("h3",{className:"fdi-done__heading",children:(0,r.__)("Your site is ready","famethemes-demo-importer")}),(0,l.jsx)("p",{className:"fdi-done__lede",children:(0,r.__)("Demo content has been imported and styling applied.","famethemes-demo-importer")}),(0,l.jsxs)("div",{className:"fdi-done__actions",children:[(0,l.jsx)(a.Button,{variant:"primary",href:s,children:(0,r.__)("View site →","famethemes-demo-importer")}),(0,l.jsx)(a.Button,{variant:"secondary",href:"post-new.php?post_type=page",children:(0,r.__)("Edit home page","famethemes-demo-importer")}),(0,l.jsx)(a.Button,{variant:"secondary",href:"customize.php",children:(0,r.__)("Open Customizer","famethemes-demo-importer")}),(0,l.jsx)(a.Button,{variant:"tertiary",onClick:e,children:(0,r.__)("Close","famethemes-demo-importer")})]})]})}function q(){const[e,t]=(0,s.useState)(null);return(0,l.jsxs)(l.Fragment,{children:[(0,l.jsx)(g,{onSelect:t}),e&&(0,l.jsx)(I,{template:e,onClose:()=>t(null)})]})}const A=new WeakMap;function $(e){if(!e||A.has(e))return;const t=(0,s.createRoot)(e);t.render((0,l.jsx)(q,{})),A.set(e,t)}window.ftDemoImporter=Object.assign(window.ftDemoImporter||{},{mount:$,unmount:function(e){const s=A.get(e);s&&(s.unmount(),A.delete(e))}}),i()(()=>{if(window.ftDemoImporter?.embedded)return;const e=document.getElementById("ft-demo-importer-app");e&&$(e)})})();
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/generic/api.js"
+/*!****************************!*\
+  !*** ./src/generic/api.js ***!
+  \****************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   jobs: () => (/* binding */ jobs),
+/* harmony export */   studio: () => (/* binding */ studio)
+/* harmony export */ });
+/* harmony import */ var _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/api-fetch */ "@wordpress/api-fetch");
+/* harmony import */ var _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0__);
+/**
+ * REST client for the Generic track. Wraps `@wordpress/api-fetch` so the
+ * nonce + namespace handling is one place — components just call
+ * `studio.listTemplates({...})` / `jobs.create(...)` etc.
+ *
+ * All routes under `ft-demo-importer/v1/`. Auth: cookie + REST nonce
+ * (apiFetch attaches automatically when `wp.apiFetch.createNonceMiddleware`
+ * is registered — the Generic_Dashboard's enqueue path passes the nonce
+ * via `ftDemoImporter.restNonce`).
+ */
+
+
+const NS = '/ft-demo-importer/v1';
+
+// Boot the nonce middleware once per page load. The localized
+// `ftDemoImporter.restNonce` is fresh per request.
+if (window.ftDemoImporter && window.ftDemoImporter.restNonce) {
+  _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default().use(_wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default().createNonceMiddleware(window.ftDemoImporter.restNonce));
+}
+
+// ---------------------------------------------------------------- Studio
+
+const studio = {
+  me() {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/studio/me`
+    });
+  },
+  /**
+   * @param {{ search?: string, category?: string, page?: number, per_page?: number }} params
+   */
+  listTemplates(params = {}) {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        qs.append(k, v);
+      }
+    });
+    const suffix = qs.toString() ? `?${qs}` : '';
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/studio/templates${suffix}`
+    });
+  },
+  getTemplate(id) {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/studio/templates/${id}`
+    });
+  },
+  listCategories() {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/studio/categories`
+    });
+  }
+};
+
+// ---------------------------------------------------------------- Jobs
+
+const jobs = {
+  /**
+   * @param {{ template_id: number, import_content?: boolean, import_uploads?: boolean,
+   *           overwrite_existing?: boolean, replace_settings?: boolean,
+   *           plugins_skip?: string[] }} config
+   */
+  create(config) {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/theme/jobs`,
+      method: 'POST',
+      data: config
+    });
+  },
+  get(id) {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/theme/jobs/${id}`
+    });
+  },
+  latest() {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/theme/jobs/latest`
+    });
+  },
+  cancel(id) {
+    return _wordpress_api_fetch__WEBPACK_IMPORTED_MODULE_0___default()({
+      path: `${NS}/theme/jobs/${id}/cancel`,
+      method: 'POST'
+    });
+  }
+};
+
+/***/ },
+
+/***/ "./src/generic/components/App.jsx"
+/*!****************************************!*\
+  !*** ./src/generic/components/App.jsx ***!
+  \****************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   App: () => (/* binding */ App)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _TemplateGrid__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./TemplateGrid */ "./src/generic/components/TemplateGrid.jsx");
+/* harmony import */ var _PreviewPanel__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./PreviewPanel */ "./src/generic/components/PreviewPanel.jsx");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__);
+/**
+ * Generic-track admin app — top-level.
+ *
+ * UX matches OnePress: card click → fullscreen preview (sidebar + iframe).
+ * "Import Now" button INSIDE the preview is what actually starts the
+ * job; same panel hosts the progress steps. App owns the "which
+ * template is previewed?" state — PreviewPanel owns the job state.
+ */
+
+
+
+
+
+function App() {
+  const [preview, setPreview] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsxs)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.Fragment, {
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)(_TemplateGrid__WEBPACK_IMPORTED_MODULE_1__.TemplateGrid, {
+      onSelect: setPreview
+    }), preview && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_3__.jsx)(_PreviewPanel__WEBPACK_IMPORTED_MODULE_2__.PreviewPanel, {
+      template: preview,
+      onClose: () => setPreview(null)
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/generic/components/PreviewPanel.jsx"
+/*!*************************************************!*\
+  !*** ./src/generic/components/PreviewPanel.jsx ***!
+  \*************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   PreviewPanel: () => (/* binding */ PreviewPanel)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @wordpress/i18n */ "@wordpress/i18n");
+/* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../api */ "./src/generic/api.js");
+/* harmony import */ var _hooks_useJob__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../hooks/useJob */ "./src/generic/hooks/useJob.js");
+/* harmony import */ var _placeholders__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../placeholders */ "./src/generic/placeholders.js");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__);
+/**
+ * Fullscreen import wizard — left sidebar drives a 3-step config
+ * (Style → Plugins → Content & options), right side renders a
+ * scrollable preview iframe of the template. Layout cloned from
+ * mockup3.html (UX research).
+ *
+ *   ┌── 320px sidebar (left) ──────┐ ┌── iframe pane ──────────────────────┐
+ *   │ Setting up: <title>        ✕ │ │                                     │
+ *   │─ scroll ──────────────────── │ │              <iframe />             │
+ *   │  Step 0: Style               │ │                                     │
+ *   │  Step 1: Plugins             │ │                                     │
+ *   │  Step 2: Content & options   │ │                                     │
+ *   │  Install                     │ │                                     │
+ *   │  Done                        │ │                                     │
+ *   │─ footer ──────────────────── │ │                                     │
+ *   │  Back ──────── Skip · Next → │ │                                     │
+ *   └──────────────────────────────┘ └─────────────────────────────────────┘
+ *
+ * The job-runner state is identical to the prior PreviewPanel — once
+ * the user clicks Start on the last step, we POST to `/theme/jobs`
+ * and switch the sidebar into the install + done views, driven by the
+ * `useJob` polling hook.
+ *
+ * Style step (palette + typography) is presented from `placeholders.js`
+ * because no backend wires those choices into the import job yet.
+ * Selections are tracked in local state so the UX flows correctly;
+ * they're omitted from the create-job payload until the Studio adds
+ * a styles surface.
+ */
+
+
+
+
+
+
+
+
+
+/**
+ * Host-provided palettes win when present (Customify adapter publishes
+ * Customizer presets + user-saved palettes via window.ftDemoImporter.
+ * palettes). Otherwise fall back to the plugin's placeholder set so the
+ * step still renders something on themes without an adapter.
+ */
+
+function getPalettes() {
+  if (typeof window !== 'undefined') {
+    const fromHost = window.ftDemoImporter?.palettes;
+    if (Array.isArray(fromHost) && fromHost.length > 0) {
+      return fromHost;
+    }
+  }
+  return _placeholders__WEBPACK_IMPORTED_MODULE_5__.PALETTES;
+}
+
+/**
+ * Same pattern for font pairs — Customify adapter publishes 6 curated
+ * pairs via `window.ftDemoImporter.fonts`.
+ */
+function getFonts() {
+  if (typeof window !== 'undefined') {
+    const fromHost = window.ftDemoImporter?.fonts;
+    if (Array.isArray(fromHost) && fromHost.length > 0) {
+      return fromHost;
+    }
+  }
+  return _placeholders__WEBPACK_IMPORTED_MODULE_5__.FONTS;
+}
+const STEPS = [{
+  key: 'style',
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Style', 'famethemes-demo-importer')
+}, {
+  key: 'plugins',
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Plugins', 'famethemes-demo-importer')
+}, {
+  key: 'content',
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Content & options', 'famethemes-demo-importer')
+}];
+
+// Baseline importer dependency — always shown at the top of the
+// Required plugins list, even if the Studio API doesn't include it.
+const BLOCKSIFY_SLUG = 'blocksify';
+const BLOCKSIFY_NAME = 'Blocksify';
+const BLOCKSIFY_DESC = (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Block library required to render Studio templates.', 'famethemes-demo-importer');
+const PHASES = [{
+  key: 'fetching',
+  from: 0,
+  to: 10,
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Fetching template assets', 'famethemes-demo-importer')
+}, {
+  key: 'installing_plugins',
+  from: 10,
+  to: 30,
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Installing required plugins', 'famethemes-demo-importer')
+}, {
+  key: 'extracting',
+  from: 30,
+  to: 45,
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Extracting uploads', 'famethemes-demo-importer')
+}, {
+  key: 'importing_content',
+  from: 45,
+  to: 90,
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Importing content', 'famethemes-demo-importer')
+}, {
+  key: 'applying_options',
+  from: 90,
+  to: 100,
+  label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Applying theme options', 'famethemes-demo-importer')
+}];
+function PreviewPanel({
+  template,
+  onClose
+}) {
+  const [detail, setDetail] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [detailErr, setDetailErr] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [step, setStep] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
+  const [palette, setPalette] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [typography, setTypography] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [pluginsSkip, setPluginsSkip] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [contentEnabled, setContentEnabled] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(true);
+  const [optWidgets, setOptWidgets] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(true);
+  const [optCustomizer, setOptCustomizer] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(true);
+  const [jobId, setJobId] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [starting, setStarting] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
+  const [startError, setStartError] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const iframeRef = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+
+  // Resolve full data records (with colors / families) for the
+  // currently selected palette + font pair. Memoised so the iframe
+  // postMessage effect doesn't re-fire on unrelated state changes.
+  const palettes = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => getPalettes(), []);
+  const fonts = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => getFonts(), []);
+  const currentPalette = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => palette ? palettes.find(p => p.id === palette) || null : null, [palette, palettes]);
+  const currentFont = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => typography ? fonts.find(f => f.id === typography) || null : null, [typography, fonts]);
+
+  // Push current Style step selections into the preview iframe over
+  // postMessage. Cross-origin by design — Studio's preview server
+  // implements a listener for `type: 'fdi-preview-style'` and maps
+  // the payload onto CSS variables / font links. When the listener
+  // isn't installed yet, the message is silently dropped and the
+  // in-pane overlay chip below still gives the user feedback.
+  //
+  // Contract (documented for the Studio side):
+  //   {
+  //     type: 'fdi-preview-style',
+  //     palette: { id, name, colors: [primary, secondary, accent, text, surface, base] } | null,
+  //     font:    { id, heading, body, weight } | null,
+  //   }
+  const sendStyleToIframe = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useCallback)(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) {
+      return;
+    }
+    try {
+      win.postMessage({
+        type: 'fdi-preview-style',
+        palette: currentPalette,
+        font: currentFont
+      }, '*');
+    } catch (e) {
+      // Iframe not ready / cross-origin restriction during nav —
+      // safe to ignore; next selection change will retry.
+    }
+  }, [currentPalette, currentFont]);
+
+  // Re-send on every selection change + on iframe load (caught via
+  // the `load` event below). Replays guarantee the iframe gets the
+  // latest state even if it navigated mid-session.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    sendStyleToIframe();
+  }, [sendStyleToIframe]);
+
+  // Handshake: Studio's iframe can post `{type:'fdi-preview-ready'}`
+  // to ask the parent for the current selection (handles late-load
+  // race where the iframe's listener registers after our last send).
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const handler = event => {
+      if (event?.data?.type === 'fdi-preview-ready' && iframeRef.current?.contentWindow === event.source) {
+        sendStyleToIframe();
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [sendStyleToIframe]);
+  const {
+    job
+  } = (0,_hooks_useJob__WEBPACK_IMPORTED_MODULE_4__.useJob)(jobId);
+  const importing = jobId !== null;
+  const status = job?.status || (importing ? 'queued' : 'idle');
+  const percent = job?.progress?.percent | 0;
+  const isDone = status === 'completed' || status === 'failed' || status === 'cancelled';
+
+  // Detail fetch — needed for the recommended plugins list + canonical preview URL.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    let cancelled = false;
+    setDetail(null);
+    setDetailErr(null);
+    _api__WEBPACK_IMPORTED_MODULE_3__.studio.getTemplate(template.id).then(res => {
+      if (!cancelled) setDetail(res);
+    }).catch(e => {
+      if (!cancelled) setDetailErr(e?.message || String(e));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [template.id]);
+
+  // Lock page scroll while the wizard is open — same dance as the
+  // previous PreviewPanel, prevents wp-admin from scrolling behind
+  // the overlay.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    document.body.classList.add('fdi-wizard-open');
+    return () => {
+      document.body.classList.remove('fdi-wizard-open');
+    };
+  }, []);
+  const title = template.title || template.name || `#${template.id}`;
+  const rawIframeUrl = detail?.frame_url || detail?.preview_route || detail?.demo_url || detail?.preview_url || template.preview_url || '';
+
+  // Cache-bust the preview URL — Studio sites typically front WordPress
+  // with a page cache (Cloudflare, WP Rocket, LiteSpeed, etc.) that
+  // snapshots HTML for top-level navigation, and the cached snapshot
+  // can be missing the `customify-preview-bridge` <script> tag if the
+  // plugin was activated AFTER the snapshot was written. Adding a
+  // per-template cachebust forces the origin to render fresh and ship
+  // the script. The token is stable per (template.id, mount) so the
+  // browser still caches subresources within a session.
+  const iframeUrl = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => {
+    if (!rawIframeUrl) return '';
+    const sep = rawIframeUrl.includes('?') ? '&' : '?';
+    return rawIframeUrl + sep + '_fdi_cb=' + template.id;
+  }, [rawIframeUrl, template.id]);
+
+  // Plugins — split into required vs recommended for the sidebar UI.
+  // Blocksify is always pinned at the top of the required list because
+  // the importer needs the Blocksify block library to apply Studio
+  // templates regardless of what any individual template declares.
+  const plugins = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => {
+    const list = Array.isArray(detail?.requirements?.plugins) ? detail.requirements.plugins : [];
+    const mapped = list.map(p => ({
+      slug: p.slug,
+      name: p.name || p.slug,
+      required: Boolean(p.required),
+      installed: Boolean(p.installed),
+      source: p.source || '',
+      desc: p.description || p.desc || ''
+    }));
+    const existingIdx = mapped.findIndex(p => p.slug === BLOCKSIFY_SLUG);
+    const existing = existingIdx >= 0 ? mapped.splice(existingIdx, 1)[0] : null;
+    const blocksify = existing ? {
+      ...existing,
+      required: true
+    } : {
+      slug: BLOCKSIFY_SLUG,
+      name: BLOCKSIFY_NAME,
+      required: true,
+      installed: false,
+      source: 'wordpress.org',
+      desc: BLOCKSIFY_DESC
+    };
+    return [blocksify, ...mapped];
+  }, [detail]);
+  const requiredPlugins = plugins.filter(p => p.required);
+  const recommendedPlugins = plugins.filter(p => !p.required);
+  const isPluginChecked = p => {
+    if (p.installed) return false;
+    if (p.required) return true;
+    return !pluginsSkip.includes(p.slug);
+  };
+  const togglePlugin = slug => {
+    setPluginsSkip(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]);
+  };
+  const allOptionalUnchecked = recommendedPlugins.length > 0 && recommendedPlugins.filter(p => !p.installed).every(p => pluginsSkip.includes(p.slug));
+  const bulkToggleOptional = () => {
+    const optInstallable = recommendedPlugins.filter(p => !p.installed);
+    setPluginsSkip(allOptionalUnchecked ? [] : optInstallable.map(p => p.slug));
+  };
+  const handleStart = () => {
+    setStartError(null);
+    setStarting(true);
+    _api__WEBPACK_IMPORTED_MODULE_3__.jobs.create({
+      template_id: template.id,
+      import_content: contentEnabled,
+      import_uploads: true,
+      replace_settings: optWidgets || optCustomizer,
+      plugins_skip: pluginsSkip,
+      // Carry the wizard's Style step selections through to the
+      // job runner. Theme adapter consumes these inside
+      // `after_phase('applying_options')` to write theme_mods
+      // (palette → 6 color slots) and install Google Fonts into
+      // the WP Font Library (typography pair).
+      style: {
+        palette: palette,
+        font: typography
+      }
+    }).then(res => {
+      if (res?.job_id) setJobId(res.job_id);
+    }).catch(err => {
+      setStartError(err.message || (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Failed to start import job.', 'famethemes-demo-importer'));
+    }).finally(() => {
+      setStarting(false);
+    });
+  };
+  const handleClose = () => {
+    if (importing && !isDone) {
+      // eslint-disable-next-line no-alert
+      const ok = window.confirm((0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Importing in the background. Are you sure you want to leave?', 'famethemes-demo-importer'));
+      if (!ok) return;
+      _api__WEBPACK_IMPORTED_MODULE_3__.jobs.cancel(jobId).catch(() => {/* runner picks it up at next safe boundary */});
+    }
+    // Successful import wrote theme_mods + installed fonts via the
+    // adapter — the dashboard host (or standalone page) likely
+    // shows stale data until a refetch. Hard reload keeps it
+    // simple: closes the wizard AND picks up the new state in one
+    // step. Cancelled / failed runs just close without reload.
+    if (status === 'completed') {
+      window.location.reload();
+      return;
+    }
+    onClose();
+  };
+  const next = () => {
+    if (step >= STEPS.length - 1) {
+      handleStart();
+      return;
+    }
+    setStep(s => s + 1);
+  };
+  const back = () => setStep(s => Math.max(0, s - 1));
+  const isFirst = step === 0;
+  const isLast = step === STEPS.length - 1;
+  const showSteps = !importing;
+  const showInstall = importing && !(status === 'completed');
+  const showDone = status === 'completed';
+  const showWarning = !contentEnabled && (optWidgets || optCustomizer);
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+    className: "fdi-wizard",
+    role: "dialog",
+    "aria-modal": "true",
+    "aria-labelledby": "fdi-wizard-title",
+    children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-wizard__body",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("aside", {
+        className: "fdi-sidebar",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("header", {
+          className: "fdi-sidebar__header",
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+            className: "fdi-sidebar__title",
+            children: [(0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Setting up:', 'famethemes-demo-importer'), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("strong", {
+              id: "fdi-wizard-title",
+              children: title
+            })]
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+            className: "fdi-sidebar__divider"
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+          className: "fdi-sidebar__body",
+          children: [detailErr && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+            className: "fdi-error",
+            children: detailErr
+          }), showSteps && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.Fragment, {
+            children: [step === 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(StyleStep, {
+              palette: palette,
+              setPalette: setPalette,
+              typography: typography,
+              setTypography: setTypography
+            }), step === 1 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(PluginsStep, {
+              required: requiredPlugins,
+              recommended: recommendedPlugins,
+              isChecked: isPluginChecked,
+              onToggle: togglePlugin,
+              bulkLabel: allOptionalUnchecked ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Check all', 'famethemes-demo-importer') : (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Uncheck all', 'famethemes-demo-importer'),
+              onBulkToggle: bulkToggleOptional,
+              loadingDetail: !detail
+            }), step === 2 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(ContentStep, {
+              contentEnabled: contentEnabled,
+              setContentEnabled: setContentEnabled,
+              optWidgets: optWidgets,
+              setOptWidgets: setOptWidgets,
+              optCustomizer: optCustomizer,
+              setOptCustomizer: setOptCustomizer,
+              showWarning: showWarning
+            }), startError && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+              className: "fdi-error",
+              children: startError
+            })]
+          }), showInstall && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(InstallProgress, {
+            status: status,
+            percent: percent,
+            phases: PHASES,
+            message: job?.progress?.message || '',
+            error: job?.error,
+            warnings: job?.warnings
+          }), showDone && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(DoneScreen, {
+            onClose: handleClose,
+            home: window.ftDemoImporter?.home || '/'
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("footer", {
+          className: "fdi-sidebar__footer",
+          children: [showSteps && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+            className: "fdi-step-actions",
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+              variant: "tertiary",
+              onClick: isFirst ? handleClose : back,
+              children: isFirst ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Close', 'famethemes-demo-importer') : (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('← Back', 'famethemes-demo-importer')
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+              className: "fdi-step-actions__spacer"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+              variant: "tertiary",
+              onClick: next,
+              children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Skip', 'famethemes-demo-importer')
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+              variant: "primary",
+              onClick: next,
+              isBusy: starting,
+              disabled: starting,
+              children: isLast ? starting ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Starting…', 'famethemes-demo-importer') : (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Start →', 'famethemes-demo-importer') : (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Next →', 'famethemes-demo-importer')
+            })]
+          }), showInstall && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+            className: "fdi-step-actions",
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+              className: "fdi-step-actions__spacer"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+              variant: "secondary",
+              isDestructive: true,
+              onClick: handleClose,
+              children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Cancel import', 'famethemes-demo-importer')
+            })]
+          })]
+        })]
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-preview",
+        children: iframeUrl ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("iframe", {
+          ref: iframeRef,
+          className: "fdi-preview__iframe",
+          src: iframeUrl,
+          title: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.sprintf)(/* translators: %s: template title */(0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Preview of %s', 'famethemes-demo-importer'), title),
+          loading: "lazy",
+          onLoad: sendStyleToIframe
+        }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+          className: "fdi-preview__fallback",
+          children: detail ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('No preview URL available.', 'famethemes-demo-importer') : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, {})
+        })
+      })]
+    })
+  });
+}
+
+// ── Step 0 ──────────────────────────────────────────────────────────────────
+
+function StyleStep({
+  palette,
+  setPalette,
+  typography,
+  setTypography
+}) {
+  const palettes = getPalettes();
+  const fonts = getFonts();
+
+  // Load every pair's heading + body family into the admin page so the
+  // "Ag" preview chip and the label both render in their real font.
+  // Without this the inline `style={{ fontFamily }}` falls back to the
+  // generic family (serif), which is exactly the misrender the user
+  // was seeing. One <link> per family, deduped via a stable id; the
+  // nodes live for the rest of the admin session — no cleanup needed.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const familyToWeights = new Map();
+    const note = (family, weight) => {
+      if (!family) return;
+      const set = familyToWeights.get(family) || new Set();
+      set.add(400);
+      if (weight) set.add(weight);
+      familyToWeights.set(family, set);
+    };
+    fonts.forEach(f => {
+      note(f.heading, f.weight);
+      if (f.body !== f.heading) note(f.body, 400);
+    });
+    familyToWeights.forEach((weights, family) => {
+      const id = 'fdi-font-' + family.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      if (document.getElementById(id)) return;
+      const link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      const encoded = encodeURIComponent(family).replace(/%20/g, '+');
+      const weightsStr = Array.from(weights).sort((a, b) => a - b).join(',');
+      link.href = `https://fonts.googleapis.com/css?family=${encoded}:${weightsStr}&display=swap`;
+      document.head.appendChild(link);
+    });
+  }, [fonts]);
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("section", {
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h3", {
+      className: "fdi-step__heading",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Choose a style', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+      className: "fdi-step__lede",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Pick a color palette and font pair. Both apply after content is imported and can be changed later from the Customizer.', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-style-section",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h4", {
+        className: "fdi-style-subheading",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Color palette', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-tile-grid",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("button", {
+          type: "button",
+          className: 'fdi-tile fdi-tile--skip' + (palette === null ? ' is-selected' : ''),
+          onClick: () => setPalette(null),
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-tile__skip-dash"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-tile__label",
+            children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Keep current', 'famethemes-demo-importer')
+          })]
+        }), palettes.map(p => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("button", {
+          type: "button",
+          className: 'fdi-tile' + (palette === p.id ? ' is-selected' : ''),
+          onClick: () => setPalette(p.id),
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-tile__swatches",
+            children: p.colors.map((c, i) => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+              className: "fdi-tile__swatch",
+              style: {
+                background: c
+              }
+            }, i))
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-tile__label",
+            children: p.name
+          })]
+        }, p.id))]
+      })]
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-style-section",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h4", {
+        className: "fdi-style-subheading",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Typography', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-tile-grid",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("button", {
+          type: "button",
+          className: 'fdi-tile fdi-tile--skip' + (typography === null ? ' is-selected' : ''),
+          onClick: () => setTypography(null),
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-tile__skip-dash"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-tile__label",
+            children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Keep current', 'famethemes-demo-importer')
+          })]
+        }), fonts.map(f => {
+          const fontStyle = {
+            fontFamily: `'${f.heading}', serif`,
+            fontWeight: f.weight
+          };
+          return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("button", {
+            type: "button",
+            className: 'fdi-tile fdi-tile--font' + (typography === f.id ? ' is-selected' : ''),
+            onClick: () => setTypography(f.id),
+            children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+              className: "fdi-tile__font-heading",
+              style: fontStyle,
+              children: "Ag"
+            }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("span", {
+              className: "fdi-tile__label",
+              style: fontStyle,
+              children: [f.heading, " \xB7 ", f.body]
+            })]
+          }, f.id);
+        })]
+      })]
+    })]
+  });
+}
+
+// ── Step 1 ──────────────────────────────────────────────────────────────────
+
+function PluginsStep({
+  required,
+  recommended,
+  isChecked,
+  onToggle,
+  bulkLabel,
+  onBulkToggle,
+  loadingDetail
+}) {
+  const renderCard = p => {
+    const checked = isChecked(p);
+    const classes = ['fdi-plugin'];
+    if (checked) classes.push('is-checked');
+    if (p.installed) classes.push('is-installed');
+    if (p.required) classes.push('is-required');
+    const disabled = p.required || p.installed;
+    const trailing = p.installed ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+      className: "fdi-plugin__installed-tag",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Already installed', 'famethemes-demo-importer')
+    }) : p.source && p.source !== 'wordpress.org' ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+      className: "fdi-plugin__source",
+      children: p.source
+    }) : null;
+
+    // Use a div so the card can wrap whatever block-level content
+    // the design wants. Toggleable cards still expose checkbox
+    // semantics (role + aria-checked + Space/Enter activation) so
+    // keyboard users get the same interaction the old <button> gave.
+    const interactive = !disabled;
+    const handleClick = interactive ? () => onToggle(p.slug) : undefined;
+    const handleKeyDown = interactive ? e => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        onToggle(p.slug);
+      }
+    } : undefined;
+    return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: classes.join(' '),
+      role: interactive ? 'checkbox' : undefined,
+      "aria-checked": interactive ? checked : undefined,
+      "aria-disabled": disabled || undefined,
+      tabIndex: interactive ? 0 : undefined,
+      onClick: handleClick,
+      onKeyDown: handleKeyDown,
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-plugin__head",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+          className: "fdi-plugin__name",
+          children: p.name
+        }), trailing, /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+          className: "fdi-plugin__check",
+          "aria-hidden": "true"
+        })]
+      }), p.desc && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-plugin__desc",
+        children: p.desc
+      })]
+    }, p.slug);
+  };
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("section", {
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h3", {
+      className: "fdi-step__heading",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Required & recommended plugins', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+      className: "fdi-step__lede",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Required plugins are needed for the demo to work and will be installed automatically. You can uncheck any recommended one you don’t want.', 'famethemes-demo-importer')
+    }), loadingDetail ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+      className: "fdi-loading",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Spinner, {})
+    }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-plugins",
+      children: [required.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-plugins-section",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h4", {
+          className: "fdi-plugins-section__title",
+          children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Required', 'famethemes-demo-importer')
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+          className: "fdi-plugins-grid",
+          children: required.map(renderCard)
+        })]
+      }), recommended.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-plugins-section",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("h4", {
+          className: "fdi-plugins-section__title",
+          children: [(0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Recommended', 'famethemes-demo-importer'), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("button", {
+            type: "button",
+            className: "fdi-plugins-section__bulk",
+            onClick: onBulkToggle,
+            children: bulkLabel
+          })]
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+          className: "fdi-plugins-grid",
+          children: recommended.map(renderCard)
+        })]
+      }), required.length === 0 && recommended.length === 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+        className: "fdi-step__hint",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('This template doesn’t require any plugins.', 'famethemes-demo-importer')
+      })]
+    })]
+  });
+}
+
+// ── Step 2 ──────────────────────────────────────────────────────────────────
+
+function ContentStep({
+  contentEnabled,
+  setContentEnabled,
+  optWidgets,
+  setOptWidgets,
+  optCustomizer,
+  setOptCustomizer,
+  showWarning
+}) {
+  const toggleCard = (checked, label, desc, onToggle) => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("button", {
+    type: "button",
+    className: 'fdi-plugin' + (checked ? ' is-checked' : ''),
+    onClick: onToggle,
+    "aria-pressed": checked,
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-plugin__head",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+        className: "fdi-plugin__name",
+        children: label
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+        className: "fdi-plugin__check",
+        "aria-hidden": "true"
+      })]
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+      className: "fdi-plugin__desc",
+      children: desc
+    })]
+  });
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("section", {
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h3", {
+      className: "fdi-step__heading",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Content & options', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+      className: "fdi-step__lede",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Choose what to import: demo content, widgets and Customizer settings.', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-style-section",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h4", {
+        className: "fdi-style-subheading",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Demo content', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-plugins-grid",
+        children: toggleCard(contentEnabled, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Import demo content', 'famethemes-demo-importer'), (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Sample posts, pages, categories and media so the site matches the demo.', 'famethemes-demo-importer'), () => setContentEnabled(!contentEnabled))
+      }), showWarning && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-warning",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('⚠ Widgets & menus may reference pages that won’t exist if you skip demo content.', 'famethemes-demo-importer')
+      })]
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-style-section",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h4", {
+        className: "fdi-style-subheading",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Theme options', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-plugins-grid",
+        children: [toggleCard(optWidgets, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Widgets', 'famethemes-demo-importer'), (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Sidebar and footer widget areas from the demo.', 'famethemes-demo-importer'), () => setOptWidgets(!optWidgets)), toggleCard(optCustomizer, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Customizer settings', 'famethemes-demo-importer'), (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Header, footer, blog layout, container width, social links… (theme mods)', 'famethemes-demo-importer'), () => setOptCustomizer(!optCustomizer))]
+      })]
+    })]
+  });
+}
+
+// ── Install ─────────────────────────────────────────────────────────────────
+
+function InstallProgress({
+  status,
+  percent,
+  phases,
+  message,
+  error,
+  warnings
+}) {
+  const pct = Math.max(0, Math.min(100, percent));
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("section", {
+    className: "fdi-install",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-install__overall",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+        className: "fdi-install__pct",
+        children: [pct, "%"]
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-install__label",
+        children: status === 'failed' ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Failed', 'famethemes-demo-importer') : status === 'queued' ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Starting…', 'famethemes-demo-importer') : message || (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Working…', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-install__bar",
+        children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+          className: "fdi-install__bar-fill",
+          style: {
+            width: `${pct}%`
+          }
+        })
+      })]
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("ol", {
+      className: "fdi-install__phases",
+      children: phases.map(p => {
+        let cls = 'is-pending';
+        if (percent >= p.to) cls = 'is-done';else if (percent >= p.from) cls = status === 'failed' ? 'is-failed' : 'is-running';
+        return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("li", {
+          className: `fdi-install__phase ${cls}`,
+          children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-install__phase-icon",
+            "aria-hidden": "true"
+          }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("span", {
+            className: "fdi-install__phase-label",
+            children: p.label
+          })]
+        }, p.key);
+      })
+    }), status === 'failed' && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-status is-error",
+      children: ["\u2717 ", error || (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Import failed.', 'famethemes-demo-importer')]
+    }), status === 'cancelled' && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+      className: "fdi-status is-warning",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Import cancelled.', 'famethemes-demo-importer')
+    }), Array.isArray(warnings) && warnings.length > 0 && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("details", {
+      className: "fdi-warnings",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("summary", {
+        children: [(0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Warnings', 'famethemes-demo-importer'), " (", warnings.length, ")"]
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("ul", {
+        children: warnings.map((w, i) => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("li", {
+          children: w
+        }, i))
+      })]
+    })]
+  });
+}
+
+// ── Done ────────────────────────────────────────────────────────────────────
+
+function DoneScreen({
+  onClose,
+  home
+}) {
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("section", {
+    className: "fdi-done",
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+      className: "fdi-done__check",
+      children: "\u2713"
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h3", {
+      className: "fdi-done__heading",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Your site is ready', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+      className: "fdi-done__lede",
+      children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Demo content has been imported and styling applied.', 'famethemes-demo-importer')
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-done__actions",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+        variant: "primary",
+        href: home,
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('View site →', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+        variant: "secondary",
+        href: "post-new.php?post_type=page",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Edit home page', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+        variant: "secondary",
+        href: "customize.php",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Open Customizer', 'famethemes-demo-importer')
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_2__.Button, {
+        variant: "tertiary",
+        onClick: onClose,
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Close', 'famethemes-demo-importer')
+      })]
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/generic/components/TemplateCard.jsx"
+/*!*************************************************!*\
+  !*** ./src/generic/components/TemplateCard.jsx ***!
+  \*************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   TemplateCard: () => (/* binding */ TemplateCard)
+/* harmony export */ });
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @wordpress/i18n */ "@wordpress/i18n");
+/* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__);
+/**
+ * One template tile in the grid — 3:4 thumb, title row with Preview +
+ * Import buttons. Pro badge pins to the top-right of the thumb when
+ * the template is gated. Clicking the thumb (or Import) opens the
+ * wizard; Preview routes to the template's demo URL in a new tab.
+ *
+ * Buttons use `@wordpress/components` `<Button>` so they inherit the
+ * admin scheme and accessibility behavior of every other WP admin
+ * surface — no custom button styling on this component.
+ */
+
+
+
+
+function TemplateCard({
+  template,
+  onSelect
+}) {
+  // Studio's preview_image is a nested attachment-shape (see
+  // `docs/studio/rest-api.md` §preview_image): full / medium / thumb
+  // crops, plus a flat top-level `url`. Prefer the largest crop the
+  // browser will actually render at 3:4 card width — `full` typically
+  // matches the source upload size; `medium` is the 300x200 thumbnail
+  // fallback for templates with smaller source images.
+  //
+  // `template.preview_url` is the iframe demo route (e.g. `?pmbd_preview=N`),
+  // NOT an image URL — used by PreviewPanel.jsx, never by the card.
+  const preview = template.preview_image;
+  const thumb = preview?.full?.url || preview?.medium?.url || preview?.url || template.thumb_url || '';
+  const name = template.title || template.name || `#${template.id}`;
+  const isPro = Boolean(template.is_pro || template.pro);
+  const demoUrl = template.demo_url || template.frame_url || template.preview_route || '';
+  const openWizard = () => onSelect(template);
+  const handleThumbClick = e => {
+    // Buttons inside the body row handle their own clicks via
+    // `<Button onClick>`; only the thumb surface itself opens the
+    // wizard, so stopPropagation on the buttons isn't needed.
+    e.preventDefault();
+    openWizard();
+  };
+  const openDemo = e => {
+    e.preventDefault();
+    if (demoUrl) {
+      window.open(demoUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      openWizard();
+    }
+  };
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("article", {
+    className: "fdi-card",
+    "data-template-id": template.id,
+    children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+      className: "fdi-card__thumb",
+      onClick: handleThumbClick,
+      role: "button",
+      tabIndex: 0,
+      onKeyDown: e => {
+        if (e.key === 'Enter') handleThumbClick(e);
+      },
+      "aria-label": name,
+      children: [isPro && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("span", {
+        className: "fdi-card__pro-badge",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Pro', 'famethemes-demo-importer')
+      }), thumb && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("img", {
+        src: thumb,
+        alt: "",
+        loading: "lazy"
+      })]
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+      className: "fdi-card__body",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)("div", {
+        className: "fdi-card__title",
+        title: name,
+        children: name
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsxs)("div", {
+        className: "fdi-card__actions",
+        children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_0__.Button, {
+          variant: "secondary",
+          onClick: openDemo,
+          children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Preview', 'famethemes-demo-importer')
+        }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_2__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_0__.Button, {
+          variant: "primary",
+          onClick: openWizard,
+          children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Import', 'famethemes-demo-importer')
+        })]
+      })]
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/generic/components/TemplateGrid.jsx"
+/*!*************************************************!*\
+  !*** ./src/generic/components/TemplateGrid.jsx ***!
+  \*************************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   TemplateGrid: () => (/* binding */ TemplateGrid)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @wordpress/components */ "@wordpress/components");
+/* harmony import */ var _wordpress_components__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @wordpress/i18n */ "@wordpress/i18n");
+/* harmony import */ var _wordpress_i18n__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _wordpress_icons__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @wordpress/icons */ "./node_modules/.pnpm/@wordpress+icons@13.2.0_react@19.2.7/node_modules/@wordpress/icons/build-module/library/category.mjs");
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../api */ "./src/generic/api.js");
+/* harmony import */ var _TemplateCard__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./TemplateCard */ "./src/generic/components/TemplateCard.jsx");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__);
+/**
+ * Starter Templates page — page header + category pills + search +
+ * card grid. Matches mockup3.html (UX research). All colors / buttons
+ * use WP admin's `--wp-admin-theme-color` so the dashboard reflects
+ * the user's admin color scheme.
+ *
+ * Categories come from `GET /studio/categories` (Studio template
+ * categories scoped to the active theme). An "All" pseudo-entry is
+ * prepended client-side. Filtering is client-side once the page of
+ * templates is loaded — keeps the topbar feeling instant. Search runs
+ * through the existing `?search=` query param so longer libraries
+ * still return relevant results from the server.
+ */
+
+
+
+
+
+
+
+
+const PER_PAGE = 24;
+function TemplateGrid({
+  onSelect
+}) {
+  const [items, setItems] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [total, setTotal] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
+  const [page, setPage] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(1);
+  const [loading, setLoading] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(true);
+  const [error, setError] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [categories, setCategories] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)([]);
+  const [activeCat, setActiveCat] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('all');
+  const [search, setSearch] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)('');
+
+  // Categories — one-shot fetch on mount. Failure leaves the strip
+  // empty (just the "All" pill) rather than blocking the grid.
+  //
+  // Studio response shape: `{ type, categories: [...], total, uncategorized }`.
+  // Accept a bare array or `{items:[...]}` too for resilience against
+  // future Studio versions that might normalize the envelope.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    let cancelled = false;
+    _api__WEBPACK_IMPORTED_MODULE_4__.studio.listCategories().then(res => {
+      if (cancelled) {
+        return;
+      }
+      const list = Array.isArray(res) ? res : res?.categories || res?.items || [];
+      setCategories(list);
+    }).catch(() => {/* silent — strip just shows "All" */});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Templates — refetch when page or search changes. Category filter
+  // is applied client-side (see filtered below) so toggling pills
+  // doesn't refire the network call.
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    let cancelled = false;
+    setLoading(true);
+    _api__WEBPACK_IMPORTED_MODULE_4__.studio.listTemplates({
+      page,
+      per_page: PER_PAGE,
+      search
+    }).then(res => {
+      if (cancelled) {
+        return;
+      }
+      const incoming = Array.isArray(res?.items) ? res.items : [];
+      setItems(prev => page === 1 ? incoming : [...prev, ...incoming]);
+      // Studio shape: `{items, meta:{page, per_page, total, total_pages}}`.
+      // Fall back to root `total` and finally to the page's own
+      // length so a missing envelope doesn't make `hasMore` lie.
+      setTotal(res?.meta?.total ?? res?.total ?? incoming.length);
+      setError(null);
+    }).catch(e => {
+      if (!cancelled) {
+        setError(e.message || (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Failed to load templates.', 'famethemes-demo-importer'));
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, search]);
+  const filtered = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useMemo)(() => {
+    if (activeCat === 'all') {
+      return items;
+    }
+    return items.filter(t => {
+      const slugs = Array.isArray(t.category_slugs) ? t.category_slugs : Array.isArray(t.categories) ? t.categories.map(c => c.slug || c) : [];
+      return slugs.includes(activeCat);
+    });
+  }, [items, activeCat]);
+  const hasMore = items.length < total;
+  const handleSearch = value => {
+    setSearch(value);
+    setPage(1);
+  };
+  const isEmbedded = !!(typeof window !== 'undefined' && window.ftDemoImporter?.embedded);
+  return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+    className: 'fdi-grid-page' + (isEmbedded ? ' is-embedded' : ''),
+    children: [!isEmbedded && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("header", {
+      className: "fdi-page-header",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("h1", {
+        className: "wp-heading-inline",
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Starter Templates', 'famethemes-demo-importer')
+      })
+    }), error && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.Notice, {
+      status: "error",
+      isDismissible: false,
+      children: error
+    }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-topbar",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-categories",
+        children: (() => {
+          const allLabel = (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('All', 'famethemes-demo-importer');
+          const choices = [{
+            label: allLabel,
+            value: 'all'
+          }, ...categories.map(c => {
+            const slug = c.slug || c.id || c.name;
+            return {
+              label: c.name || c.label || slug,
+              value: String(slug)
+            };
+          })];
+          const current = choices.find(ch => ch.value === String(activeCat));
+          const triggerText = current ? current.label : allLabel;
+          return /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.DropdownMenu, {
+            icon: _wordpress_icons__WEBPACK_IMPORTED_MODULE_3__["default"],
+            text: triggerText,
+            label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Filter by category', 'famethemes-demo-importer'),
+            toggleProps: {
+              className: 'fdi-categories__toggle'
+            },
+            popoverProps: {
+              placement: 'bottom-start'
+            },
+            children: ({
+              onClose
+            }) => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.MenuGroup, {
+              children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.MenuItemsChoice, {
+                choices: choices,
+                value: String(activeCat),
+                onSelect: slug => {
+                  setActiveCat(slug);
+                  onClose();
+                }
+              })
+            })
+          });
+        })()
+      }), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+        className: "fdi-search",
+        children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.SearchControl, {
+          __nextHasNoMarginBottom: true,
+          value: search,
+          onChange: handleSearch,
+          placeholder: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Search templates…', 'famethemes-demo-importer'),
+          label: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Search templates', 'famethemes-demo-importer'),
+          hideLabelFromVision: true
+        })
+      })]
+    }), loading && items.length === 0 ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsxs)("div", {
+      className: "fdi-loading",
+      children: [/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.Spinner, {}), /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Loading templates from Studio…', 'famethemes-demo-importer')
+      })]
+    }) : filtered.length === 0 ? /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+      className: "fdi-empty",
+      children: search || activeCat !== 'all' ? (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('No templates match your filter.', 'famethemes-demo-importer') : (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('No templates available yet.', 'famethemes-demo-importer')
+    }) : /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("div", {
+      className: "fdi-grid",
+      children: filtered.map(t => /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_TemplateCard__WEBPACK_IMPORTED_MODULE_5__.TemplateCard, {
+        template: t,
+        onSelect: onSelect
+      }, t.id))
+    }), hasMore && !loading && /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)("p", {
+      className: "fdi-load-more",
+      children: /*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_6__.jsx)(_wordpress_components__WEBPACK_IMPORTED_MODULE_1__.Button, {
+        variant: "secondary",
+        onClick: () => setPage(p => p + 1),
+        isBusy: loading,
+        disabled: loading,
+        children: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_2__.__)('Load more', 'famethemes-demo-importer')
+      })
+    })]
+  });
+}
+
+/***/ },
+
+/***/ "./src/generic/hooks/useJob.js"
+/*!*************************************!*\
+  !*** ./src/generic/hooks/useJob.js ***!
+  \*************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   useJob: () => (/* binding */ useJob)
+/* harmony export */ });
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _api__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../api */ "./src/generic/api.js");
+/**
+ * Polling hook for an in-flight import job.
+ *
+ * Returns the latest job state, kicks off polling on mount, stops on
+ * unmount or when the job enters a terminal status (completed / failed
+ * / cancelled). Cleanup is automatic — no need for caller to clear the
+ * interval.
+ *
+ * Polling cadence comes from `ftDemoImporter.pollIntervalMs` (set by
+ * Generic_Dashboard::enqueue_assets); defaults to 2000 ms.
+ */
+
+
+
+const TERMINAL = ['completed', 'failed', 'cancelled'];
+const INTERVAL_MS = window.ftDemoImporter && window.ftDemoImporter.pollIntervalMs || 2000;
+function useJob(jobId) {
+  const [job, setJob] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const [error, setError] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  const timerRef = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (!jobId) {
+      return undefined;
+    }
+    let cancelled = false;
+    const tick = () => {
+      _api__WEBPACK_IMPORTED_MODULE_1__.jobs.get(jobId).then(res => {
+        if (cancelled) {
+          return;
+        }
+        setJob(res);
+        if (!TERMINAL.includes(res.status)) {
+          timerRef.current = setTimeout(tick, INTERVAL_MS);
+        }
+      }).catch(e => {
+        if (cancelled) {
+          return;
+        }
+        setError(e.message || 'Failed to poll job.');
+      });
+    };
+    tick();
+    return () => {
+      cancelled = true;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [jobId]);
+  return {
+    job,
+    error
+  };
+}
+
+/***/ },
+
+/***/ "./src/generic/placeholders.js"
+/*!*************************************!*\
+  !*** ./src/generic/placeholders.js ***!
+  \*************************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   FONTS: () => (/* binding */ FONTS),
+/* harmony export */   PALETTES: () => (/* binding */ PALETTES)
+/* harmony export */ });
+/**
+ * Placeholder data for features that don't have a backend yet.
+ *
+ * Color palettes and font pairs are presented in the wizard's "Style"
+ * step so the UX can be reviewed end-to-end, but the user's selection
+ * isn't sent to the job runner — those fields land in the future when
+ * the Studio exposes a style payload alongside templates.
+ *
+ * Once that backend lands, move these arrays into a `/studio/styles`
+ * REST response and feed the wizard from there.
+ */
+
+const PALETTES = [{
+  id: 'warm',
+  name: 'Warm Sunset',
+  colors: ['#1c1c1c', '#e85d04', '#faa307', '#ffd6a5']
+}, {
+  id: 'cool',
+  name: 'Ocean Cool',
+  colors: ['#0f1f3a', '#2196f3', '#87ceeb', '#f7f9fc']
+}, {
+  id: 'forest',
+  name: 'Forest',
+  colors: ['#1f3a23', '#6b8e23', '#c4d8a2', '#f1f5e8']
+}, {
+  id: 'mono',
+  name: 'Monochrome',
+  colors: ['#0a0a0a', '#404040', '#b0b0b0', '#f4f4f4']
+}, {
+  id: 'bold',
+  name: 'Bold Pop',
+  colors: ['#d81b60', '#fdd835', '#1a237e', '#fafafa']
+}];
+const FONTS = [{
+  id: 'inter-inter',
+  heading: 'Inter',
+  body: 'Inter',
+  weight: 600
+}, {
+  id: 'playfair-source',
+  heading: 'Playfair Display',
+  body: 'Source Sans 3',
+  weight: 600
+}, {
+  id: 'lora-merri',
+  heading: 'Lora',
+  body: 'Merriweather',
+  weight: 400
+}, {
+  id: 'poppins-roboto',
+  heading: 'Poppins',
+  body: 'Roboto',
+  weight: 600
+}, {
+  id: 'mont-opensans',
+  heading: 'Montserrat',
+  body: 'Open Sans',
+  weight: 600
+}, {
+  id: 'bebas-lato',
+  heading: 'Bebas Neue',
+  body: 'Lato',
+  weight: 400
+}];
+
+/***/ },
+
+/***/ "./src/generic/admin.scss"
+/*!********************************!*\
+  !*** ./src/generic/admin.scss ***!
+  \********************************/
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+// extracted by mini-css-extract-plugin
+
+
+/***/ },
+
+/***/ "react/jsx-runtime"
+/*!**********************************!*\
+  !*** external "ReactJSXRuntime" ***!
+  \**********************************/
+(module) {
+
+module.exports = window["ReactJSXRuntime"];
+
+/***/ },
+
+/***/ "@wordpress/api-fetch"
+/*!**********************************!*\
+  !*** external ["wp","apiFetch"] ***!
+  \**********************************/
+(module) {
+
+module.exports = window["wp"]["apiFetch"];
+
+/***/ },
+
+/***/ "@wordpress/components"
+/*!************************************!*\
+  !*** external ["wp","components"] ***!
+  \************************************/
+(module) {
+
+module.exports = window["wp"]["components"];
+
+/***/ },
+
+/***/ "@wordpress/dom-ready"
+/*!**********************************!*\
+  !*** external ["wp","domReady"] ***!
+  \**********************************/
+(module) {
+
+module.exports = window["wp"]["domReady"];
+
+/***/ },
+
+/***/ "@wordpress/element"
+/*!*********************************!*\
+  !*** external ["wp","element"] ***!
+  \*********************************/
+(module) {
+
+module.exports = window["wp"]["element"];
+
+/***/ },
+
+/***/ "@wordpress/i18n"
+/*!******************************!*\
+  !*** external ["wp","i18n"] ***!
+  \******************************/
+(module) {
+
+module.exports = window["wp"]["i18n"];
+
+/***/ },
+
+/***/ "@wordpress/primitives"
+/*!************************************!*\
+  !*** external ["wp","primitives"] ***!
+  \************************************/
+(module) {
+
+module.exports = window["wp"]["primitives"];
+
+/***/ },
+
+/***/ "./node_modules/.pnpm/@wordpress+icons@13.2.0_react@19.2.7/node_modules/@wordpress/icons/build-module/library/category.mjs"
+/*!*********************************************************************************************************************************!*\
+  !*** ./node_modules/.pnpm/@wordpress+icons@13.2.0_react@19.2.7/node_modules/@wordpress/icons/build-module/library/category.mjs ***!
+  \*********************************************************************************************************************************/
+(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ category_default)
+/* harmony export */ });
+/* harmony import */ var _wordpress_primitives__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @wordpress/primitives */ "@wordpress/primitives");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+// packages/icons/src/library/category.tsx
+
+
+var category_default = /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)(_wordpress_primitives__WEBPACK_IMPORTED_MODULE_0__.SVG, { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", children: /* @__PURE__ */ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_1__.jsx)(_wordpress_primitives__WEBPACK_IMPORTED_MODULE_0__.Path, { fillRule: "evenodd", clipRule: "evenodd", d: "M6 5.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H6a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5zM4 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm11-.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5zM13 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2V6zm5 8.5h-3a.5.5 0 00-.5.5v3a.5.5 0 00.5.5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.5-.5zM15 13a2 2 0 00-2 2v3a2 2 0 002 2h3a2 2 0 002-2v-3a2 2 0 00-2-2h-3zm-9 1.5h3a.5.5 0 01.5.5v3a.5.5 0 01-.5.5H6a.5.5 0 01-.5-.5v-3a.5.5 0 01.5-.5zM4 15a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3z" }) });
+
+//# sourceMappingURL=category.mjs.map
+
+
+/***/ }
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		if (!(moduleId in __webpack_modules__)) {
+/******/ 			delete __webpack_module_cache__[moduleId];
+/******/ 			var e = new Error("Cannot find module '" + moduleId + "'");
+/******/ 			e.code = 'MODULE_NOT_FOUND';
+/******/ 			throw e;
+/******/ 		}
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
+(() => {
+/*!******************************!*\
+  !*** ./src/generic/admin.js ***!
+  \******************************/
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _admin_scss__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./admin.scss */ "./src/generic/admin.scss");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @wordpress/element */ "@wordpress/element");
+/* harmony import */ var _wordpress_element__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_wordpress_element__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _wordpress_dom_ready__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @wordpress/dom-ready */ "@wordpress/dom-ready");
+/* harmony import */ var _wordpress_dom_ready__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_wordpress_dom_ready__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _components_App__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/App */ "./src/generic/components/App.jsx");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! react/jsx-runtime */ "react/jsx-runtime");
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4__);
+/**
+ * Generic-track admin app entry.
+ *
+ * Two modes, decided by PHP via `window.ftDemoImporter.embedded`:
+ *
+ *   - Standalone (default): auto-mounts `<App/>` into
+ *     `#ft-demo-importer-app` rendered by `Generic_Dashboard::dashboard()`.
+ *
+ *   - Embedded: host page (e.g. Customify dashboard) imports the importer
+ *     bundle via the adapter's `embed_host_hook()` and calls
+ *     `window.ftDemoImporter.mount(el)` from its own React lifecycle.
+ *     Auto-mount is skipped — the host owns the mount slot's DOM node.
+ *
+ * The mount/unmount API is intentionally generic — any future theme
+ * adapter that opts into embedding gets the same contract for free.
+ */
+
+
+
+
+
+
+const roots = new WeakMap();
+function mount(el) {
+  if (!el || roots.has(el)) {
+    return;
+  }
+  const root = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_1__.createRoot)(el);
+  root.render(/*#__PURE__*/(0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_4__.jsx)(_components_App__WEBPACK_IMPORTED_MODULE_3__.App, {}));
+  roots.set(el, root);
+}
+function unmount(el) {
+  const root = roots.get(el);
+  if (root) {
+    root.unmount();
+    roots.delete(el);
+  }
+}
+
+// PHP `wp_localize_script` has already populated `window.ftDemoImporter`
+// with REST root, nonce, etc. Merge the public mount API on top —
+// `Object.assign` preserves the boot data instead of clobbering it.
+window.ftDemoImporter = Object.assign(window.ftDemoImporter || {}, {
+  mount,
+  unmount
+});
+_wordpress_dom_ready__WEBPACK_IMPORTED_MODULE_2___default()(() => {
+  if (window.ftDemoImporter?.embedded) {
+    return;
+  }
+  const el = document.getElementById('ft-demo-importer-app');
+  if (el) {
+    mount(el);
+  }
+});
+})();
+
+/******/ })()
+;
+//# sourceMappingURL=admin.js.map

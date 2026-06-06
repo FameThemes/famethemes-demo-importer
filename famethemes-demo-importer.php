@@ -159,6 +159,26 @@ function demo_contents_importer_plugin_activate($plugin, $network_wide = false)
     if ($network_wide || $plugin !== plugin_basename(__FILE__)) {
         return;
     }
+
+    // Silent in non-interactive contexts. WP REST `POST /wp/v2/plugins`
+    // (the path the Customify dashboard one-click activator uses)
+    // fires this hook too — exiting with a 302 there breaks the JSON
+    // response and the caller surfaces "The response is not a valid
+    // JSON response.". AJAX / cron / CLI / REST callers always drive
+    // their own post-activate navigation anyway, so this branch
+    // simply returns; only the wp-admin Plugins screen still gets the
+    // legacy redirect to the importer's setup page.
+    $is_rest = ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+        || ( isset( $_SERVER['REQUEST_URI'] ) && false !== strpos( (string) $_SERVER['REQUEST_URI'], '/' . trim( rest_get_url_prefix(), '/' ) . '/' ) );
+    if (
+        $is_rest
+        || ( defined( 'DOING_AJAX' ) && DOING_AJAX )
+        || ( defined( 'DOING_CRON' ) && DOING_CRON )
+        || ( defined( 'WP_CLI' ) && WP_CLI )
+    ) {
+        return;
+    }
+
     $template = (string) get_option('template');
     if (demo_contents_is_legacy_theme($template)) {
         $url = admin_url('admin.php?page=ft_' . sanitize_key($template) . '&tab=demo-data-importer');

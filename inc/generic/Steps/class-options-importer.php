@@ -57,6 +57,49 @@ class Options_Importer {
 	 *  Confirm step on subsequent imports. Set once, never auto-cleared. */
 	public const OPTION_SETTINGS_APPLIED = 'ft_demo_importer_settings_applied';
 
+	/**
+	 * Keys that import flat-out refuses to write — both `wp_options`
+	 * rows AND `theme_mod` entries. Currently scoped to:
+	 *
+	 *   - `site_icon` — Studio's options.json sometimes carries this as
+	 *     a plugin_option / theme_mod, but the attachment ref rarely
+	 *     resolves cleanly (favicon assets are uploaded by a separate
+	 *     wp_handle_upload path the importer doesn't reconstruct), so
+	 *     leaving it un-touched is better UX than writing a stale ID
+	 *     that paints a broken `<link rel="icon">` on every page.
+	 *
+	 * The list is consulted by {@see apply_theme_mods()},
+	 * {@see apply_customizer()}, and {@see apply_plugin_options()}.
+	 * Filterable so themes/adapters can extend it without forking.
+	 */
+	private const DENIED_KEYS = [
+		'site_icon',
+	];
+
+	/**
+	 * Resolve the denylist, applying the
+	 * `ft_demo_importer_denied_option_keys` filter so adapters can
+	 * extend it. Cached per-call via the static. Always returns a
+	 * lower-cased string array so caller `in_array()` checks don't
+	 * miss casing differences.
+	 *
+	 * @return string[]
+	 */
+	private function denied_keys(): array {
+		static $cached = null;
+		if ( null !== $cached ) {
+			return $cached;
+		}
+		/**
+		 * Filter the option / theme_mod keys the importer never writes.
+		 *
+		 * @param string[] $keys Lower-cased option / mod identifiers.
+		 */
+		$keys = (array) apply_filters( 'ft_demo_importer_denied_option_keys', self::DENIED_KEYS );
+		$cached = array_map( 'strtolower', array_filter( $keys, 'is_string' ) );
+		return $cached;
+	}
+
 	/** Cached target home URL — set once per `apply()` call so resolve_refs
 	 *  doesn't keep re-calling `untrailingslashit( home_url() )`. */
 	private string $site_url = '';
@@ -157,7 +200,13 @@ class Options_Importer {
 			$expected = preg_replace( '/^sha256:/i', '', $expected );
 			$actual   = hash_file( 'sha256', $path );
 			if ( $actual !== $expected ) {
-				$warnings[] = sprintf( '%s checksum mismatch (expected %s, got %s).', $name, $expected, $actual );
+				$warnings[] = sprintf(
+					/* translators: 1: file name (e.g. content.json), 2: expected sha256 hash, 3: actual sha256 hash */
+					__( '%1$s checksum mismatch (expected %2$s, got %3$s).', 'famethemes-demo-importer' ),
+					$name,
+					$expected,
+					$actual
+				);
 			}
 		}
 	}
@@ -173,7 +222,8 @@ class Options_Importer {
 		}
 		if ( get_stylesheet() !== $wanted ) {
 			$warnings[] = sprintf(
-				'Theme mismatch: source used "%s", active is "%s". Theme switch is out of scope; mods may not apply cleanly.',
+				/* translators: 1: stylesheet slug declared by the template, 2: active stylesheet slug */
+				__( 'Theme mismatch: source used "%1$s", active is "%2$s". Theme switch is out of scope; mods may not apply cleanly.', 'famethemes-demo-importer' ),
 				$wanted,
 				get_stylesheet()
 			);
@@ -193,7 +243,7 @@ class Options_Importer {
 			if ( $id > 0 ) {
 				update_option( 'page_on_front', $id );
 			} else {
-				$warnings[] = 'core.page_on_front_ref unresolved — left untouched.';
+				$warnings[] = __( 'core.page_on_front_ref unresolved — left untouched.', 'famethemes-demo-importer' );
 			}
 		}
 		if ( ! empty( $core['page_for_posts_ref'] ) ) {
@@ -201,7 +251,7 @@ class Options_Importer {
 			if ( $id > 0 ) {
 				update_option( 'page_for_posts', $id );
 			} else {
-				$warnings[] = 'core.page_for_posts_ref unresolved — left untouched.';
+				$warnings[] = __( 'core.page_for_posts_ref unresolved — left untouched.', 'famethemes-demo-importer' );
 			}
 		}
 		return true;
@@ -212,6 +262,7 @@ class Options_Importer {
 		if ( ! is_array( $mods ) ) {
 			return false;
 		}
+		$denied = $this->denied_keys();
 		foreach ( $mods as $key => $value ) {
 			$resolved_key = (string) $key;
 			$resolved_val = $this->resolve_refs( $value, $ref_map, $warnings );
@@ -219,6 +270,14 @@ class Options_Importer {
 			// cleaner but is PHP 8.0+, and the plugin baseline is 7.4.
 			if ( '_ref' === substr( $resolved_key, -4 ) ) {
 				$resolved_key = substr( $resolved_key, 0, -4 );
+			}
+			if ( in_array( strtolower( $resolved_key ), $denied, true ) ) {
+				$warnings[] = sprintf(
+					/* translators: %s: the theme_mod key that was skipped (e.g. site_icon) */
+					__( 'Skipped denylisted theme_mod: %s', 'famethemes-demo-importer' ),
+					$resolved_key
+				);
+				continue;
 			}
 			set_theme_mod( $resolved_key, $resolved_val );
 		}
@@ -230,8 +289,18 @@ class Options_Importer {
 		if ( ! is_array( $cust ) ) {
 			return false;
 		}
+		$denied = $this->denied_keys();
 		foreach ( $cust as $key => $value ) {
-			set_theme_mod( (string) $key, $this->resolve_refs( $value, $ref_map, $warnings ) );
+			$key_str = (string) $key;
+			if ( in_array( strtolower( $key_str ), $denied, true ) ) {
+				$warnings[] = sprintf(
+					/* translators: %s: the customizer key that was skipped (e.g. site_icon) */
+					__( 'Skipped denylisted customizer key: %s', 'famethemes-demo-importer' ),
+					$key_str
+				);
+				continue;
+			}
+			set_theme_mod( $key_str, $this->resolve_refs( $value, $ref_map, $warnings ) );
 		}
 		return true;
 	}
@@ -252,13 +321,26 @@ class Options_Importer {
 		if ( ! is_array( $plugin_options ) || empty( $plugin_options ) ) {
 			return false;
 		}
+		$denied = $this->denied_keys();
 		foreach ( $plugin_options as $key => $value ) {
 			$option_name = (string) $key;
 			if ( '' === $option_name ) {
 				continue;
 			}
 			if ( 0 === strpos( $option_name, 'pmbd_' ) || 0 === strpos( $option_name, 'ft_demo_importer_' ) ) {
-				$warnings[] = "Refused to import importer-prefixed option: $option_name";
+				$warnings[] = sprintf(
+					/* translators: %s: the option key that starts with an importer-reserved prefix */
+					__( 'Refused to import importer-prefixed option: %s', 'famethemes-demo-importer' ),
+					$option_name
+				);
+				continue;
+			}
+			if ( in_array( strtolower( $option_name ), $denied, true ) ) {
+				$warnings[] = sprintf(
+					/* translators: %s: the plugin option key that was skipped (e.g. site_icon) */
+					__( 'Skipped denylisted plugin_option: %s', 'famethemes-demo-importer' ),
+					$option_name
+				);
 				continue;
 			}
 			$resolved = $this->resolve_refs( $value, $ref_map, $warnings );
@@ -358,9 +440,15 @@ class Options_Importer {
 		}
 		if ( ! post_type_exists( 'wp_font_family' ) || ! post_type_exists( 'wp_font_face' ) ) {
 			$warnings[] = sprintf(
-				'Font Library not available (WP %s — requires 6.5+). Skipped %d font family(ies).',
+				/* translators: 1: current WordPress version (e.g. 6.4.3), 2: number of skipped font families */
+				_n(
+					'Font Library not available (WP %1$s — requires 6.5+). Skipped %2$d font family.',
+					'Font Library not available (WP %1$s — requires 6.5+). Skipped %2$d font families.',
+					(int) count( $fonts ),
+					'famethemes-demo-importer'
+				),
 				get_bloginfo( 'version' ),
-				count( $fonts )
+				(int) count( $fonts )
 			);
 			return false;
 		}
@@ -389,7 +477,11 @@ class Options_Importer {
 
 			$family_id = $this->upsert_font_family( $slug, $name, $family_payload );
 			if ( $family_id <= 0 ) {
-				$warnings[] = "Font family '$slug' could not be saved.";
+				$warnings[] = sprintf(
+					/* translators: %s: the font family slug (e.g. inter) */
+					__( "Font family '%s' could not be saved.", 'famethemes-demo-importer' ),
+					$slug
+				);
 				continue;
 			}
 
@@ -522,7 +614,11 @@ class Options_Importer {
 				if ( $src_host === $site_host && is_string( $path ) && false !== strpos( $path, '/wp-content/uploads/' ) ) {
 					$rel = substr( $path, strpos( $path, '/wp-content/uploads/' ) + strlen( '/wp-content/uploads/' ) );
 					if ( false !== $rel && ! file_exists( trailingslashit( $basedir ) . $rel ) ) {
-						$warnings[] = "Font file missing on disk: $rel";
+						$warnings[] = sprintf(
+							/* translators: %s: relative path inside wp-content/uploads (e.g. 2025/01/inter.woff2) */
+							__( 'Font file missing on disk: %s', 'famethemes-demo-importer' ),
+							$rel
+						);
 					}
 				}
 			}
