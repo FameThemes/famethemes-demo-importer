@@ -58,6 +58,38 @@ class Options_Importer {
 	public const OPTION_SETTINGS_APPLIED = 'ft_demo_importer_settings_applied';
 
 	/**
+	 * Optional family-level fields the Font Library schema declares.
+	 * Mirrors `WP_REST_Font_Families_Controller`'s registered schema —
+	 * carrying them through the import keeps round-trip fidelity with
+	 * the source CPT.
+	 */
+	private const FAMILY_OPTIONAL_FIELDS = array(
+		'preview',
+	);
+
+	/**
+	 * Optional face-level fields the Font Library schema declares.
+	 * Mirrors `WP_REST_Font_Faces_Controller`'s registered schema.
+	 * Dropping these on import would lose variable-font axes
+	 * (`fontVariationSettings`), ligature toggles (`fontFeatureSettings`),
+	 * swap behaviour (`fontDisplay`), and ascent/descent overrides
+	 * relied on by some themes for vertical rhythm.
+	 */
+	private const FACE_OPTIONAL_FIELDS = array(
+		'fontDisplay',
+		'fontStretch',
+		'ascentOverride',
+		'descentOverride',
+		'fontVariant',
+		'fontFeatureSettings',
+		'fontVariationSettings',
+		'lineGapOverride',
+		'sizeAdjust',
+		'unicodeRange',
+		'preview',
+	);
+
+	/**
 	 * Keys that import flat-out refuses to write — both `wp_options`
 	 * rows AND `theme_mod` entries. Currently scoped to:
 	 *
@@ -430,6 +462,17 @@ class Options_Importer {
 	 * uploads added by the admin on the target site are preserved as
 	 * long as their slug doesn't collide with the manifest.
 	 *
+	 * Activation: after inserting the CPT posts, each family is also
+	 * written into the user's `wp_global_styles` post under
+	 * `settings.typography.fontFamilies.custom`. Without this step the
+	 * Font Library row would render as "0/N active" and the editor
+	 * typography picker would never list the family, even though the
+	 * CPT posts and files are present on disk. `_wp_font_face_file`
+	 * post_meta is also seeded (relative path inside `wp_get_font_dir()`)
+	 * so Font Library's GC + Manage UI both work the same as a UI-driven
+	 * install. Theme.json + global-styles caches are cleaned once at the
+	 * end so the editor reads the updated registry on next request.
+	 *
 	 * Gated by Font Library availability (`post_type_exists('wp_font_family')`)
 	 * — WP < 6.5 has no API for this, so we log a warning and skip.
 	 */
@@ -456,6 +499,15 @@ class Options_Importer {
 		$upload  = wp_get_upload_dir();
 		$basedir = (string) ( $upload['basedir'] ?? '' );
 
+		// Resolve font dir once — used to derive the `_wp_font_face_file`
+		// meta value (path relative to wp_get_font_dir()['basedir']).
+		// On stock WP 6.5+, this is `wp-content/uploads/fonts/`; on
+		// hosts that filter the dir it may sit elsewhere. Either way the
+		// meta value should be the segment AFTER that basedir.
+		$font_dir = function_exists( 'wp_get_font_dir' ) ? wp_get_font_dir() : array();
+		$font_basedir = isset( $font_dir['basedir'] ) ? (string) $font_dir['basedir'] : '';
+
+		$activated_any = false;
 		foreach ( $fonts as $font ) {
 			if ( ! is_array( $font ) || empty( $font['slug'] ) ) {
 				continue;
@@ -474,6 +526,11 @@ class Options_Importer {
 				'name'       => $name,
 				'fontFamily' => $font_family,
 			);
+			foreach ( self::FAMILY_OPTIONAL_FIELDS as $field ) {
+				if ( array_key_exists( $field, $font ) ) {
+					$family_payload[ $field ] = $font[ $field ];
+				}
+			}
 
 			$family_id = $this->upsert_font_family( $slug, $name, $family_payload );
 			if ( $family_id <= 0 ) {
@@ -487,6 +544,14 @@ class Options_Importer {
 
 			// Wipe + reinsert faces. wp_delete_post(force=true) clears
 			// children so the re-imported set is authoritative.
+			//
+			// IMPORTANT: `_wp_before_delete_font_face` (core pre-delete
+			// hook) reads `_wp_font_face_file` meta and unlinks the
+			// referenced files. On a re-import, uploads.zip was just
+			// extracted at step 3 of the runner — wiping the meta first
+			// keeps those files on disk so the freshly inserted face can
+			// reuse them. Without this, every re-import would delete the
+			// font file then point the new face at a missing path.
 			$existing_faces = get_posts( array(
 				'post_type'      => 'wp_font_face',
 				'post_parent'    => $family_id,
@@ -496,9 +561,11 @@ class Options_Importer {
 				'no_found_rows'  => true,
 			) );
 			foreach ( $existing_faces as $face_id ) {
+				delete_post_meta( (int) $face_id, '_wp_font_face_file' );
 				wp_delete_post( (int) $face_id, true );
 			}
 
+			$installed_faces = array();
 			$faces = isset( $font['fontFace'] ) && is_array( $font['fontFace'] ) ? $font['fontFace'] : array();
 			foreach ( $faces as $face ) {
 				if ( ! is_array( $face ) ) {
@@ -520,13 +587,201 @@ class Options_Importer {
 					),
 					'post_content' => wp_json_encode( $face_payload ),
 				) ), true );
-				if ( ! is_wp_error( $face_id ) && $face_id > 0 ) {
-					update_post_meta( (int) $face_id, '_ft_source_ref', 'font:' . $slug );
+				if ( is_wp_error( $face_id ) || (int) $face_id <= 0 ) {
+					continue;
+				}
+				$face_id = (int) $face_id;
+				update_post_meta( $face_id, '_ft_source_ref', 'font:' . $slug );
+
+				// Seed `_wp_font_face_file` for every src that lands inside
+				// the canonical font dir. Without this row, Font Library's
+				// pre-delete hook can't GC the file and the Manage UI
+				// shows the face as "no file".
+				foreach ( $this->derive_font_face_file_basenames( $face_payload['src'], $font_basedir ) as $basename ) {
+					add_post_meta( $face_id, '_wp_font_face_file', $basename );
+				}
+
+				$installed_faces[] = $face_payload;
+			}
+
+			// Activation — write into the user's wp_global_styles post so
+			// the family appears as "active" in /wp-admin/site-editor.php
+			// → Styles → Typography → Fonts AND in the editor's typography
+			// picker. Skipped if no usable face survived normalization
+			// (an inactive family with no faces would be misleading UX).
+			if ( ! empty( $installed_faces ) ) {
+				if ( $this->activate_font_in_global_styles( $family_payload, $installed_faces, $warnings ) ) {
+					$activated_any = true;
 				}
 			}
 		}
 
+		// Clear theme.json + global-styles caches once after all writes
+		// so the editor reads the new font registry on next request. If
+		// no family was actually activated, no read path would change —
+		// skip the flush.
+		if ( $activated_any ) {
+			if ( function_exists( 'wp_clean_theme_json_cache' ) ) {
+				wp_clean_theme_json_cache();
+			}
+			if ( class_exists( '\\WP_Theme_JSON_Resolver' )
+				&& method_exists( '\\WP_Theme_JSON_Resolver', 'clean_cached_data' ) ) {
+				\WP_Theme_JSON_Resolver::clean_cached_data();
+			}
+		}
+
 		return true;
+	}
+
+	/**
+	 * Derive `_wp_font_face_file` meta values for the given resolved
+	 * src list. Returns the path relative to `wp_get_font_dir()['basedir']`
+	 * (e.g. `inter_400.woff2`) for every src that points at a file on
+	 * disk inside that dir. Off-site srcs (Google CDN, data: URIs,
+	 * theme-bundled paths) yield nothing — Font Library only tracks
+	 * files it owns.
+	 *
+	 * @param array<int,string> $srcs
+	 * @return array<int,string>
+	 */
+	private function derive_font_face_file_basenames( array $srcs, string $font_basedir ): array {
+		if ( '' === $font_basedir ) {
+			return array();
+		}
+		$upload = wp_get_upload_dir();
+		$uploads_baseurl = isset( $upload['baseurl'] ) ? (string) $upload['baseurl'] : '';
+		$uploads_basedir = isset( $upload['basedir'] ) ? (string) $upload['basedir'] : '';
+		if ( '' === $uploads_baseurl || '' === $uploads_basedir ) {
+			return array();
+		}
+
+		$basenames = array();
+		foreach ( $srcs as $src ) {
+			if ( ! is_string( $src ) || '' === $src ) {
+				continue;
+			}
+			// Skip data URIs + non-http srcs outright.
+			if ( 0 === stripos( $src, 'data:' ) ) {
+				continue;
+			}
+
+			// Strip scheme so http/https/protocol-relative compare equal.
+			$bare_src     = (string) preg_replace( '#^https?:#i', '', $src );
+			$bare_baseurl = (string) preg_replace( '#^https?:#i', '', $uploads_baseurl );
+			if ( 0 !== strpos( $bare_src, $bare_baseurl ) ) {
+				continue;
+			}
+			$relative_to_uploads = ltrim( substr( $bare_src, strlen( $bare_baseurl ) ), '/' );
+			$relative_to_uploads = (string) preg_replace( '/[?#].*$/', '', $relative_to_uploads );
+			if ( '' === $relative_to_uploads ) {
+				continue;
+			}
+			$absolute = trailingslashit( $uploads_basedir ) . $relative_to_uploads;
+
+			if ( 0 !== strpos( $absolute, $font_basedir ) ) {
+				continue; // Not inside the font dir — Font Library doesn't track it.
+			}
+			$rel_to_font_dir = ltrim( substr( $absolute, strlen( $font_basedir ) ), '/' );
+			if ( '' === $rel_to_font_dir ) {
+				continue;
+			}
+			$basenames[] = $rel_to_font_dir;
+		}
+		return array_values( array_unique( $basenames ) );
+	}
+
+	/**
+	 * Write a family into the user's `wp_global_styles` post under
+	 * `settings.typography.fontFamilies.custom`. Idempotent: an entry
+	 * with a matching slug is replaced; otherwise appended.
+	 *
+	 * Activation is what flips the Font Library row from "0/N active"
+	 * to "N/N active" and what surfaces the family in the editor's
+	 * typography picker. Without it, the CPT posts exist but the
+	 * editor never sees them.
+	 *
+	 * @param array<string,mixed>            $family_payload  Family record (slug, name, fontFamily, + optional fields).
+	 * @param array<int,array<string,mixed>> $face_settings_list
+	 * @return bool True if the global-styles post was written.
+	 */
+	private function activate_font_in_global_styles( array $family_payload, array $face_settings_list, array &$warnings ): bool {
+		$slug = (string) ( $family_payload['slug'] ?? '' );
+		if ( '' === $slug ) {
+			return false;
+		}
+		$post = $this->get_user_global_styles_post();
+		if ( null === $post ) {
+			$warnings[] = sprintf(
+				/* translators: %s: the font family slug (e.g. inter) */
+				__( "Font '%s' was imported but could not be activated — no user wp_global_styles post.", 'famethemes-demo-importer' ),
+				$slug
+			);
+			return false;
+		}
+
+		$content = json_decode( (string) $post->post_content, true );
+		if ( ! is_array( $content ) ) {
+			$content = array();
+		}
+		if ( ! isset( $content['version'] ) ) {
+			$content['version'] = class_exists( '\\WP_Theme_JSON' ) && defined( '\\WP_Theme_JSON::LATEST_SCHEMA' )
+				? \WP_Theme_JSON::LATEST_SCHEMA
+				: 3;
+		}
+		$content['isGlobalStylesUserThemeJSON'] = true;
+
+		if ( ! isset( $content['settings']['typography']['fontFamilies']['custom'] )
+			|| ! is_array( $content['settings']['typography']['fontFamilies']['custom'] ) ) {
+			$content['settings']['typography']['fontFamilies']['custom'] = array();
+		}
+
+		$entry = $family_payload;
+		$entry['fontFace'] = array_values( $face_settings_list );
+
+		$found = false;
+		foreach ( $content['settings']['typography']['fontFamilies']['custom'] as $i => $existing ) {
+			if ( is_array( $existing ) && ( $existing['slug'] ?? '' ) === $slug ) {
+				$content['settings']['typography']['fontFamilies']['custom'][ $i ] = $entry;
+				$found = true;
+				break;
+			}
+		}
+		if ( ! $found ) {
+			$content['settings']['typography']['fontFamilies']['custom'][] = $entry;
+		}
+
+		$updated = wp_update_post( array(
+			'ID'           => $post->ID,
+			'post_content' => wp_slash( wp_json_encode( $content ) ),
+		), true );
+		if ( is_wp_error( $updated ) || (int) $updated <= 0 ) {
+			$warnings[] = sprintf(
+				/* translators: %s: the font family slug (e.g. inter) */
+				__( "Font '%s' activation write to wp_global_styles failed.", 'famethemes-demo-importer' ),
+				$slug
+			);
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Resolve the current user's `wp_global_styles` post for the active
+	 * theme. Returns null when the resolver isn't available (no Site
+	 * Editor) or no user-level post exists yet (default state on a
+	 * fresh install).
+	 */
+	private function get_user_global_styles_post() {
+		if ( ! class_exists( '\\WP_Theme_JSON_Resolver' )
+			|| ! method_exists( '\\WP_Theme_JSON_Resolver', 'get_user_global_styles_post_id' ) ) {
+			return null;
+		}
+		$post_id = (int) \WP_Theme_JSON_Resolver::get_user_global_styles_post_id();
+		if ( $post_id <= 0 ) {
+			return null;
+		}
+		$post = get_post( $post_id );
+		return $post instanceof \WP_Post ? $post : null;
 	}
 
 	/**
@@ -633,12 +888,21 @@ class Options_Importer {
 			return null;
 		}
 
-		return array(
+		$out = array(
 			'fontFamily' => (string) ( $face['fontFamily'] ?? $family_fallback ),
 			'fontStyle'  => (string) ( $face['fontStyle']  ?? 'normal' ),
 			'fontWeight' => (string) ( $face['fontWeight'] ?? '400' ),
 			'src'        => $resolved,
 		);
+		// Carry optional face fields verbatim. Variable-font axes,
+		// ligature toggles, font-display, ascent/descent overrides —
+		// dropping any of these silently degrades typography fidelity.
+		foreach ( self::FACE_OPTIONAL_FIELDS as $field ) {
+			if ( array_key_exists( $field, $face ) ) {
+				$out[ $field ] = $face[ $field ];
+			}
+		}
+		return $out;
 	}
 
 	/**
