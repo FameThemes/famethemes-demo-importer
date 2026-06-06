@@ -36,6 +36,7 @@ import { close as closeIcon } from '@wordpress/icons';
 import { studio, jobs } from '../api';
 import { useJob } from '../hooks/useJob';
 import { PALETTES as FALLBACK_PALETTES, FONTS as FALLBACK_FONTS } from '../placeholders';
+import { getStyleBuilder } from '../style-builders';
 
 /**
  * Host-provided palettes win when present (Customify adapter publishes
@@ -65,6 +66,35 @@ function getFonts() {
 		}
 	}
 	return FALLBACK_FONTS;
+}
+
+// ── Preview CSS assembly ───────────────────────────────────────────────────
+//
+// CSS is produced by a per-theme builder picked up from the registry in
+// `style-builders/`. Each builder owns its theme's var/selector
+// conventions + colour math; the wizard only knows about the
+// (palette, font) → CSS string contract. To add support for a new
+// theme, drop a builder in `style-builders/<slug>.js` (or call
+// `window.fdiRegisterStyleBuilder` from a companion plugin) — no edits
+// in this component required.
+//
+// Theme picked from `window.ftDemoImporter.currentTheme` (set by the
+// generic dashboard's `wp_localize_script`). Unknown theme falls back
+// to the no-op `default` builder so the wizard still works but the
+// iframe doesn't react live.
+function buildPreviewCss( palette, font ) {
+	const themeSlug = typeof window !== 'undefined' && window.ftDemoImporter
+		? ( window.ftDemoImporter.currentStylesheet || window.ftDemoImporter.currentTheme )
+		: null;
+	const builder = getStyleBuilder( themeSlug );
+	try {
+		return builder( palette, font ) || '';
+	} catch ( e ) {
+		// A buggy third-party builder shouldn't break the wizard.
+		// eslint-disable-next-line no-console
+		console.warn( '[fdi] style builder threw', e );
+		return '';
+	}
 }
 
 const STEPS = [
@@ -122,18 +152,19 @@ export function PreviewPanel({ template, onClose }) {
 		[typography, fonts]
 	);
 
-	// Push current Style step selections into the preview iframe over
-	// postMessage. Cross-origin by design — Studio's preview server
-	// implements a listener for `type: 'fdi-preview-style'` and maps
-	// the payload onto CSS variables / font links. When the listener
-	// isn't installed yet, the message is silently dropped and the
-	// in-pane overlay chip below still gives the user feedback.
+	// Build the full CSS payload (CSS variables + font-family rules + a
+	// `@import url(...)` line that pulls every weight + italic of the
+	// chosen pair from Google Fonts) and push it to the iframe over
+	// postMessage. Doing the assembly here — instead of in the bridge
+	// script — keeps the iframe side dumb: it just receives the string
+	// and pastes it into a single managed `<style>` at the bottom of
+	// `<head>`. The parent owns the cascade strategy + which selectors
+	// to override, and the iframe ships zero font-library knowledge.
 	//
 	// Contract (documented for the Studio side):
 	//   {
 	//     type: 'fdi-preview-style',
-	//     palette: { id, name, colors: [primary, secondary, accent, text, surface, base] } | null,
-	//     font:    { id, heading, body, weight } | null,
+	//     css:  string,   // empty string clears the override block
 	//   }
 	const sendStyleToIframe = useCallback(() => {
 		const win = iframeRef.current?.contentWindow;
@@ -144,8 +175,7 @@ export function PreviewPanel({ template, onClose }) {
 			win.postMessage(
 				{
 					type: 'fdi-preview-style',
-					palette: currentPalette,
-					font: currentFont,
+					css: buildPreviewCss(currentPalette, currentFont),
 				},
 				'*'
 			);
