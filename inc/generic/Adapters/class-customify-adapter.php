@@ -297,9 +297,29 @@ class Customify_Adapter extends Theme_Adapter {
 	 * @param \FT_Demo_Importer\Jobs\Importer_Runner  $runner  Runner — used for logging.
 	 */
 	public function after_phase( string $phase, array $job, $runner ): void {
+		// Snapshot the user's pre-import custom palette list ONCE,
+		// right before the options layer overwrites the theme_mod with
+		// whatever the template ships. The `importing_content` phase
+		// is the last point before `applying_options`, so the snapshot
+		// taken here captures what the site had before the template
+		// stomped on it. Held on the adapter instance — the runner
+		// keeps one instance alive across phases of a single job.
+		if ( 'importing_content' === $phase ) {
+			$this->snapshot_local_custom_palettes();
+			return;
+		}
+
 		if ( 'applying_options' !== $phase ) {
 			return;
 		}
+
+		// Merge the template's custom palettes (now in theme_mod, just
+		// written by `Options_Importer::apply_theme_mods`) with the
+		// snapshot. Runs BEFORE `apply_palette` so a wizard-picked
+		// palette id from the template lookup table resolves cleanly
+		// via `find_palette()`.
+		$this->merge_custom_palettes( $runner, (string) ( $job['id'] ?? '' ) );
+
 		$style = $job['config']['style'] ?? null;
 		if ( ! is_array( $style ) ) {
 			return;
@@ -320,6 +340,84 @@ class Customify_Adapter extends Theme_Adapter {
 		if ( null !== $font_id ) {
 			$this->apply_typography( $font_id, $runner, (string) ( $job['id'] ?? '' ) );
 		}
+	}
+
+	/**
+	 * Snapshot the local `customify_color_palettes` value (= the
+	 * user's saved custom palettes) so we can merge it back in after
+	 * the template overwrites the theme_mod. Kept as an instance var
+	 * because the runner holds a single Customify_Adapter instance
+	 * across all phases of a job.
+	 *
+	 * @var array<int, array<string,mixed>>|null
+	 */
+	private ?array $pre_import_custom_palettes = null;
+
+	private function snapshot_local_custom_palettes(): void {
+		$raw  = get_theme_mod( 'customify_color_palettes', '[]' );
+		$list = is_string( $raw ) ? json_decode( wp_unslash( $raw ), true ) : ( is_array( $raw ) ? $raw : array() );
+		$this->pre_import_custom_palettes = is_array( $list ) ? $list : array();
+	}
+
+	/**
+	 * Merge the snapshot (user's pre-import custom palettes) with the
+	 * value the template just wrote. Resolution rule: TEMPLATE wins on
+	 * id collision — the template's `customify_active_palette` typically
+	 * points at one of its own palettes, so the imported colours must
+	 * survive verbatim. Local-only palettes (ids not present in the
+	 * template) are appended so the user's own work isn't lost.
+	 *
+	 * The Customizer's palette sanitizer (`customify_color_sanitize_palettes`)
+	 * accepts the JSON shape we write here verbatim; running it through
+	 * `wp_json_encode` keeps the storage layout identical to a UI save.
+	 *
+	 * Skip safely when the snapshot wasn't taken (older import path that
+	 * doesn't fire `importing_content`) — leaves the template's list in
+	 * place rather than risking a partial merge.
+	 */
+	private function merge_custom_palettes( $runner, string $job_id ): void {
+		if ( null === $this->pre_import_custom_palettes ) {
+			return;
+		}
+
+		$current_raw = get_theme_mod( 'customify_color_palettes', '[]' );
+		$current = is_string( $current_raw ) ? json_decode( wp_unslash( $current_raw ), true ) : ( is_array( $current_raw ) ? $current_raw : array() );
+		$current = is_array( $current ) ? $current : array();
+
+		// Local first, then template overrides by id. Iterating in this
+		// order means the final `array_values` keeps a stable visual
+		// ordering: pre-existing local palettes appear first, new
+		// template-shipped palettes appended after.
+		$by_id = array();
+		foreach ( $this->pre_import_custom_palettes as $p ) {
+			if ( is_array( $p ) && ! empty( $p['id'] ) && is_string( $p['id'] ) ) {
+				$by_id[ $p['id'] ] = $p;
+			}
+		}
+		$template_only = 0;
+		foreach ( $current as $p ) {
+			if ( is_array( $p ) && ! empty( $p['id'] ) && is_string( $p['id'] ) ) {
+				if ( ! isset( $by_id[ $p['id'] ] ) ) {
+					$template_only++;
+				}
+				$by_id[ $p['id'] ] = $p;
+			}
+		}
+
+		$merged = array_values( $by_id );
+		set_theme_mod( 'customify_color_palettes', wp_json_encode( $merged ) );
+
+		$this->log_runner( $runner, $job_id, sprintf(
+			'Style: custom palettes merged (local=%d, template=%d, new from template=%d, total=%d).',
+			count( $this->pre_import_custom_palettes ),
+			count( $current ),
+			$template_only,
+			count( $merged )
+		) );
+
+		// Reset so a re-imported template in the same request gets a
+		// fresh snapshot taken from its own `importing_content` phase.
+		$this->pre_import_custom_palettes = null;
 	}
 
 	/**
