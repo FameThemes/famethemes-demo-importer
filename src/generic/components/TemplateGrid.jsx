@@ -13,8 +13,17 @@
  */
 
 import { useEffect, useMemo, useState } from '@wordpress/element';
-import { Button, Spinner, Notice } from '@wordpress/components';
+import {
+	Button,
+	Spinner,
+	Notice,
+	SearchControl,
+	DropdownMenu,
+	MenuGroup,
+	MenuItemsChoice,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import { category as categoryIcon } from '@wordpress/icons';
 
 import { studio } from '../api';
 import { TemplateCard } from './TemplateCard';
@@ -33,6 +42,10 @@ export function TemplateGrid({ onSelect }) {
 
 	// Categories — one-shot fetch on mount. Failure leaves the strip
 	// empty (just the "All" pill) rather than blocking the grid.
+	//
+	// Studio response shape: `{ type, categories: [...], total, uncategorized }`.
+	// Accept a bare array or `{items:[...]}` too for resilience against
+	// future Studio versions that might normalize the envelope.
 	useEffect(() => {
 		let cancelled = false;
 		studio.listCategories()
@@ -40,7 +53,9 @@ export function TemplateGrid({ onSelect }) {
 				if (cancelled) {
 					return;
 				}
-				const list = Array.isArray(res) ? res : (res?.items || []);
+				const list = Array.isArray(res)
+					? res
+					: (res?.categories || res?.items || []);
 				setCategories(list);
 			})
 			.catch(() => { /* silent — strip just shows "All" */ });
@@ -60,7 +75,10 @@ export function TemplateGrid({ onSelect }) {
 				}
 				const incoming = Array.isArray(res?.items) ? res.items : [];
 				setItems((prev) => (page === 1 ? incoming : [...prev, ...incoming]));
-				setTotal(res?.total || incoming.length);
+				// Studio shape: `{items, meta:{page, per_page, total, total_pages}}`.
+				// Fall back to root `total` and finally to the page's own
+				// length so a missing envelope doesn't make `hasMore` lie.
+				setTotal(res?.meta?.total ?? res?.total ?? incoming.length);
 				setError(null);
 			})
 			.catch((e) => {
@@ -97,14 +115,17 @@ export function TemplateGrid({ onSelect }) {
 		setPage(1);
 	};
 
-	return (
-		<div className="fdi-grid-page">
-			<header className="fdi-page-header">
-				<h1 className="wp-heading-inline">
-					{__('Starter Templates', 'famethemes-demo-importer')}
-				</h1>
+	const isEmbedded = !! ( typeof window !== 'undefined' && window.ftDemoImporter?.embedded );
 
-			</header>
+	return (
+		<div className={ 'fdi-grid-page' + ( isEmbedded ? ' is-embedded' : '' ) }>
+			{ ! isEmbedded && (
+				<header className="fdi-page-header">
+					<h1 className="wp-heading-inline">
+						{__('Starter Templates', 'famethemes-demo-importer')}
+					</h1>
+				</header>
+			) }
 
 			{error && (
 				<Notice status="error" isDismissible={false}>
@@ -113,41 +134,57 @@ export function TemplateGrid({ onSelect }) {
 			)}
 
 			<div className="fdi-topbar">
-				<nav className="fdi-categories" aria-label={__('Filter by category', 'famethemes-demo-importer')}>
-					<button
-						type="button"
-						className={'fdi-categories__pill' + (activeCat === 'all' ? ' is-active' : '')}
-						onClick={() => setActiveCat('all')}
-					>
-						{__('All', 'famethemes-demo-importer')}
-					</button>
-					{categories.map((c) => {
-						const slug = c.slug || c.id || c.name;
-						const label = c.name || c.label || slug;
-						const count = typeof c.count === 'number' ? c.count : null;
+				{ /*
+				 * Category filter — DropdownMenu with `MenuItemsChoice` so
+				 * the active slug gets a checkmark for free. The toggle
+				 * surface shows the current selection inline so the user
+				 * doesn't have to open the menu to see what's active.
+				 */ }
+				<div className="fdi-categories">
+					{ ( () => {
+						const allLabel = __( 'All', 'famethemes-demo-importer' );
+						const choices = [
+							{ label: allLabel, value: 'all' },
+							...categories.map( ( c ) => {
+								const slug = c.slug || c.id || c.name;
+								return { label: c.name || c.label || slug, value: String( slug ) };
+							} ),
+						];
+						const current = choices.find( ( ch ) => ch.value === String( activeCat ) );
+						const triggerText = current ? current.label : allLabel;
 						return (
-							<button
-								key={slug}
-								type="button"
-								className={'fdi-categories__pill' + (activeCat === slug ? ' is-active' : '')}
-								onClick={() => setActiveCat(slug)}
+							<DropdownMenu
+								icon={ categoryIcon }
+								text={ triggerText }
+								label={ __( 'Filter by category', 'famethemes-demo-importer' ) }
+								toggleProps={ { className: 'fdi-categories__toggle' } }
+								popoverProps={ { placement: 'bottom-start' } }
 							>
-								{label}
-								{count !== null && (
-									<span className="fdi-categories__count"> ({count})</span>
-								)}
-							</button>
+								{ ( { onClose } ) => (
+									<MenuGroup>
+										<MenuItemsChoice
+											choices={ choices }
+											value={ String( activeCat ) }
+											onSelect={ ( slug ) => {
+												setActiveCat( slug );
+												onClose();
+											} }
+										/>
+									</MenuGroup>
+								) }
+							</DropdownMenu>
 						);
-					})}
-				</nav>
+					} )() }
+				</div>
 
 				<div className="fdi-search">
-					<input
-						type="search"
+					<SearchControl
+						__nextHasNoMarginBottom
 						value={search}
+						onChange={handleSearch}
 						placeholder={__('Search templates…', 'famethemes-demo-importer')}
-						onChange={(e) => handleSearch(e.target.value)}
-						aria-label={__('Search templates', 'famethemes-demo-importer')}
+						label={__('Search templates', 'famethemes-demo-importer')}
+						hideLabelFromVision
 					/>
 				</div>
 			</div>

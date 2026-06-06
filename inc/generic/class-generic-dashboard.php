@@ -17,9 +17,10 @@
  *   - The Underscore template `#tmpl-ft-demo-importer-preview` posts to
  *     the REST `/theme/jobs` endpoint and polls the job for status.
  *
- * Page rendering:
- *   - `?tab=settings` → defers to {@see Settings_Page::render()}
- *   - `?tab=` (default) → template list (populated by B3's REST proxy)
+ * Page rendering: template list only — the plugin no longer ships a
+ * settings UI. Studio credentials are sourced from the active adapter
+ * (`studio_server_url()` / `studio_api_key()`) with wp-config constants
+ * still taking precedence via the bootstrap filter chain.
  */
 
 namespace FT_Demo_Importer;
@@ -27,18 +28,15 @@ namespace FT_Demo_Importer;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use FT_Demo_Importer\Settings\Options_Store;
-use FT_Demo_Importer\Settings\Settings_Page;
 
 class Generic_Dashboard {
 
 	public const PAGE_SLUG = 'famethemes-demo-importer';
 
 	private Options_Store $options;
-	private Settings_Page $settings;
 
-	public function __construct( Options_Store $options, Settings_Page $settings ) {
-		$this->options  = $options;
-		$this->settings = $settings;
+	public function __construct( Options_Store $options ) {
+		$this->options = $options;
 	}
 
 	public function register(): void {
@@ -116,7 +114,14 @@ class Generic_Dashboard {
 	 * output isn't on disk yet (developer hasn't run `pnpm build`).
 	 */
 	public function enqueue_assets( $hook ): void {
-		if ( false === strpos( (string) $hook, self::PAGE_SLUG ) ) {
+		$own_page  = false !== strpos( (string) $hook, self::PAGE_SLUG );
+		$adapter   = apply_filters( 'ft_demo_importer_active_adapter', null );
+		$host_hook = ( $adapter && method_exists( $adapter, 'embed_host_hook' ) )
+			? $adapter->embed_host_hook()
+			: null;
+		$is_host   = $host_hook && (string) $hook === (string) $host_hook;
+
+		if ( ! $own_page && ! $is_host ) {
 			return;
 		}
 
@@ -161,18 +166,34 @@ class Generic_Dashboard {
 			$asset['version'] ?? '1.2.0'
 		);
 
-		$adapter = apply_filters( 'ft_demo_importer_active_adapter', null );
-		wp_localize_script( 'ft-demo-importer-admin', 'ftDemoImporter', [
-			'restRoot'         => esc_url_raw( rest_url( 'ft-demo-importer/v1' ) ),
-			'restNonce'        => wp_create_nonce( 'wp_rest' ),
-			'pollIntervalMs'   => 2000,
-			'currentTheme'     => get_option( 'template' ),
+		$base = [
+			'restRoot'          => esc_url_raw( rest_url( 'ft-demo-importer/v1' ) ),
+			'restNonce'         => wp_create_nonce( 'wp_rest' ),
+			'pollIntervalMs'    => 2000,
+			'currentTheme'      => get_option( 'template' ),
 			'currentStylesheet' => get_option( 'stylesheet' ),
-			'adapterLabel'     => $adapter ? $adapter->admin_label() : __( 'Starter Templates', 'famethemes-demo-importer' ),
-			'studioConfigured' => $this->options->has_credentials(),
-			'settingsUrl'      => admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&tab=' . Settings_Page::TAB_SETTINGS ),
-			'home'             => home_url( '/' ),
-		] );
+			'adapterLabel'      => $adapter ? $adapter->admin_label() : __( 'Starter Templates', 'famethemes-demo-importer' ),
+			'studioConfigured'  => $this->options->has_credentials(),
+			'home'              => home_url( '/' ),
+		];
+
+		// Embedded mode: host page (theme dashboard) hosts the React tree.
+		// Flag tells admin.js to skip auto-mount — host calls
+		// `window.ftDemoImporter.mount(el)` on its own lifecycle.
+		if ( $is_host && ! $own_page ) {
+			$base['embedded'] = true;
+		}
+
+		// Adapter-supplied payload comes first so the base keys win on
+		// any accidental name collision — adapters publish their own
+		// surface (palettes, font pairs, etc.) and must never overwrite
+		// REST/auth wiring.
+		$payload  = ( $adapter && method_exists( $adapter, 'boot_payload' ) )
+			? $adapter->boot_payload()
+			: [];
+		$localize = array_merge( is_array( $payload ) ? $payload : [], $base );
+
+		wp_localize_script( 'ft-demo-importer-admin', 'ftDemoImporter', $localize );
 	}
 
 	/** Set by enqueue_assets() when the React build output is missing. */

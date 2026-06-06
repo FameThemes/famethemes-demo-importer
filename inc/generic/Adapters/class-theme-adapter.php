@@ -172,4 +172,53 @@ abstract class Theme_Adapter {
 	public function plugin_row_import_label(): string {
 		return __( 'Import demo', 'famethemes-demo-importer' );
 	}
+
+	/**
+	 * Admin hook suffix of the host page the importer UI should embed
+	 * into (e.g. `'toplevel_page_customify'`). Returning `null` keeps the
+	 * importer running only on its own page.
+	 *
+	 * When this is set, {@see Generic_Dashboard::enqueue_assets()} also
+	 * enqueues the React bundle on that host page and flips the
+	 * `embedded` flag so the JS entry skips auto-mount and lets the host
+	 * call `window.ftDemoImporter.mount(el)` on its own.
+	 */
+	public function embed_host_hook(): ?string {
+		return null;
+	}
+
+	/**
+	 * Filter name the host page exposes for injecting boot data
+	 * (e.g. `'customify_dashboard_localize'`). The adapter hooks this in
+	 * its own registration phase to expose `boot[embed_boot_key()]` to
+	 * the host's React tree. Returning `null` means no boot bridge.
+	 */
+	public function embed_boot_filter(): ?string {
+		return null;
+	}
+
+	/**
+	 * Key under the host's boot object where importer metadata is placed
+	 * (default `'importer'` → `boot.importer.active`). Adapters override
+	 * only when the host already uses that key for something else.
+	 */
+	public function embed_boot_key(): string {
+		return 'importer';
+	}
+
+	/**
+	 * Extra keys merged into `window.ftDemoImporter` for the React tree
+	 * to consume (e.g. theme-provided palettes / font pairs). Default is
+	 * empty so unrelated themes don't accidentally publish state.
+	 *
+	 * Generic_Dashboard::enqueue_assets() merges this AFTER the base
+	 * localize so adapters can override only their own surface — the
+	 * core fields (`restRoot`, `restNonce`, `embedded`) are written
+	 * last to prevent accidental clobbering.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function boot_payload(): array {
+		return [];
+	}
 }

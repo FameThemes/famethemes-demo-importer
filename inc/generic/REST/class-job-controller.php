@@ -94,7 +94,10 @@ class Job_Controller {
 
 		// Defaults match blocksify-design-importer's contract — import
 		// everything + overwrite + replace settings on first run. UI
-		// (B6 wizard) can flip individual flags via the body.
+		// (B6 wizard) can flip individual flags via the body. `style`
+		// is carried opaquely so the active theme adapter can consume
+		// it from `after_phase('applying_options')` and translate
+		// palette + font slugs into theme_mods + Font Library entries.
 		$config = [
 			'template_id'        => $template_id,
 			'import_content'     => true,
@@ -104,6 +107,7 @@ class Job_Controller {
 			'plugins_skip'       => [],
 			'custom_logo_id'     => 0,
 			'custom_logo_url'    => '',
+			'style'              => [ 'palette' => null, 'font' => null ],
 		];
 
 		foreach ( [ 'import_content', 'import_uploads', 'overwrite_existing', 'replace_settings' ] as $key ) {
@@ -122,6 +126,17 @@ class Job_Controller {
 		}
 		if ( isset( $body['custom_logo_url'] ) && is_string( $body['custom_logo_url'] ) ) {
 			$config['custom_logo_url'] = esc_url_raw( $body['custom_logo_url'] );
+		}
+		if ( isset( $body['style'] ) && is_array( $body['style'] ) ) {
+			$style = $body['style'];
+			$config['style'] = [
+				'palette' => isset( $style['palette'] ) && is_string( $style['palette'] ) && '' !== $style['palette']
+					? sanitize_key( $style['palette'] )
+					: null,
+				'font'    => isset( $style['font'] ) && is_string( $style['font'] ) && '' !== $style['font']
+					? sanitize_key( $style['font'] )
+					: null,
+			];
 		}
 
 		/**

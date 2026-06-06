@@ -53,84 +53,36 @@ $accent-rgb:    var(--wp-admin-theme-color--rgb, 34, 113, 177);
 	align-items: center;
 	justify-content: space-between;
 	gap: 16px;
-	flex-wrap: wrap;
-	padding: 12px 0 var(--fdi-spacing);
+	flex-wrap: nowrap;
 	margin-bottom: var(--fdi-spacing);
-	border-bottom: 1px solid #dcdcde;
 }
 
 .fdi-categories {
 	display: flex;
-	gap: 4px;
-	flex-wrap: wrap;
+	align-items: center;
 
-	&__pill {
-		background: transparent;
-		border: 1px solid transparent;
-		padding: 8px 16px;
-		border-radius: 999px;
-		font-size: 13px;
-		color: #50575e;
+	// DropdownMenu toggle — show as a low-chrome button so it sits
+	// quietly alongside the SearchControl in the topbar.
+	&__toggle.components-button {
+		color: #1d2327;
 		font-weight: 500;
-		cursor: pointer;
-		font-family: inherit;
-		transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 
 		&:hover {
-			background: #fff;
-			border-color: #dcdcde;
-			color: #1d2327;
+			color: var(--pmdk-color-accent, var(--wp-admin-theme-color, #2271b1));
 		}
-		&.is-active {
-			background: #1d2327;
-			border-color: #1d2327;
-			color: #fff;
-		}
-		&:focus {
-			outline: 0;
-			box-shadow: 0 0 0 2px rgba($accent-rgb, 0.4);
-		}
-	}
-
-	&__count {
-		opacity: 0.7;
-		font-weight: 400;
 	}
 }
 
 .fdi-search {
-	position: relative;
 	flex-shrink: 0;
+	width: 260px;
+	max-width: 100%;
 
-	input {
-		border: 1px solid #dcdcde;
-		border-radius: 8px;
-		padding: 8px 14px 8px 34px;
-		font-size: 13px;
-		width: 260px;
-		max-width: 100%;
-		font-family: inherit;
-		color: #1e1e1e;
-		background: #fff;
-		transition: border-color 120ms ease, box-shadow 120ms ease;
-
-		&:focus {
-			outline: 0;
-			border-color: $accent;
-			box-shadow: 0 0 0 3px rgba($accent-rgb, 0.15);
-		}
-	}
-
-	&::before {
-		content: "";
-		position: absolute;
-		left: 10px;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 14px;
-		height: 14px;
-		background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
-		pointer-events: none;
+	// @wordpress/components SearchControl ships its own icon + styling.
+	// Cap the inner control to the wrapper width so the topbar layout
+	// stays predictable.
+	.components-search-control {
+		width: 100%;
 	}
 }
 
@@ -161,6 +113,21 @@ $accent-rgb:    var(--wp-admin-theme-color--rgb, 34, 113, 177);
 	}
 
 	@media (max-width: 782px) {
+		grid-template-columns: 1fr;
+	}
+}
+
+// Embedded inside the Customify dashboard the available content width
+// is narrower than the standalone page (dashboard chrome eats space),
+// so cap the grid at 3 desktop columns and drop to 2 / 1 sooner.
+.fdi-grid-page.is-embedded .fdi-grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+
+	@media (max-width: 1024px) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	@media (max-width: 600px) {
 		grid-template-columns: 1fr;
 	}
 }
@@ -221,7 +188,7 @@ $accent-rgb:    var(--wp-admin-theme-color--rgb, 34, 113, 177);
 
 		&:focus {
 			outline: 0;
-			box-shadow: inset 0 0 0 3px rgba($accent-rgb, 0.5);
+			box-shadow: none;
 		}
 	}
 
@@ -233,13 +200,6 @@ $accent-rgb:    var(--wp-admin-theme-color--rgb, 34, 113, 177);
 	&:hover .fdi-card__thumb img,
 	&.is-focus .fdi-card__thumb img {
 		opacity: 0.4;
-	}
-
-	&__thumb-label {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
 	}
 
 	&__pro-badge {
@@ -425,6 +385,7 @@ body.fdi-wizard-open {
 	min-width: 0;
 	padding: var(--fdi-spacing);
 	display: flex;
+	position: relative;
 
 	&__iframe {
 		width: 100%;
@@ -448,6 +409,7 @@ body.fdi-wizard-open {
 		font-size: 13px;
 		border-radius: 14px;
 	}
+
 }
 
 // ── Step typography

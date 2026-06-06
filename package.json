@@ -10,6 +10,7 @@
 		"lint:js": "wp-scripts lint-js src/"
 	},
 	"devDependencies": {
+		"@wordpress/browserslist-config": "^6.48.0",
 		"@wordpress/scripts": "^30"
 	},
 	"dependencies": {

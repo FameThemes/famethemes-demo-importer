@@ -28,14 +28,44 @@
  * a styles surface.
  */
 
-import { useState, useEffect, useMemo } from '@wordpress/element';
+import { useState, useEffect, useMemo, useRef, useCallback } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { Button, Spinner } from '@wordpress/components';
 import { close as closeIcon } from '@wordpress/icons';
 
 import { studio, jobs } from '../api';
 import { useJob } from '../hooks/useJob';
-import { PALETTES, FONTS } from '../placeholders';
+import { PALETTES as FALLBACK_PALETTES, FONTS as FALLBACK_FONTS } from '../placeholders';
+
+/**
+ * Host-provided palettes win when present (Customify adapter publishes
+ * Customizer presets + user-saved palettes via window.ftDemoImporter.
+ * palettes). Otherwise fall back to the plugin's placeholder set so the
+ * step still renders something on themes without an adapter.
+ */
+function getPalettes() {
+	if ( typeof window !== 'undefined' ) {
+		const fromHost = window.ftDemoImporter?.palettes;
+		if ( Array.isArray( fromHost ) && fromHost.length > 0 ) {
+			return fromHost;
+		}
+	}
+	return FALLBACK_PALETTES;
+}
+
+/**
+ * Same pattern for font pairs — Customify adapter publishes 6 curated
+ * pairs via `window.ftDemoImporter.fonts`.
+ */
+function getFonts() {
+	if ( typeof window !== 'undefined' ) {
+		const fromHost = window.ftDemoImporter?.fonts;
+		if ( Array.isArray( fromHost ) && fromHost.length > 0 ) {
+			return fromHost;
+		}
+	}
+	return FALLBACK_FONTS;
+}
 
 const STEPS = [
 	{ key: 'style', label: __('Style', 'famethemes-demo-importer') },
@@ -76,6 +106,78 @@ export function PreviewPanel({ template, onClose }) {
 	const [starting, setStarting] = useState(false);
 	const [startError, setStartError] = useState(null);
 
+	const iframeRef = useRef(null);
+
+	// Resolve full data records (with colors / families) for the
+	// currently selected palette + font pair. Memoised so the iframe
+	// postMessage effect doesn't re-fire on unrelated state changes.
+	const palettes = useMemo(() => getPalettes(), []);
+	const fonts = useMemo(() => getFonts(), []);
+	const currentPalette = useMemo(
+		() => (palette ? palettes.find((p) => p.id === palette) || null : null),
+		[palette, palettes]
+	);
+	const currentFont = useMemo(
+		() => (typography ? fonts.find((f) => f.id === typography) || null : null),
+		[typography, fonts]
+	);
+
+	// Push current Style step selections into the preview iframe over
+	// postMessage. Cross-origin by design — Studio's preview server
+	// implements a listener for `type: 'fdi-preview-style'` and maps
+	// the payload onto CSS variables / font links. When the listener
+	// isn't installed yet, the message is silently dropped and the
+	// in-pane overlay chip below still gives the user feedback.
+	//
+	// Contract (documented for the Studio side):
+	//   {
+	//     type: 'fdi-preview-style',
+	//     palette: { id, name, colors: [primary, secondary, accent, text, surface, base] } | null,
+	//     font:    { id, heading, body, weight } | null,
+	//   }
+	const sendStyleToIframe = useCallback(() => {
+		const win = iframeRef.current?.contentWindow;
+		if (!win) {
+			return;
+		}
+		try {
+			win.postMessage(
+				{
+					type: 'fdi-preview-style',
+					palette: currentPalette,
+					font: currentFont,
+				},
+				'*'
+			);
+		} catch (e) {
+			// Iframe not ready / cross-origin restriction during nav —
+			// safe to ignore; next selection change will retry.
+		}
+	}, [currentPalette, currentFont]);
+
+	// Re-send on every selection change + on iframe load (caught via
+	// the `load` event below). Replays guarantee the iframe gets the
+	// latest state even if it navigated mid-session.
+	useEffect(() => {
+		sendStyleToIframe();
+	}, [sendStyleToIframe]);
+
+	// Handshake: Studio's iframe can post `{type:'fdi-preview-ready'}`
+	// to ask the parent for the current selection (handles late-load
+	// race where the iframe's listener registers after our last send).
+	useEffect(() => {
+		const handler = (event) => {
+			if (
+				event?.data?.type === 'fdi-preview-ready' &&
+				iframeRef.current?.contentWindow === event.source
+			) {
+				sendStyleToIframe();
+			}
+		};
+		window.addEventListener('message', handler);
+		return () => window.removeEventListener('message', handler);
+	}, [sendStyleToIframe]);
+
 	const { job } = useJob(jobId);
 	const importing = jobId !== null;
 	const status = job?.status || (importing ? 'queued' : 'idle');
@@ -105,12 +207,26 @@ export function PreviewPanel({ template, onClose }) {
 
 	const title = template.title || template.name || `#${template.id}`;
 
-	const iframeUrl = detail?.frame_url
+	const rawIframeUrl = detail?.frame_url
 		|| detail?.preview_route
 		|| detail?.demo_url
 		|| detail?.preview_url
 		|| template.preview_url
 		|| '';
+
+	// Cache-bust the preview URL — Studio sites typically front WordPress
+	// with a page cache (Cloudflare, WP Rocket, LiteSpeed, etc.) that
+	// snapshots HTML for top-level navigation, and the cached snapshot
+	// can be missing the `customify-preview-bridge` <script> tag if the
+	// plugin was activated AFTER the snapshot was written. Adding a
+	// per-template cachebust forces the origin to render fresh and ship
+	// the script. The token is stable per (template.id, mount) so the
+	// browser still caches subresources within a session.
+	const iframeUrl = useMemo(() => {
+		if (!rawIframeUrl) return '';
+		const sep = rawIframeUrl.includes('?') ? '&' : '?';
+		return rawIframeUrl + sep + '_fdi_cb=' + template.id;
+	}, [rawIframeUrl, template.id]);
 
 	// Plugins — split into required vs recommended for the sidebar UI.
 	// Blocksify is always pinned at the top of the required list because
@@ -177,6 +293,15 @@ export function PreviewPanel({ template, onClose }) {
 			import_uploads: true,
 			replace_settings: optWidgets || optCustomizer,
 			plugins_skip: pluginsSkip,
+			// Carry the wizard's Style step selections through to the
+			// job runner. Theme adapter consumes these inside
+			// `after_phase('applying_options')` to write theme_mods
+			// (palette → 6 color slots) and install Google Fonts into
+			// the WP Font Library (typography pair).
+			style: {
+				palette: palette,
+				font:    typography,
+			},
 		})
 			.then((res) => {
 				if (res?.job_id) setJobId(res.job_id);
@@ -195,6 +320,15 @@ export function PreviewPanel({ template, onClose }) {
 			);
 			if (!ok) return;
 			jobs.cancel(jobId).catch(() => { /* runner picks it up at next safe boundary */ });
+		}
+		// Successful import wrote theme_mods + installed fonts via the
+		// adapter — the dashboard host (or standalone page) likely
+		// shows stale data until a refetch. Hard reload keeps it
+		// simple: closes the wizard AND picks up the new state in one
+		// step. Cancelled / failed runs just close without reload.
+		if (status === 'completed') {
+			window.location.reload();
+			return;
 		}
 		onClose();
 	};
@@ -284,7 +418,7 @@ export function PreviewPanel({ template, onClose }) {
 						)}
 
 						{showDone && (
-							<DoneScreen onClose={onClose} home={window.ftDemoImporter?.home || '/'} />
+							<DoneScreen onClose={handleClose} home={window.ftDemoImporter?.home || '/'} />
 						)}
 					</div>
 
@@ -333,10 +467,12 @@ export function PreviewPanel({ template, onClose }) {
 				<div className="fdi-preview">
 					{iframeUrl ? (
 						<iframe
+							ref={iframeRef}
 							className="fdi-preview__iframe"
 							src={iframeUrl}
 							title={sprintf( /* translators: %s: template title */ __('Preview of %s', 'famethemes-demo-importer'), title)}
 							loading="lazy"
+							onLoad={sendStyleToIframe}
 						/>
 					) : (
 						<div className="fdi-preview__fallback">
@@ -352,6 +488,42 @@ export function PreviewPanel({ template, onClose }) {
 // ── Step 0 ──────────────────────────────────────────────────────────────────
 
 function StyleStep({ palette, setPalette, typography, setTypography }) {
+	const palettes = getPalettes();
+	const fonts = getFonts();
+
+	// Load every pair's heading + body family into the admin page so the
+	// "Ag" preview chip and the label both render in their real font.
+	// Without this the inline `style={{ fontFamily }}` falls back to the
+	// generic family (serif), which is exactly the misrender the user
+	// was seeing. One <link> per family, deduped via a stable id; the
+	// nodes live for the rest of the admin session — no cleanup needed.
+	useEffect(() => {
+		const familyToWeights = new Map();
+		const note = (family, weight) => {
+			if (!family) return;
+			const set = familyToWeights.get(family) || new Set();
+			set.add(400);
+			if (weight) set.add(weight);
+			familyToWeights.set(family, set);
+		};
+		fonts.forEach((f) => {
+			note(f.heading, f.weight);
+			if (f.body !== f.heading) note(f.body, 400);
+		});
+
+		familyToWeights.forEach((weights, family) => {
+			const id = 'fdi-font-' + family.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+			if (document.getElementById(id)) return;
+			const link = document.createElement('link');
+			link.id = id;
+			link.rel = 'stylesheet';
+			const encoded = encodeURIComponent(family).replace(/%20/g, '+');
+			const weightsStr = Array.from(weights).sort((a, b) => a - b).join(',');
+			link.href = `https://fonts.googleapis.com/css?family=${encoded}:${weightsStr}&display=swap`;
+			document.head.appendChild(link);
+		});
+	}, [fonts]);
+
 	return (
 		<section>
 			<h3 className="fdi-step__heading">
@@ -374,7 +546,7 @@ function StyleStep({ palette, setPalette, typography, setTypography }) {
 						<span className="fdi-tile__skip-dash" />
 						<span className="fdi-tile__label">{__('Keep current', 'famethemes-demo-importer')}</span>
 					</button>
-					{PALETTES.map((p) => (
+					{palettes.map((p) => (
 						<button
 							key={p.id}
 							type="button"
@@ -405,20 +577,20 @@ function StyleStep({ palette, setPalette, typography, setTypography }) {
 						<span className="fdi-tile__skip-dash" />
 						<span className="fdi-tile__label">{__('Keep current', 'famethemes-demo-importer')}</span>
 					</button>
-					{FONTS.map((f) => (
-						<button
-							key={f.id}
-							type="button"
-							className={'fdi-tile fdi-tile--font' + (typography === f.id ? ' is-selected' : '')}
-							onClick={() => setTypography(f.id)}
-						>
-							<span
-								className="fdi-tile__font-heading"
-								style={{ fontFamily: `'${f.heading}', serif`, fontWeight: f.weight }}
-							>Ag</span>
-							<span className="fdi-tile__label">{f.heading} · {f.body}</span>
-						</button>
-					))}
+					{fonts.map((f) => {
+						const fontStyle = { fontFamily: `'${f.heading}', serif`, fontWeight: f.weight };
+						return (
+							<button
+								key={f.id}
+								type="button"
+								className={'fdi-tile fdi-tile--font' + (typography === f.id ? ' is-selected' : '')}
+								onClick={() => setTypography(f.id)}
+							>
+								<span className="fdi-tile__font-heading" style={fontStyle}>Ag</span>
+								<span className="fdi-tile__label" style={fontStyle}>{f.heading} · {f.body}</span>
+							</button>
+						);
+					})}
 				</div>
 			</div>
 		</section>

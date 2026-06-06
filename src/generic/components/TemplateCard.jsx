@@ -64,10 +64,8 @@ export function TemplateCard( { template, onSelect } ) {
 				{ isPro && (
 					<span className="fdi-card__pro-badge">{ __( 'Pro', 'famethemes-demo-importer' ) }</span>
 				) }
-				{ thumb ? (
+				{ thumb && (
 					<img src={ thumb } alt="" loading="lazy" />
-				) : (
-					<span className="fdi-card__thumb-label">{ name.split( ' ' )[ 0 ] }</span>
 				) }
 			</div>
 
