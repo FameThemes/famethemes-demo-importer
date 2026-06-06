@@ -9,10 +9,10 @@
  * surface — no custom button styling on this component.
  */
 
-import { Button } from '@wordpress/components';
+import { Button, Spinner } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
-export function TemplateCard( { template, onSelect } ) {
+export function TemplateCard( { template, onSelect, loading = false } ) {
 	// Studio's preview_image is a nested attachment-shape (see
 	// `docs/studio/rest-api.md` §preview_image): full / medium / thumb
 	// crops, plus a flat top-level `url`. Prefer the largest crop the
@@ -41,7 +41,10 @@ export function TemplateCard( { template, onSelect } ) {
 		|| template.preview_route
 		|| '';
 
-	const openWizard = () => onSelect( template );
+	const openWizard = () => {
+		if ( loading ) return; // a prefetch is already running for this card
+		onSelect( template );
+	};
 
 	const handleThumbClick = ( e ) => {
 		// Buttons inside the body row handle their own clicks via
@@ -61,7 +64,16 @@ export function TemplateCard( { template, onSelect } ) {
 	};
 
 	return (
-		<article className="fdi-card" data-template-id={ template.id }>
+		<article
+			className={ 'fdi-card' + ( loading ? ' is-loading' : '' ) }
+			data-template-id={ template.id }
+			aria-busy={ loading || undefined }
+		>
+			{ loading && (
+				<div className="fdi-card__loading" role="status" aria-label={ __( 'Loading template…', 'famethemes-demo-importer' ) }>
+					<Spinner />
+				</div>
+			) }
 			<div
 				className="fdi-card__thumb"
 				onClick={ handleThumbClick }

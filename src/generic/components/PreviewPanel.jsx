@@ -68,6 +68,88 @@ function getFonts() {
 	return FALLBACK_FONTS;
 }
 
+// Wizard chip shape vs. the saved-palette shape stored inside Customify's
+// `customify_color_palettes` theme_mod (which the template's options.json
+// embeds verbatim):
+//
+//   wizard chip       : { id, name, colors: [primary, secondary, accent, text, surface, base] }
+//   theme_mod entry   : { id, name, slots: { primary, secondary, accent, text, surface, base } }
+//
+// Order of `colors` matches the swatch strip the user sees in the picker
+// (brand colors first) — same order Customify_Adapter::transform_palette()
+// uses on the PHP side when publishing host palettes.
+const PALETTE_SLOT_ORDER = [ 'primary', 'secondary', 'accent', 'text', 'surface', 'base' ];
+
+/**
+ * Pull custom palettes out of a template's options.json payload.
+ *
+ * The exporter stores them inside `theme.mods.customify_color_palettes`
+ * as a JSON-encoded string (matches how WP serialises the underlying
+ * theme_mod). Some exporters carry them as a parsed array instead — we
+ * accept either form.
+ *
+ * Returns wizard-shape entries; malformed rows are dropped silently.
+ *
+ * @param {object} options Parsed options.json
+ * @returns {Array<{id:string, name:string, colors:string[]}>}
+ */
+function extractTemplateCustomPalettes( options ) {
+	const raw = options?.theme?.mods?.customify_color_palettes;
+	if ( ! raw ) return [];
+	let list = raw;
+	if ( typeof raw === 'string' ) {
+		try { list = JSON.parse( raw ); } catch ( e ) { return []; }
+	}
+	if ( ! Array.isArray( list ) ) return [];
+
+	const out = [];
+	for ( const entry of list ) {
+		if ( ! entry || typeof entry !== 'object' ) continue;
+		const id   = typeof entry.id === 'string' ? entry.id : null;
+		const name = typeof entry.name === 'string' ? entry.name : null;
+		const slots = entry.slots && typeof entry.slots === 'object' ? entry.slots : null;
+		if ( ! id || ! name || ! slots ) continue;
+		const colors = [];
+		for ( const slot of PALETTE_SLOT_ORDER ) {
+			if ( typeof slots[ slot ] === 'string' && slots[ slot ] ) {
+				colors.push( slots[ slot ] );
+			}
+		}
+		if ( colors.length === PALETTE_SLOT_ORDER.length ) {
+			out.push( { id, name, colors, source: 'template' } );
+		}
+	}
+	return out;
+}
+
+/**
+ * Merge two palette lists, deduped by id. Template entries replace
+ * host entries with the same id — same rule
+ * Customify_Adapter::merge_custom_palettes() uses server-side so the
+ * wizard preview matches the post-import render. Stable order: host
+ * entries first (presets at the top), then template-only additions.
+ *
+ * @param {Array} host
+ * @param {Array} template
+ * @returns {Array}
+ */
+function mergePalettesById( host, template ) {
+	if ( ! Array.isArray( host ) || ! host.length ) {
+		return Array.isArray( template ) ? template : [];
+	}
+	if ( ! Array.isArray( template ) || ! template.length ) {
+		return host;
+	}
+	const byId = new Map();
+	for ( const p of host ) {
+		if ( p && p.id ) byId.set( p.id, p );
+	}
+	for ( const p of template ) {
+		if ( p && p.id ) byId.set( p.id, p );
+	}
+	return Array.from( byId.values() );
+}
+
 // ── Preview CSS assembly ───────────────────────────────────────────────────
 //
 // CSS is produced by a per-theme builder picked up from the registry in
@@ -120,7 +202,7 @@ const PHASES = [
 	{ key: 'applying_options', from: 90, to: 100, label: __('Applying theme options', 'famethemes-demo-importer') },
 ];
 
-export function PreviewPanel({ template, onClose }) {
+export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 	const [detail, setDetail] = useState(null);
 	const [detailErr, setDetailErr] = useState(null);
 
@@ -136,12 +218,23 @@ export function PreviewPanel({ template, onClose }) {
 	const [starting, setStarting] = useState(false);
 	const [startError, setStartError] = useState(null);
 
+	// Custom palettes the template itself ships in its options.json
+	// `theme.mods.customify_color_palettes` blob. Fetched async after
+	// the detail call so the wizard's palette picker offers the
+	// template's intended look alongside the host's presets +
+	// user-saved palettes — without waiting for the import to finish.
+	const [templateCustomPalettes, setTemplateCustomPalettes] = useState([]);
+
 	const iframeRef = useRef(null);
 
 	// Resolve full data records (with colors / families) for the
 	// currently selected palette + font pair. Memoised so the iframe
 	// postMessage effect doesn't re-fire on unrelated state changes.
-	const palettes = useMemo(() => getPalettes(), []);
+	const hostPalettes = useMemo(() => getPalettes(), []);
+	const palettes = useMemo(
+		() => mergePalettesById(hostPalettes, templateCustomPalettes),
+		[hostPalettes, templateCustomPalettes]
+	);
 	const fonts = useMemo(() => getFonts(), []);
 	const currentPalette = useMemo(
 		() => (palette ? palettes.find((p) => p.id === palette) || null : null),
@@ -219,11 +312,41 @@ export function PreviewPanel({ template, onClose }) {
 		let cancelled = false;
 		setDetail(null);
 		setDetailErr(null);
+		setTemplateCustomPalettes([]);
 		studio.getTemplate(template.id)
 			.then((res) => { if (!cancelled) setDetail(res); })
 			.catch((e) => { if (!cancelled) setDetailErr(e?.message || String(e)); });
 		return () => { cancelled = true; };
 	}, [template.id]);
+
+	// Hydrate from the options.json blob the parent (App.jsx) already
+	// prefetched. App holds the modal back until this object arrives,
+	// so by the time PreviewPanel renders we already have palette
+	// data + active-palette id in hand — no internal fetch, no
+	// flicker between "blank" and "populated" states. Falls through
+	// quietly when prefetch failed (host palettes only).
+	//
+	// Also auto-preselects the template's saved `customify_active_palette`
+	// in the wizard so users see what the template ships with the
+	// moment the Style step opens. Only when:
+	//   1. The active id exists in either the template's bundled list
+	//      OR the host's preset/user list (no orphan highlights).
+	//   2. The user hasn't picked manually yet (`setPalette(prev || id)`
+	//      preserves manual overrides on re-render).
+	useEffect(() => {
+		if (!prefetchedOptions) return undefined;
+		const list = extractTemplateCustomPalettes(prefetchedOptions);
+		if (list.length) setTemplateCustomPalettes(list);
+
+		const activeId = prefetchedOptions?.theme?.mods?.customify_active_palette;
+		if (typeof activeId !== 'string' || activeId === '') return undefined;
+		const inTemplate = list.some((p) => p.id === activeId);
+		const inHost = (getPalettes() || []).some((p) => p.id === activeId);
+		if (inTemplate || inHost) {
+			setPalette((prev) => prev || activeId);
+		}
+		return undefined;
+	}, [prefetchedOptions]);
 
 	// Lock page scroll while the wizard is open — same dance as the
 	// previous PreviewPanel, prevents wp-admin from scrolling behind
@@ -411,6 +534,7 @@ export function PreviewPanel({ template, onClose }) {
 							<>
 								{step === 0 && (
 									<StyleStep
+										palettes={palettes}
 										palette={palette} setPalette={setPalette}
 										typography={typography} setTypography={setTypography}
 									/>
@@ -524,8 +648,14 @@ export function PreviewPanel({ template, onClose }) {
 
 // ── Step 0 ──────────────────────────────────────────────────────────────────
 
-function StyleStep({ palette, setPalette, typography, setTypography }) {
-	const palettes = getPalettes();
+function StyleStep({ palettes, palette, setPalette, typography, setTypography }) {
+	// Palettes arrive pre-merged from `PreviewPanel` (host presets +
+	// user-saved + template-bundled). Fall through to the bare host
+	// list if a stale caller passes nothing — keeps the standalone
+	// importer page working when there is no template context.
+	if ( ! Array.isArray( palettes ) || ! palettes.length ) {
+		palettes = getPalettes();
+	}
 	const fonts = getFonts();
 
 	// Load every pair's heading + body family into the admin page so the
@@ -575,14 +705,6 @@ function StyleStep({ palette, setPalette, typography, setTypography }) {
 					{__('Color palette', 'famethemes-demo-importer')}
 				</h4>
 				<div className="fdi-tile-grid">
-					<button
-						type="button"
-						className={'fdi-tile fdi-tile--skip' + (palette === null ? ' is-selected' : '')}
-						onClick={() => setPalette(null)}
-					>
-						<span className="fdi-tile__skip-dash" />
-						<span className="fdi-tile__label">{__('Keep current', 'famethemes-demo-importer')}</span>
-					</button>
 					{palettes.map((p) => (
 						<button
 							key={p.id}

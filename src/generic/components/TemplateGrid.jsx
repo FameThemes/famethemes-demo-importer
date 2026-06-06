@@ -30,7 +30,7 @@ import { TemplateCard } from './TemplateCard';
 
 const PER_PAGE = 24;
 
-export function TemplateGrid({ onSelect }) {
+export function TemplateGrid({ onSelect, loadingId = null }) {
 	const [items, setItems] = useState([]);
 	const [total, setTotal] = useState(0);
 	const [page, setPage] = useState(1);
@@ -208,6 +208,7 @@ export function TemplateGrid({ onSelect }) {
 							key={t.id}
 							template={t}
 							onSelect={onSelect}
+							loading={ loadingId === t.id }
 						/>
 					))}
 				</div>
