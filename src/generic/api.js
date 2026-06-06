@@ -44,6 +44,17 @@ export const studio = {
 		return apiFetch( { path: `${ NS }/studio/templates/${ id }` } );
 	},
 
+	/**
+	 * Server-side proxy for the template's bundled options.json.
+	 * The Studio CDN doesn't allow cross-origin GETs, so the wizard
+	 * goes through the plugin's REST namespace instead — `wp_safe_remote_get`
+	 * fetches + parses + returns the JSON body. Caller receives the
+	 * full parsed object (e.g. `theme.mods.customify_color_palettes`).
+	 */
+	getTemplateOptions( id ) {
+		return apiFetch( { path: `${ NS }/studio/templates/${ id }/options` } );
+	},
+
 	listCategories() {
 		return apiFetch( { path: `${ NS }/studio/categories` } );
 	},

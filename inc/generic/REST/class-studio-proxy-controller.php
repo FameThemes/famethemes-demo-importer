@@ -53,6 +53,11 @@ class Studio_Proxy_Controller {
 			'permission_callback' => $perm,
 			'callback'            => [ $this, 'get_template' ],
 		] );
+		register_rest_route( self::NAMESPACE, '/studio/templates/(?P<id>\d+)/options', [
+			'methods'             => 'GET',
+			'permission_callback' => $perm,
+			'callback'            => [ $this, 'get_template_options' ],
+		] );
 		register_rest_route( self::NAMESPACE, '/studio/categories', [
 			'methods'             => 'GET',
 			'permission_callback' => $perm,
@@ -103,6 +108,89 @@ class Studio_Proxy_Controller {
 	public function get_template( \WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
 		return $this->respond( $this->client->get( "templates/{$id}" ) );
+	}
+
+	/**
+	 * Proxy a fetch of the template's bundled `options.json`.
+	 *
+	 * The Studio CDN does not allow cross-origin GETs from the wp-admin
+	 * origin, so the wizard can't `fetch()` the file from JS directly.
+	 * The URL comes back from `GET /templates/{id}` under
+	 * `assets.options.url`. We re-query that detail call here (cheap
+	 * for the Studio — same path the detail panel already hits), peel
+	 * out the asset URL, then stream the JSON server-side and hand the
+	 * parsed body back. JS sees a same-origin REST call → no CORS.
+	 *
+	 * The endpoint returns the FULL parsed options blob — callers slice
+	 * what they need (right now: `theme.mods.customify_color_palettes`,
+	 * but future Style-step features will read more fields here too).
+	 */
+	public function get_template_options( \WP_REST_Request $request ) {
+		$id = (int) $request->get_param( 'id' );
+		if ( $id <= 0 ) {
+			return new \WP_Error( 'ft_demo_importer_bad_template_id', 'Invalid template id.', [ 'status' => 400 ] );
+		}
+
+		// Resolve the options URL from the template detail.
+		$detail_res = $this->client->get( "templates/{$id}" );
+		if ( 0 === $detail_res['status'] && null !== $detail_res['error'] ) {
+			return new \WP_Error( 'ft_demo_importer_upstream_unreachable', $detail_res['error'], [ 'status' => 502 ] );
+		}
+		$detail = $detail_res['body'];
+		if ( ! is_array( $detail ) ) {
+			return new \WP_Error( 'ft_demo_importer_bad_detail', 'Template detail not parseable.', [ 'status' => 502 ] );
+		}
+		$url = (string) ( $detail['assets']['options']['url'] ?? $detail['options_url'] ?? '' );
+		if ( '' === $url ) {
+			return new \WP_Error( 'ft_demo_importer_no_options_url', 'Template has no options.json URL.', [ 'status' => 404 ] );
+		}
+
+		// Cache key — the Studio embeds a content hash in the file
+		// name (`options-8eaa5cfc.json`), so keying on basename gives
+		// us automatic cache-busting whenever the template is
+		// regenerated upstream. md5 keeps the transient name short
+		// + within the wp_options column character limit.
+		$basename  = (string) wp_basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+		$cache_key = 'ft_demo_importer_tpl_opts_' . md5( $basename );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			$response = new \WP_REST_Response( $cached, 200 );
+			$response->header( 'X-FDI-Cache', 'HIT' );
+			return $response;
+		}
+
+		// Pull the JSON. `wp_safe_remote_get` enforces SSRF guards
+		// (rejects local / private addresses), and we only ever hand
+		// the URL we just received from the Studio's own detail
+		// payload, so there's no way for a caller to coerce this into
+		// fetching arbitrary URLs.
+		$res = wp_safe_remote_get( $url, [
+			'timeout'     => 15,
+			'redirection' => 3,
+		] );
+		if ( is_wp_error( $res ) ) {
+			return new \WP_Error( 'ft_demo_importer_options_unreachable', $res->get_error_message(), [ 'status' => 502 ] );
+		}
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		if ( $code < 200 || $code >= 300 ) {
+			return new \WP_Error( 'ft_demo_importer_options_http_status', "options.json returned HTTP {$code}.", [ 'status' => 502 ] );
+		}
+		$body = wp_remote_retrieve_body( $res );
+		$parsed = json_decode( $body, true );
+		if ( ! is_array( $parsed ) ) {
+			return new \WP_Error( 'ft_demo_importer_options_not_json', 'options.json was not valid JSON.', [ 'status' => 502 ] );
+		}
+
+		// 2h TTL — short enough that a template revision propagates
+		// soon after the contributor publishes, long enough that
+		// repeated wizard opens of the same template don't hammer the
+		// Studio CDN. The content-hashed filename also self-busts:
+		// when the file regenerates, basename changes → new cache key.
+		set_transient( $cache_key, $parsed, 2 * HOUR_IN_SECONDS );
+
+		$response = new \WP_REST_Response( $parsed, 200 );
+		$response->header( 'X-FDI-Cache', 'MISS' );
+		return $response;
 	}
 
 	public function list_categories( \WP_REST_Request $request ) {
