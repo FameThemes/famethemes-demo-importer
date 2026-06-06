@@ -30,7 +30,16 @@ export function TemplateCard( { template, onSelect } ) {
 		|| '';
 	const name    = template.title || template.name || `#${ template.id }`;
 	const isPro   = Boolean( template.is_pro || template.pro );
-	const demoUrl = template.demo_url || template.frame_url || template.preview_route || '';
+	// Studio's canonical demo URL lives at `preview_url` (verified from
+	// `GET /studio/templates`). `demo_url` / `frame_url` /
+	// `preview_route` are kept as fallbacks for legacy Studio schemas
+	// and for tests that stub the shape.
+	const demoUrl =
+		template.preview_url
+		|| template.demo_url
+		|| template.frame_url
+		|| template.preview_route
+		|| '';
 
 	const openWizard = () => onSelect( template );
 

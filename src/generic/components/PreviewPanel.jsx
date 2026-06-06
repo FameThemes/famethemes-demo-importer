@@ -214,19 +214,27 @@ export function PreviewPanel({ template, onClose }) {
 		|| template.preview_url
 		|| '';
 
-	// Cache-bust the preview URL — Studio sites typically front WordPress
-	// with a page cache (Cloudflare, WP Rocket, LiteSpeed, etc.) that
-	// snapshots HTML for top-level navigation, and the cached snapshot
-	// can be missing the `customify-preview-bridge` <script> tag if the
-	// plugin was activated AFTER the snapshot was written. Adding a
-	// per-template cachebust forces the origin to render fresh and ship
-	// the script. The token is stable per (template.id, mount) so the
-	// browser still caches subresources within a session.
+	// Cache-bust the preview URL on every iframe load. Two layers to
+	// defeat:
+	//   1. Studio's WordPress page cache (Cloudflare / WP Rocket /
+	//      LiteSpeed) — a snapshot taken before the `customify-preview-
+	//      bridge` plugin was active is missing the listener `<script>`
+	//      tag and would silently break the live-style postMessage
+	//      protocol.
+	//   2. Browser HTTP cache — when a previous mount cached the HTML,
+	//      iframe reuses it on the next mount and any post-import
+	//      changes to the demo go invisible.
+	// `Date.now()` regenerates per mount (the `useMemo` recomputes when
+	// `rawIframeUrl` stabilizes after the detail fetch), so every
+	// preview load talks to the origin fresh. The Studio's
+	// woff2/png/css subresources are immutable + content-hashed by the
+	// CDN, so dropping subresource caching here doesn't matter for
+	// repeat loads.
 	const iframeUrl = useMemo(() => {
 		if (!rawIframeUrl) return '';
 		const sep = rawIframeUrl.includes('?') ? '&' : '?';
-		return rawIframeUrl + sep + '_fdi_cb=' + template.id;
-	}, [rawIframeUrl, template.id]);
+		return rawIframeUrl + sep + '_fdi_cb=' + Date.now();
+	}, [rawIframeUrl]);
 
 	// Plugins — split into required vs recommended for the sidebar UI.
 	// Blocksify is always pinned at the top of the required list because
@@ -471,7 +479,6 @@ export function PreviewPanel({ template, onClose }) {
 							className="fdi-preview__iframe"
 							src={iframeUrl}
 							title={sprintf( /* translators: %s: template title */ __('Preview of %s', 'famethemes-demo-importer'), title)}
-							loading="lazy"
 							onLoad={sendStyleToIframe}
 						/>
 					) : (
