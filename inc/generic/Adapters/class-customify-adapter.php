@@ -242,7 +242,7 @@ class Customify_Adapter extends Theme_Adapter {
 	 */
 	private function curated_font_pairs(): array {
 		return array(
-			array( 'id' => 'inter-inter',          'heading' => 'Inter',             'body' => 'Inter',         'weight' => 600 ),
+			array( 'id' => 'manrope-inter',        'heading' => 'Manrope',           'body' => 'Inter',         'weight' => 700 ),
 			array( 'id' => 'playfair-lora',        'heading' => 'Playfair Display',  'body' => 'Lora',          'weight' => 700 ),
 			array( 'id' => 'poppins-opensans',     'heading' => 'Poppins',           'body' => 'Open Sans',     'weight' => 700 ),
 			array( 'id' => 'raleway-nunito',       'heading' => 'Raleway',           'body' => 'Nunito',        'weight' => 600 ),
