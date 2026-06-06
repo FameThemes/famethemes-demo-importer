@@ -353,19 +353,28 @@ class Customify_Adapter extends Theme_Adapter {
 	}
 
 	/**
-	 * Install fonts into the WP Font Library, then point Customify's
-	 * canonical typography settings at them. Customify's font resolver
-	 * picks family by exact name, so as long as the Font Library entry
-	 * exists at render time the page renders with the chosen face.
+	 * Install fonts into the WP Font Library, then point every one of
+	 * Customify's typography settings at the pair so the user's pick
+	 * actually drives the look end-to-end (Site Title, widget titles,
+	 * per-heading H1–H6 — not just the generic heading cascade).
 	 *
-	 * Only the cascade-defining keys are written here:
-	 *   - `global_typography_base_p`     — body / paragraph
-	 *   - `global_typography_base_heading` — H1–H6 generic
+	 * Setting → font slot mapping (see
+	 * `inc/customizer/configs/typography.php` for the source of truth):
 	 *
-	 * Per-heading H1/H2/.../H6 overrides are left alone — Customify
-	 * treats them as overrides, so the cascade falls through to the
-	 * generic heading entry by default, preserving the template's size
-	 * hierarchy.
+	 *   Title font (`$pair['heading']`, weight = `$pair['weight']`):
+	 *     - global_typography_base_heading      (H1–H6 generic)
+	 *     - global_typography_site_tt_title     (Site Title)
+	 *     - global_typography_base_widget_title (Widget titles)
+	 *     - global_typography_heading_h1..h6    (Per-heading specific)
+	 *
+	 *   Body font (`$pair['body']`, weight = 400):
+	 *     - global_typography_base_p            (Body & paragraph)
+	 *     - global_typography_site_tt_desc      (Tagline)
+	 *
+	 * `merge_typo_mod()` patches only `font` + `font_weight` — size /
+	 * line_height / letter_spacing / text_transform written by the
+	 * template's options.json are preserved, so the visual hierarchy
+	 * the template ships stays intact.
 	 */
 	private function apply_typography( string $font_id, $runner, string $job_id ): void {
 		$pair = $this->find_font_pair( $font_id );
@@ -380,23 +389,50 @@ class Customify_Adapter extends Theme_Adapter {
 			? $heading_installed
 			: $installer->install( $pair['body'] );
 
-		// Even if Font Library install fails (WP < 6.5 or network),
-		// still write theme_mod — Customify's font resolver falls back
-		// to Google CDN runtime in that case so the look is preserved.
-		$this->merge_typo_mod( 'global_typography_base_p', [
-			'font'        => $pair['body'],
-			'font_weight' => '400',
-		] );
-		$this->merge_typo_mod( 'global_typography_base_heading', [
-			'font'        => $pair['heading'],
-			'font_weight' => (string) ( $pair['weight'] ?? 600 ),
-		] );
+		$heading_weight = (string) ( $pair['weight'] ?? 600 );
+		$body_weight    = '400';
+
+		// Title slots — all 9 Customizer settings that render title-like text.
+		$title_keys = [
+			'global_typography_base_heading',
+			'global_typography_site_tt_title',
+			'global_typography_base_widget_title',
+			'global_typography_heading_h1',
+			'global_typography_heading_h2',
+			'global_typography_heading_h3',
+			'global_typography_heading_h4',
+			'global_typography_heading_h5',
+			'global_typography_heading_h6',
+		];
+		foreach ( $title_keys as $key ) {
+			$this->merge_typo_mod( $key, [
+				'font'        => $pair['heading'],
+				'font_weight' => $heading_weight,
+			] );
+		}
+
+		// Body slots — paragraph + tagline. Even if Font Library install
+		// failed (WP < 6.5 or network) we still write the theme_mods —
+		// Customify's font resolver falls back to Google CDN at render
+		// time so the chosen look survives.
+		$body_keys = [
+			'global_typography_base_p',
+			'global_typography_site_tt_desc',
+		];
+		foreach ( $body_keys as $key ) {
+			$this->merge_typo_mod( $key, [
+				'font'        => $pair['body'],
+				'font_weight' => $body_weight,
+			] );
+		}
 
 		$this->log_runner( $runner, $job_id, sprintf(
-			'Style: font pair "%s" applied (Library: heading=%s body=%s).',
+			'Style: font pair "%s" applied (Library: heading=%s body=%s, mods: %d title + %d body).',
 			$font_id,
 			$heading_installed ? 'OK' : 'skip',
-			$body_installed ? 'OK' : 'skip'
+			$body_installed ? 'OK' : 'skip',
+			count( $title_keys ),
+			count( $body_keys )
 		) );
 	}
 
