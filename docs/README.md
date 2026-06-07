@@ -71,6 +71,7 @@ The big picture — two tracks, three layers.
 | [SPEC-adapter.md](SPEC-adapter.md) | Theme_Adapter abstract contract + Customify_Adapter implementation |
 | [SPEC-style-step.md](SPEC-style-step.md) | Color palette + typography pair → theme_mods + WP Font Library install |
 | [SPEC-embed-contract.md](SPEC-embed-contract.md) | Embedding the React UI in a host theme's dashboard |
+| [SPEC-proxy-cache.md](SPEC-proxy-cache.md) | Local transient cache on `Studio_Proxy_Controller` — TTLs, keys, `?no_cache=1` bypass |
 | [api-reference.md](api-reference.md) | Public filters, actions, REST routes — signature + file:line |
 
 ---

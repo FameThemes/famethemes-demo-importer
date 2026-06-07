@@ -90,6 +90,21 @@ class Studio_Proxy_Controller {
 		return $this->respond( $this->client->get( 'me' ) );
 	}
 
+	/**
+	 * Cache TTL for list_templates proxy responses. The remote round-trip
+	 * to the studio takes ~2-3 seconds from low-bandwidth links (VN ↔
+	 * US server cold, before our snapshot rollout reaches the host); a
+	 * 10-minute transient cuts every repeat open of the Starter
+	 * Templates page down to a local DB read (~50ms). The catalog
+	 * itself changes slowly (rarely more than once per day), so 10
+	 * minutes is well within "freshness the user expects".
+	 *
+	 * Cache key is composed of every query param the request actually
+	 * carries, so different filters / view contexts cache separately
+	 * and stale-cross-contamination is impossible.
+	 */
+	private const LIST_TEMPLATES_TTL = 10 * MINUTE_IN_SECONDS;
+
 	public function list_templates( \WP_REST_Request $request ) {
 		$theme = (string) $request->get_param( 'theme' );
 		if ( '' === $theme ) {
@@ -102,7 +117,50 @@ class Studio_Proxy_Controller {
 				$query[ $k ] = $v;
 			}
 		}
-		return $this->respond( $this->client->get( 'templates', $query ) );
+
+		// Cache key: stable serialize of the full query map (sorted so
+		// `?theme=x&search=y` and `?search=y&theme=x` collapse to one
+		// entry) hashed to keep the option name under WP's 172-char
+		// transient-key budget.
+		ksort( $query );
+		$cache_key = 'ft_demo_importer_tpl_list_' . md5( wp_json_encode( $query ) );
+
+		// `?no_cache=1` — bypass AND wipe the stored transient for this
+		// query. Useful when the admin knows the studio just shipped a
+		// new template and wants the wizard to skip the 10-minute wait.
+		// Wiping (not just skipping) means subsequent users immediately
+		// see the fresh data instead of the stale entry that would have
+		// otherwise survived until TTL.
+		$no_cache = (bool) $request->get_param( 'no_cache' );
+		if ( $no_cache ) {
+			delete_transient( $cache_key );
+		} else {
+			$cached = get_transient( $cache_key );
+			if ( is_array( $cached ) && isset( $cached['body'] ) ) {
+				$response = new \WP_REST_Response( $cached['body'], (int) ( $cached['status'] ?? 200 ) );
+				$response->header( 'X-FDI-Cache', 'HIT' );
+				return $response;
+			}
+		}
+
+		$res = $this->client->get( 'templates', $query );
+
+		// Only cache successful responses — error envelopes (502 etc.)
+		// shouldn't be sticky; the next request should retry the remote.
+		$status = (int) ( $res['status'] ?? 0 );
+		if ( $status >= 200 && $status < 300 && is_array( $res['body'] ?? null ) ) {
+			set_transient(
+				$cache_key,
+				[ 'status' => $status, 'body' => $res['body'] ],
+				self::LIST_TEMPLATES_TTL
+			);
+		}
+
+		$response = $this->respond( $res );
+		if ( $response instanceof \WP_REST_Response ) {
+			$response->header( 'X-FDI-Cache', $no_cache ? 'BYPASS' : 'MISS' );
+		}
+		return $response;
 	}
 
 	public function get_template( \WP_REST_Request $request ) {
