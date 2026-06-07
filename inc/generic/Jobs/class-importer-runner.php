@@ -231,6 +231,13 @@ class Importer_Runner {
 				$ref_map,
 				[
 					'replace_settings'  => ! empty( $config['replace_settings'] ),
+					// Per-layer gates — passed through verbatim so
+					// Options_Importer can honour `[un]checked Widgets`
+					// independently from `[un]checked Customizer
+					// settings`. Falls back to `replace_settings` when
+					// a key is absent.
+					'import_widgets'    => array_key_exists( 'import_widgets', $config ) ? ! empty( $config['import_widgets'] ) : null,
+					'import_options'    => array_key_exists( 'import_options', $config ) ? ! empty( $config['import_options'] ) : null,
 					'content_json_path' => $paths['content'] ?? '',
 					'uploads_zip_path'  => $paths['uploads'] ?? '',
 					// Adapter customizer-key overlay merged on top of

@@ -103,14 +103,28 @@ class Job_Controller {
 			'import_content'     => true,
 			'import_uploads'     => true,
 			'overwrite_existing' => true,
+			// Master roll-up — legacy clients pass only this. New
+			// clients pass `import_widgets` + `import_options`
+			// alongside it for per-layer control; Options_Importer
+			// falls back to `replace_settings` when granular flags
+			// are absent.
 			'replace_settings'   => true,
+			'import_widgets'     => true,
+			'import_options'     => true,
 			'plugins_skip'       => [],
 			'custom_logo_id'     => 0,
 			'custom_logo_url'    => '',
 			'style'              => [ 'palette' => null, 'font' => null ],
 		];
 
-		foreach ( [ 'import_content', 'import_uploads', 'overwrite_existing', 'replace_settings' ] as $key ) {
+		foreach ( [
+			'import_content',
+			'import_uploads',
+			'overwrite_existing',
+			'replace_settings',
+			'import_widgets',
+			'import_options',
+		] as $key ) {
 			if ( array_key_exists( $key, $body ) ) {
 				$config[ $key ] = (bool) $body[ $key ];
 			}

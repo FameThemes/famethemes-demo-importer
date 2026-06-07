@@ -194,6 +194,17 @@ class Options_Importer {
 		$warnings        = [];
 		$replace_settings = ! empty( $opts['replace_settings'] );
 
+		// Per-layer gates — the wizard's "Widgets" and "Customizer
+		// settings" checkboxes map to these two flags. When a key is
+		// absent (legacy callers that pass only `replace_settings`),
+		// fall back to the master so older clients keep working.
+		$import_widgets = array_key_exists( 'import_widgets', $opts ) && null !== $opts['import_widgets']
+			? ! empty( $opts['import_widgets'] )
+			: $replace_settings;
+		$import_options = array_key_exists( 'import_options', $opts ) && null !== $opts['import_options']
+			? ! empty( $opts['import_options'] )
+			: $replace_settings;
+
 		$this->verify_checksums( $parsed, $opts, $warnings );
 		$applied['checksums'] = true;
 
@@ -201,12 +212,25 @@ class Options_Importer {
 		$applied['theme_check'] = true;
 
 		if ( $replace_settings ) {
-			$applied['core']           = $this->apply_core( $parsed, $ref_map, $warnings );
-			$applied['theme_mods']     = $this->apply_theme_mods( $parsed, $ref_map, $warnings );
-			$applied['customizer']     = $this->apply_customizer( $parsed, $ref_map, $warnings );
-			$applied['widgets']        = $this->apply_widgets( $parsed, $ref_map, $warnings );
-			$applied['plugin_options'] = $this->apply_plugin_options( $parsed, $ref_map, $warnings );
-			$applied['fonts']          = $this->apply_fonts( $parsed, $ref_map, $warnings );
+			// Core options (show_on_front / page_on_front / page_for_posts)
+			// piggyback on the master switch — they're not surfaced as a
+			// separate UI toggle.
+			$applied['core'] = $this->apply_core( $parsed, $ref_map, $warnings );
+
+			// `import_options` covers the four "settings" layers the
+			// wizard's Customizer-settings toggle implies: theme_mods,
+			// customizer, plugin_options, fonts. They share one
+			// checkbox because UX-wise they're "the look + feel I
+			// configured in the Customizer".
+			if ( $import_options ) {
+				$applied['theme_mods']     = $this->apply_theme_mods( $parsed, $ref_map, $warnings );
+				$applied['customizer']     = $this->apply_customizer( $parsed, $ref_map, $warnings );
+				$applied['plugin_options'] = $this->apply_plugin_options( $parsed, $ref_map, $warnings );
+				$applied['fonts']          = $this->apply_fonts( $parsed, $ref_map, $warnings );
+			}
+			if ( $import_widgets ) {
+				$applied['widgets'] = $this->apply_widgets( $parsed, $ref_map, $warnings );
+			}
 			update_option( self::OPTION_SETTINGS_APPLIED, 1, true );
 		}
 
