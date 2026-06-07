@@ -804,7 +804,17 @@ function PluginsStep({ required, recommended, isChecked, onToggle, bulkLabel, on
 					{trailing}
 					<span className="fdi-plugin__check" aria-hidden="true" />
 				</div>
-				{p.desc && <div className="fdi-plugin__desc">{p.desc}</div>}
+				{p.desc && (
+					/*
+					 * Single-line truncation via .fdi-plugin__desc CSS
+					 * (white-space:nowrap + text-overflow:ellipsis). The
+					 * `title=` attribute lets the browser surface the full
+					 * description on hover when (and only when) truncation
+					 * kicks in — keeps short descriptions tooltip-free and
+					 * long ones discoverable without a JS measurement pass.
+					 */
+					<div className="fdi-plugin__desc" title={p.desc}>{p.desc}</div>
+				)}
 			</div>
 		);
 	};
