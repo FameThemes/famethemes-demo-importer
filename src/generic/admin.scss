@@ -182,20 +182,27 @@ $accent-rgb: var(--wp-admin-theme-color--rgb, 34, 113, 177);
     transition: opacity 0.2s ease-in-out;
     -webkit-backface-visibility: hidden;
 
-    // Fixed 3:2 aspect ratio to match WP's `.theme-screenshot`.
+    // Fixed 4:5 portrait aspect ratio. `padding-top` = height ÷ width
+    // = 5 ÷ 4 = 125%. The intrinsic-ratio pseudo-element trick works
+    // back to Safari 9 and avoids the layout shift `aspect-ratio` would
+    // cause on browsers that compute it after the first paint.
     &::before {
       content: "";
       display: block;
-      padding-top: 66.66666%;
+      padding-top: 125%;
     }
 
+    // Image keeps its natural aspect ratio (width:100% + height:auto)
+    // pinned to the top edge of the 4:5 thumbnail frame. Parent's
+    // `overflow: hidden` clips whatever drops below the frame, so tall
+    // screenshots show the top portion only — useful for full-page
+    // demo screenshots where the hero is what matters.
     img {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: top center;
+      height: auto;
       display: block;
       transition: opacity 0.2s ease-in-out;
     }

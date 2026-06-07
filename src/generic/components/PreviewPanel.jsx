@@ -33,7 +33,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import { Button, Spinner } from '@wordpress/components';
 import { close as closeIcon } from '@wordpress/icons';
 
-import { studio, jobs } from '../api';
+import { jobs } from '../api';
 import { useJob } from '../hooks/useJob';
 import { PALETTES as FALLBACK_PALETTES, FONTS as FALLBACK_FONTS } from '../placeholders';
 import { getStyleBuilder } from '../style-builders';
@@ -93,8 +93,16 @@ const PALETTE_SLOT_ORDER = [ 'primary', 'secondary', 'accent', 'text', 'surface'
  * @param {object} options Parsed options.json
  * @returns {Array<{id:string, name:string, colors:string[]}>}
  */
-function extractTemplateCustomPalettes( options ) {
-	const raw = options?.theme?.mods?.customify_color_palettes;
+function extractTemplateCustomPalettes( source ) {
+	// Accepts either:
+	//  - the studio's snapshot value (string-JSON or already-parsed
+	//    array) read straight off `template.theme_options.customify_color_palettes`
+	//  - a full parsed options.json object (legacy callers) — pulled
+	//    via the nested theme_mods path for backward compat.
+	let raw = source;
+	if ( source && typeof source === 'object' && ! Array.isArray( source ) ) {
+		raw = source.customify_color_palettes ?? source?.theme?.mods?.customify_color_palettes ?? null;
+	}
 	if ( ! raw ) return [];
 	let list = raw;
 	if ( typeof raw === 'string' ) {
@@ -202,9 +210,14 @@ const PHASES = [
 	{ key: 'applying_options', from: 90, to: 100, label: __('Applying theme options', 'famethemes-demo-importer') },
 ];
 
-export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
-	const [detail, setDetail] = useState(null);
-	const [detailErr, setDetailErr] = useState(null);
+export function PreviewPanel({ template, onClose }) {
+	// As of the snapshot rollout the studio's list endpoint ships
+	// `requirements`, `preview_url`, and `theme_options` (Customify
+	// palette + active palette + future typography keys) directly on
+	// every items[] entry. PreviewPanel reads everything off the
+	// passed-in `template` — no `/templates/{id}` detail fetch, no
+	// `/templates/{id}/options` prefetch.
+	const themeOptions = template?.theme_options || {};
 
 	const [step, setStep] = useState(0);
 	const [palette, setPalette] = useState(null);
@@ -307,46 +320,37 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 	const percent = job?.progress?.percent | 0;
 	const isDone = status === 'completed' || status === 'failed' || status === 'cancelled';
 
-	// Detail fetch — needed for the recommended plugins list + canonical preview URL.
-	useEffect(() => {
-		let cancelled = false;
-		setDetail(null);
-		setDetailErr(null);
-		setTemplateCustomPalettes([]);
-		studio.getTemplate(template.id)
-			.then((res) => { if (!cancelled) setDetail(res); })
-			.catch((e) => { if (!cancelled) setDetailErr(e?.message || String(e)); });
-		return () => { cancelled = true; };
-	}, [template.id]);
-
-	// Hydrate from the options.json blob the parent (App.jsx) already
-	// prefetched. App holds the modal back until this object arrives,
-	// so by the time PreviewPanel renders we already have palette
-	// data + active-palette id in hand — no internal fetch, no
-	// flicker between "blank" and "populated" states. Falls through
-	// quietly when prefetch failed (host palettes only).
+	// Hydrate from `template.theme_options` — the studio's list endpoint
+	// now ships the flat extracted-keys map (`customify_color_palettes`,
+	// `customify_active_palette`, …) directly on each item. No detail
+	// fetch, no options.json round-trip; the modal renders fully
+	// populated on the very first paint.
 	//
-	// Also auto-preselects the template's saved `customify_active_palette`
-	// in the wizard so users see what the template ships with the
-	// moment the Style step opens. Only when:
+	// Auto-preselects the template's saved `customify_active_palette` so
+	// users see what the template ships with the moment the Style step
+	// opens. Only when:
 	//   1. The active id exists in either the template's bundled list
 	//      OR the host's preset/user list (no orphan highlights).
 	//   2. The user hasn't picked manually yet (`setPalette(prev || id)`
 	//      preserves manual overrides on re-render).
 	useEffect(() => {
-		if (!prefetchedOptions) return undefined;
-		const list = extractTemplateCustomPalettes(prefetchedOptions);
-		if (list.length) setTemplateCustomPalettes(list);
+		setTemplateCustomPalettes([]);
+		const list = extractTemplateCustomPalettes(themeOptions.customify_color_palettes);
+		if (list.length) {
+			setTemplateCustomPalettes(list);
+		}
 
-		const activeId = prefetchedOptions?.theme?.mods?.customify_active_palette;
-		if (typeof activeId !== 'string' || activeId === '') return undefined;
+		const activeId = themeOptions.customify_active_palette;
+		if (typeof activeId !== 'string' || activeId === '') {
+			return undefined;
+		}
 		const inTemplate = list.some((p) => p.id === activeId);
 		const inHost = (getPalettes() || []).some((p) => p.id === activeId);
 		if (inTemplate || inHost) {
 			setPalette((prev) => prev || activeId);
 		}
 		return undefined;
-	}, [prefetchedOptions]);
+	}, [template.id, themeOptions.customify_color_palettes, themeOptions.customify_active_palette]);
 
 	// Lock page scroll while the wizard is open — same dance as the
 	// previous PreviewPanel, prevents wp-admin from scrolling behind
@@ -360,12 +364,12 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 
 	const title = template.title || template.name || `#${template.id}`;
 
-	const rawIframeUrl = detail?.frame_url
-		|| detail?.preview_route
-		|| detail?.demo_url
-		|| detail?.preview_url
-		|| template.preview_url
-		|| '';
+	// The studio's list snapshot ships `preview_url` directly; no detail
+	// fetch is needed to resolve the iframe target. The legacy fallback
+	// chain (`frame_url` / `preview_route` / `demo_url`) is gone — the
+	// studio has consolidated to `preview_url` and the importer no
+	// longer fetches `/templates/{id}`.
+	const rawIframeUrl = template.preview_url || '';
 
 	// Cache-bust the preview URL on every iframe load. Two layers to
 	// defeat:
@@ -394,8 +398,10 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 	// the importer needs the Blocksify block library to apply Studio
 	// templates regardless of what any individual template declares.
 	const plugins = useMemo(() => {
-		const list = Array.isArray(detail?.requirements?.plugins)
-			? detail.requirements.plugins
+		// `requirements.plugins[]` now ships in the list snapshot, so we
+		// read it straight off `template` — no per-card detail fetch.
+		const list = Array.isArray(template?.requirements?.plugins)
+			? template.requirements.plugins
 			: [];
 		const mapped = list.map((p) => ({
 			slug: p.slug,
@@ -420,7 +426,7 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 			};
 
 		return [blocksify, ...mapped];
-	}, [detail]);
+	}, [template]);
 
 	const requiredPlugins = plugins.filter((p) => p.required);
 	const recommendedPlugins = plugins.filter((p) => !p.required);
@@ -451,7 +457,17 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 		jobs.create({
 			template_id: template.id,
 			import_content: contentEnabled,
-			import_uploads: true,
+			// Uploads = media for the demo content. Untying these
+			// would land media in the library that has nothing
+			// pointing at it, so tie them together: opt out of
+			// content → opt out of uploads.
+			import_uploads: contentEnabled,
+			// Per-layer flags — server gates each independently.
+			// `replace_settings` is the legacy roll-up the older job
+			// shape understood; kept in the payload so a pre-upgrade
+			// runner still sees a sensible master switch.
+			import_widgets: optWidgets,
+			import_options: optCustomizer,
 			replace_settings: optWidgets || optCustomizer,
 			plugins_skip: pluginsSkip,
 			// Carry the wizard's Style step selections through to the
@@ -526,10 +542,6 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 					</header>
 
 					<div className="fdi-sidebar__body">
-						{detailErr && (
-							<div className="fdi-error">{detailErr}</div>
-						)}
-
 						{showSteps && (
 							<>
 								{step === 0 && (
@@ -550,7 +562,7 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 											: __('Uncheck all', 'famethemes-demo-importer')
 										}
 										onBulkToggle={bulkToggleOptional}
-										loadingDetail={!detail}
+										loadingDetail={false}
 									/>
 								)}
 								{step === 2 && (
@@ -637,7 +649,7 @@ export function PreviewPanel({ template, onClose, prefetchedOptions = null }) {
 						/>
 					) : (
 						<div className="fdi-preview__fallback">
-							{detail ? __('No preview URL available.', 'famethemes-demo-importer') : <Spinner />}
+							{__('No preview URL available.', 'famethemes-demo-importer')}
 						</div>
 					)}
 				</div>

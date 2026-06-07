@@ -1,5 +1,5 @@
 /**
- * One template tile in the grid — 3:4 thumb, title row with Preview +
+ * One template tile in the grid — 4:5 thumb, title row with Preview +
  * Import buttons. Pro badge pins to the top-right of the thumb when
  * the template is gated. Clicking the thumb (or Import) opens the
  * wizard; Preview routes to the template's demo URL in a new tab.
@@ -23,11 +23,20 @@ export function TemplateCard( { template, onSelect, loading = false } ) {
 	// `template.preview_url` is the iframe demo route (e.g. `?pmbd_preview=N`),
 	// NOT an image URL — used by PreviewPanel.jsx, never by the card.
 	const preview = template.preview_image;
-	const thumb   = preview?.full?.url
+	const rawThumb = preview?.full?.url
 		|| preview?.medium?.url
 		|| preview?.url
 		|| template.thumb_url
 		|| '';
+
+	// Cache-bust the thumbnail URL with the template's `version`
+	// counter so admins see fresh screenshots immediately after a
+	// re-submit (each re-submit increments the version), but the
+	// browser still caches between updates — much better than
+	// `Date.now()` which would defeat caching entirely.
+	const thumb = rawThumb && template.version != null
+		? `${ rawThumb }${ rawThumb.includes( '?' ) ? '&' : '?' }v=${ encodeURIComponent( template.version ) }`
+		: rawThumb;
 	const name    = template.title || template.name || `#${ template.id }`;
 	const isPro   = Boolean( template.is_pro || template.pro );
 	// Studio's canonical demo URL lives at `preview_url` (verified from

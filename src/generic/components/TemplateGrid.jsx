@@ -4,17 +4,25 @@
  * use WP admin's `--wp-admin-theme-color` so the dashboard reflects
  * the user's admin color scheme.
  *
- * Categories come from `GET /studio/categories` (Studio template
- * categories scoped to the active theme). An "All" pseudo-entry is
- * prepended client-side. Filtering is client-side once the page of
- * templates is loaded — keeps the topbar feeling instant. Search runs
- * through the existing `?search=` query param so longer libraries
- * still return relevant results from the server.
+ * Data flow (single round-trip):
+ *   - Templates  — ONE request on mount with `per_page=-1` (Studio
+ *                  returns every template that matches the active
+ *                  theme, capped server-side at 500). Search + category
+ *                  filtering both happen client-side over the cached
+ *                  `items[]` so toggling pills / typing in the box
+ *                  never re-hits the network.
+ *   - Categories — ONE request on mount alongside the templates fetch.
+ *
+ * The previous flow paged 24-at-a-time and re-fetched on every search
+ * keystroke; that made each character feel laggy and forced a "Load
+ * more" affordance for libraries with more than 24 items. The single
+ * fetch trades one larger response (typically 50-150 KB JSON for a
+ * theme's full catalog) for instant filter UX, which lines up with
+ * how WP's own block-pattern picker behaves.
  */
 
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import {
-	Button,
 	Spinner,
 	Notice,
 	SearchControl,
@@ -28,12 +36,8 @@ import { category as categoryIcon } from '@wordpress/icons';
 import { studio } from '../api';
 import { TemplateCard } from './TemplateCard';
 
-const PER_PAGE = 24;
-
 export function TemplateGrid({ onSelect, loadingId = null }) {
 	const [items, setItems] = useState([]);
-	const [total, setTotal] = useState(0);
-	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [categories, setCategories] = useState([]);
@@ -62,23 +66,23 @@ export function TemplateGrid({ onSelect, loadingId = null }) {
 		return () => { cancelled = true; };
 	}, []);
 
-	// Templates — refetch when page or search changes. Category filter
-	// is applied client-side (see filtered below) so toggling pills
-	// doesn't refire the network call.
+	// Templates — ONE fetch on mount, strictly scoped to the active
+	// theme. `view_context=site` tells the studio to drop the universal-
+	// OR fallback so the response contains only templates explicitly
+	// bound to this theme's stylesheet. `per_page=-1` asks for the
+	// whole list in a single response (capped at 500 server-side).
 	useEffect(() => {
 		let cancelled = false;
 		setLoading(true);
-		studio.listTemplates({ page, per_page: PER_PAGE, search })
+		studio.listTemplates({ per_page: -1, view_context: 'site' })
 			.then((res) => {
 				if (cancelled) {
 					return;
 				}
-				const incoming = Array.isArray(res?.items) ? res.items : [];
-				setItems((prev) => (page === 1 ? incoming : [...prev, ...incoming]));
-				// Studio shape: `{items, meta:{page, per_page, total, total_pages}}`.
-				// Fall back to root `total` and finally to the page's own
-				// length so a missing envelope doesn't make `hasMore` lie.
-				setTotal(res?.meta?.total ?? res?.total ?? incoming.length);
+				const incoming = Array.isArray(res?.items)
+					? res.items
+					: ( Array.isArray( res ) ? res : [] );
+				setItems(incoming);
 				setError(null);
 			})
 			.catch((e) => {
@@ -94,25 +98,38 @@ export function TemplateGrid({ onSelect, loadingId = null }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [page, search]);
+	}, []);
 
+	// Client-side search + category filter — both run over the same
+	// in-memory `items[]`. Search matches title and `keywords[]` so the
+	// behaviour matches the studio's `?search=` server-side filter
+	// (which searches title + _pmbd_keywords meta). Lower-cased on both
+	// sides; substring match.
 	const filtered = useMemo(() => {
-		if (activeCat === 'all') {
-			return items;
-		}
+		const q = search.trim().toLowerCase();
 		return items.filter((t) => {
-			const slugs = Array.isArray(t.category_slugs) ? t.category_slugs
-				: Array.isArray(t.categories) ? t.categories.map((c) => c.slug || c)
-					: [];
-			return slugs.includes(activeCat);
+			if (activeCat !== 'all') {
+				const slugs = Array.isArray(t.category_slugs) ? t.category_slugs
+					: Array.isArray(t.categories) ? t.categories.map((c) => c.slug || c)
+						: [];
+				if (!slugs.includes(activeCat)) {
+					return false;
+				}
+			}
+			if (q === '') {
+				return true;
+			}
+			const title = String(t.title || '').toLowerCase();
+			if (title.includes(q)) {
+				return true;
+			}
+			const kws = Array.isArray(t.keywords) ? t.keywords : [];
+			return kws.some((k) => String(k).toLowerCase().includes(q));
 		});
-	}, [items, activeCat]);
-
-	const hasMore = items.length < total;
+	}, [items, activeCat, search]);
 
 	const handleSearch = (value) => {
 		setSearch(value);
-		setPage(1);
 	};
 
 	const isEmbedded = !! ( typeof window !== 'undefined' && window.ftDemoImporter?.embedded );
@@ -212,19 +229,6 @@ export function TemplateGrid({ onSelect, loadingId = null }) {
 						/>
 					))}
 				</div>
-			)}
-
-			{hasMore && !loading && (
-				<p className="fdi-load-more">
-					<Button
-						variant="secondary"
-						onClick={() => setPage((p) => p + 1)}
-						isBusy={loading}
-						disabled={loading}
-					>
-						{__('Load more', 'famethemes-demo-importer')}
-					</Button>
-				</p>
 			)}
 
 		</div>
