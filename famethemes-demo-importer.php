@@ -1,8 +1,8 @@
 <?php
 /*
-Plugin Name: FameTheme Demo Importer
+Plugin Name: Starter Templates
 Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
-Description: Demo data import tool for FameThemes's themes.
+Description: From blank install to designer-built WordPress site in one click. Browse starter templates, preview them live in your browser, and import the one you love — pages, menus, plugins, color palette and typography all in place. Stop fighting setup; start editing copy. Works with any Blocksify-compatible design library.
 Author: FameThemes
 Author URI:  http://www.famethemes.com/
 Version: 1.3.0
