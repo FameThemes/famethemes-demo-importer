@@ -183,7 +183,12 @@ class Customify_Adapter extends Theme_Adapter {
 		if ( function_exists( 'customify_color_preset_palettes' ) ) {
 			$palettes = array();
 			foreach ( customify_color_preset_palettes() as $preset ) {
-				$transformed = $this->transform_palette( $preset );
+				// `kind: 'preset'` tags theme-bundled defaults
+				// (Sunrise / Midnight) so the wizard can filter them
+				// out unless the user actively wants them — keeps the
+				// picker focused on the template's bundled palette +
+				// the user's saved palettes.
+				$transformed = $this->transform_palette( $preset, 'preset' );
 				if ( null !== $transformed ) {
 					$palettes[] = $transformed;
 				}
@@ -202,7 +207,7 @@ class Customify_Adapter extends Theme_Adapter {
 			}
 			if ( is_array( $user ) ) {
 				foreach ( $user as $entry ) {
-					$transformed = $this->transform_palette( $entry );
+					$transformed = $this->transform_palette( $entry, 'user' );
 					if ( null !== $transformed ) {
 						$palettes[] = $transformed;
 					}
@@ -256,10 +261,14 @@ class Customify_Adapter extends Theme_Adapter {
 	 * into the wizard's chip format ({id,name,colors:[hex,...]}). Returns
 	 * null for malformed entries so the caller can skip them.
 	 *
-	 * @param mixed $palette
-	 * @return array{id:string,name:string,colors:array<int,string>}|null
+	 * @param mixed  $palette
+	 * @param string $kind    `'preset'` for theme-bundled defaults,
+	 *                        `'user'` for user-saved / template-bundled
+	 *                        palettes. Wizard filters tiles by this
+	 *                        field — see PreviewPanel.jsx.
+	 * @return array{id:string,name:string,colors:array<int,string>,kind:string}|null
 	 */
-	private function transform_palette( $palette ): ?array {
+	private function transform_palette( $palette, string $kind = 'user' ): ?array {
 		if ( ! is_array( $palette ) || empty( $palette['id'] ) || empty( $palette['slots'] ) || ! is_array( $palette['slots'] ) ) {
 			return null;
 		}
@@ -280,6 +289,7 @@ class Customify_Adapter extends Theme_Adapter {
 				? $palette['name']
 				: ucfirst( (string) $palette['id'] ),
 			'colors' => $colors,
+			'kind'   => $kind,
 		);
 	}
 

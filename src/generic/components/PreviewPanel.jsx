@@ -244,9 +244,40 @@ export function PreviewPanel({ template, onClose }) {
 	// currently selected palette + font pair. Memoised so the iframe
 	// postMessage effect doesn't re-fire on unrelated state changes.
 	const hostPalettes = useMemo(() => getPalettes(), []);
-	const palettes = useMemo(
+	const mergedPalettes = useMemo(
 		() => mergePalettesById(hostPalettes, templateCustomPalettes),
 		[hostPalettes, templateCustomPalettes]
+	);
+
+	// Theme-bundled presets (Sunrise / Midnight, kind === 'preset')
+	// start hidden — the picker is meant to focus on the template's
+	// bundled palette + the user's saved palettes. BUT once a preset
+	// has surfaced in the grid (because it was the selected palette
+	// at the moment, typically from the template's auto-active id)
+	// it stays visible permanently for this modal session. Otherwise
+	// the user would click "Charty" after auto-landing on Sunrise and
+	// watch Sunrise vanish — confusing and one-way (no way to pick
+	// Sunrise back).
+	const [seenPresetIds, setSeenPresetIds] = useState(() => new Set());
+	useEffect(() => {
+		if (!palette) return;
+		const matched = mergedPalettes.find((p) => p.id === palette);
+		if (matched?.kind !== 'preset') return;
+		setSeenPresetIds((prev) => {
+			if (prev.has(palette)) return prev;
+			const next = new Set(prev);
+			next.add(palette);
+			return next;
+		});
+	}, [palette, mergedPalettes]);
+
+	const palettes = useMemo(
+		() => mergedPalettes.filter((p) =>
+			p.kind !== 'preset'
+			|| seenPresetIds.has(p.id)
+			|| p.id === palette
+		),
+		[mergedPalettes, seenPresetIds, palette]
 	);
 	const fonts = useMemo(() => getFonts(), []);
 	const currentPalette = useMemo(
