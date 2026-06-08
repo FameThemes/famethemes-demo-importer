@@ -86,6 +86,70 @@ class Studio_Proxy_Controller {
 
 	// ----------------------------------------------------------------------
 
+	/**
+	 * Generic transient cache wrapper around any proxy call. Every
+	 * caching endpoint funnels through here so the `?no_cache=1`
+	 * bypass behaves identically across the namespace — same flag,
+	 * same delete-on-bypass semantics, same `X-FDI-Cache` header
+	 * vocabulary (`HIT` / `MISS` / `BYPASS`). All routes already gate
+	 * on `manage_options` + REST nonce, so any caller hitting an
+	 * endpoint at all already has permission to flip `?no_cache=1`
+	 * — no extra capability check needed.
+	 *
+	 * `$fetch` should return one of:
+	 *   - `[ 'status' => int, 'body' => mixed ]`  (cached on 2xx)
+	 *   - `\WP_Error`                              (propagated, never cached)
+	 *
+	 * The cache key passed in is namespaced with `ft_demo_importer_`
+	 * here so callers don't have to remember the prefix.
+	 *
+	 * @param \WP_REST_Request $request
+	 * @param string           $key      Caller-computed unique key
+	 *                                   (e.g. md5 of a query map or
+	 *                                    a URL basename). No prefix.
+	 * @param int              $ttl_secs Transient TTL.
+	 * @param callable         $fetch    Closure that performs the
+	 *                                    remote / heavy work on miss.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	private function cached_proxy( \WP_REST_Request $request, string $key, int $ttl_secs, callable $fetch ) {
+		$cache_key = 'ft_demo_importer_' . $key;
+		$no_cache  = (bool) $request->get_param( 'no_cache' );
+
+		if ( $no_cache ) {
+			// Wipe + skip — wiping (vs. just skipping the read) means
+			// any subsequent visitor without the bypass flag immediately
+			// gets the freshly-fetched payload instead of the
+			// pre-bypass stale entry.
+			delete_transient( $cache_key );
+		} else {
+			$cached = get_transient( $cache_key );
+			if ( is_array( $cached ) && array_key_exists( 'body', $cached ) ) {
+				$response = new \WP_REST_Response( $cached['body'], (int) ( $cached['status'] ?? 200 ) );
+				$response->header( 'X-FDI-Cache', 'HIT' );
+				return $response;
+			}
+		}
+
+		$result = $fetch();
+		if ( is_wp_error( $result ) ) {
+			return $result; // errors never cached
+		}
+
+		$status = (int) ( $result['status'] ?? 200 );
+		$body   = $result['body'] ?? null;
+		if ( $status >= 200 && $status < 300 ) {
+			set_transient( $cache_key, [
+				'status' => $status,
+				'body'   => $body,
+			], $ttl_secs );
+		}
+
+		$response = new \WP_REST_Response( $body, $status );
+		$response->header( 'X-FDI-Cache', $no_cache ? 'BYPASS' : 'MISS' );
+		return $response;
+	}
+
 	public function get_me( \WP_REST_Request $request ) {
 		return $this->respond( $this->client->get( 'me' ) );
 	}
@@ -123,49 +187,41 @@ class Studio_Proxy_Controller {
 		// entry) hashed to keep the option name under WP's 172-char
 		// transient-key budget.
 		ksort( $query );
-		$cache_key = 'ft_demo_importer_tpl_list_' . md5( wp_json_encode( $query ) );
+		$cache_key = 'tpl_list_' . md5( wp_json_encode( $query ) );
 
-		// `?no_cache=1` — bypass AND wipe the stored transient for this
-		// query. Useful when the admin knows the studio just shipped a
-		// new template and wants the wizard to skip the 10-minute wait.
-		// Wiping (not just skipping) means subsequent users immediately
-		// see the fresh data instead of the stale entry that would have
-		// otherwise survived until TTL.
-		$no_cache = (bool) $request->get_param( 'no_cache' );
-		if ( $no_cache ) {
-			delete_transient( $cache_key );
-		} else {
-			$cached = get_transient( $cache_key );
-			if ( is_array( $cached ) && isset( $cached['body'] ) ) {
-				$response = new \WP_REST_Response( $cached['body'], (int) ( $cached['status'] ?? 200 ) );
-				$response->header( 'X-FDI-Cache', 'HIT' );
-				return $response;
+		return $this->cached_proxy( $request, $cache_key, self::LIST_TEMPLATES_TTL, function () use ( $query ) {
+			$res = $this->client->get( 'templates', $query );
+			if ( 0 === $res['status'] && null !== $res['error'] ) {
+				return new \WP_Error( 'ft_demo_importer_upstream_unreachable', $res['error'], [ 'status' => 502 ] );
 			}
-		}
-
-		$res = $this->client->get( 'templates', $query );
-
-		// Only cache successful responses — error envelopes (502 etc.)
-		// shouldn't be sticky; the next request should retry the remote.
-		$status = (int) ( $res['status'] ?? 0 );
-		if ( $status >= 200 && $status < 300 && is_array( $res['body'] ?? null ) ) {
-			set_transient(
-				$cache_key,
-				[ 'status' => $status, 'body' => $res['body'] ],
-				self::LIST_TEMPLATES_TTL
-			);
-		}
-
-		$response = $this->respond( $res );
-		if ( $response instanceof \WP_REST_Response ) {
-			$response->header( 'X-FDI-Cache', $no_cache ? 'BYPASS' : 'MISS' );
-		}
-		return $response;
+			return [ 'status' => (int) $res['status'], 'body' => $res['body'] ];
+		} );
 	}
+
+	/**
+	 * Detail cache — same justification as list_templates: the
+	 * underlying CDN response is stable for hours, the wizard's
+	 * Preview flow reuses the same detail across re-opens, and the
+	 * Studio's options-URL embed means a content change always
+	 * tumbles into a fresh cache key downstream
+	 * (`get_template_options` keys on basename).
+	 */
+	private const TEMPLATE_DETAIL_TTL = 10 * MINUTE_IN_SECONDS;
 
 	public function get_template( \WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
-		return $this->respond( $this->client->get( "templates/{$id}" ) );
+		if ( $id <= 0 ) {
+			return new \WP_Error( 'ft_demo_importer_bad_template_id', 'Invalid template id.', [ 'status' => 400 ] );
+		}
+		$cache_key = 'tpl_detail_' . $id;
+
+		return $this->cached_proxy( $request, $cache_key, self::TEMPLATE_DETAIL_TTL, function () use ( $id ) {
+			$res = $this->client->get( "templates/{$id}" );
+			if ( 0 === $res['status'] && null !== $res['error'] ) {
+				return new \WP_Error( 'ft_demo_importer_upstream_unreachable', $res['error'], [ 'status' => 502 ] );
+			}
+			return [ 'status' => (int) $res['status'], 'body' => $res['body'] ];
+		} );
 	}
 
 	/**
@@ -183,13 +239,27 @@ class Studio_Proxy_Controller {
 	 * what they need (right now: `theme.mods.customify_color_palettes`,
 	 * but future Style-step features will read more fields here too).
 	 */
+	/**
+	 * 2h TTL — short enough that a template revision propagates
+	 * soon after the contributor publishes, long enough that
+	 * repeated wizard opens of the same template don't hammer the
+	 * Studio CDN. The content-hashed filename also self-busts:
+	 * when the file regenerates, basename changes → new cache key.
+	 */
+	private const TEMPLATE_OPTIONS_TTL = 2 * HOUR_IN_SECONDS;
+
 	public function get_template_options( \WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
 		if ( $id <= 0 ) {
 			return new \WP_Error( 'ft_demo_importer_bad_template_id', 'Invalid template id.', [ 'status' => 400 ] );
 		}
 
-		// Resolve the options URL from the template detail.
+		// Resolve the options URL from the template detail. NOT cached
+		// here — caller already paid for the detail on the wizard's
+		// previous request, and `get_template`'s own transient covers
+		// the repeat. Detail fetch is mandatory because the cache key
+		// for the JSON itself is the content-hashed BASENAME (see
+		// below), which only becomes available once we've seen the URL.
 		$detail_res = $this->client->get( "templates/{$id}" );
 		if ( 0 === $detail_res['status'] && null !== $detail_res['error'] ) {
 			return new \WP_Error( 'ft_demo_importer_upstream_unreachable', $detail_res['error'], [ 'status' => 502 ] );
@@ -209,56 +279,54 @@ class Studio_Proxy_Controller {
 		// regenerated upstream. md5 keeps the transient name short
 		// + within the wp_options column character limit.
 		$basename  = (string) wp_basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
-		$cache_key = 'ft_demo_importer_tpl_opts_' . md5( $basename );
-		$cached    = get_transient( $cache_key );
-		if ( is_array( $cached ) ) {
-			$response = new \WP_REST_Response( $cached, 200 );
-			$response->header( 'X-FDI-Cache', 'HIT' );
-			return $response;
-		}
+		$cache_key = 'tpl_opts_' . md5( $basename );
 
-		// Pull the JSON. `wp_safe_remote_get` enforces SSRF guards
-		// (rejects local / private addresses), and we only ever hand
-		// the URL we just received from the Studio's own detail
-		// payload, so there's no way for a caller to coerce this into
-		// fetching arbitrary URLs.
-		$res = wp_safe_remote_get( $url, [
-			'timeout'     => 15,
-			'redirection' => 3,
-		] );
-		if ( is_wp_error( $res ) ) {
-			return new \WP_Error( 'ft_demo_importer_options_unreachable', $res->get_error_message(), [ 'status' => 502 ] );
-		}
-		$code = (int) wp_remote_retrieve_response_code( $res );
-		if ( $code < 200 || $code >= 300 ) {
-			return new \WP_Error( 'ft_demo_importer_options_http_status', "options.json returned HTTP {$code}.", [ 'status' => 502 ] );
-		}
-		$body = wp_remote_retrieve_body( $res );
-		$parsed = json_decode( $body, true );
-		if ( ! is_array( $parsed ) ) {
-			return new \WP_Error( 'ft_demo_importer_options_not_json', 'options.json was not valid JSON.', [ 'status' => 502 ] );
-		}
-
-		// 2h TTL — short enough that a template revision propagates
-		// soon after the contributor publishes, long enough that
-		// repeated wizard opens of the same template don't hammer the
-		// Studio CDN. The content-hashed filename also self-busts:
-		// when the file regenerates, basename changes → new cache key.
-		set_transient( $cache_key, $parsed, 2 * HOUR_IN_SECONDS );
-
-		$response = new \WP_REST_Response( $parsed, 200 );
-		$response->header( 'X-FDI-Cache', 'MISS' );
-		return $response;
+		return $this->cached_proxy( $request, $cache_key, self::TEMPLATE_OPTIONS_TTL, function () use ( $url ) {
+			// `wp_safe_remote_get` enforces SSRF guards (rejects local
+			// / private addresses), and we only ever hand the URL we
+			// just received from the Studio's own detail payload, so
+			// there's no way for a caller to coerce this into fetching
+			// arbitrary URLs.
+			$res = wp_safe_remote_get( $url, [
+				'timeout'     => 15,
+				'redirection' => 3,
+			] );
+			if ( is_wp_error( $res ) ) {
+				return new \WP_Error( 'ft_demo_importer_options_unreachable', $res->get_error_message(), [ 'status' => 502 ] );
+			}
+			$code = (int) wp_remote_retrieve_response_code( $res );
+			if ( $code < 200 || $code >= 300 ) {
+				return new \WP_Error( 'ft_demo_importer_options_http_status', "options.json returned HTTP {$code}.", [ 'status' => 502 ] );
+			}
+			$body   = wp_remote_retrieve_body( $res );
+			$parsed = json_decode( $body, true );
+			if ( ! is_array( $parsed ) ) {
+				return new \WP_Error( 'ft_demo_importer_options_not_json', 'options.json was not valid JSON.', [ 'status' => 502 ] );
+			}
+			return [ 'status' => 200, 'body' => $parsed ];
+		} );
 	}
+
+	/**
+	 * Categories rarely change. 30 min TTL keeps the sidebar pills
+	 * snappy without making fresh categories invisible for too long.
+	 */
+	private const CATEGORIES_TTL = 30 * MINUTE_IN_SECONDS;
 
 	public function list_categories( \WP_REST_Request $request ) {
 		// `view_context=site` keeps counts strictly scoped to the active
 		// theme — matches what list_templates filters by, so sidebar
 		// counts don't drift from grid contents.
-		return $this->respond( $this->client->get( 'categories', [
-			'type'         => 'template',
-			'view_context' => 'site',
-		] ) );
+		$query     = [ 'type' => 'template', 'view_context' => 'site' ];
+		$cache_key = 'tpl_cats_' . md5( wp_json_encode( $query ) );
+
+		return $this->cached_proxy( $request, $cache_key, self::CATEGORIES_TTL, function () use ( $query ) {
+			$res = $this->client->get( 'categories', $query );
+			if ( 0 === $res['status'] && null !== $res['error'] ) {
+				return new \WP_Error( 'ft_demo_importer_upstream_unreachable', $res['error'], [ 'status' => 502 ] );
+			}
+			return [ 'status' => (int) $res['status'], 'body' => $res['body'] ];
+		} );
 	}
 
 	// ----------------------------------------------------------------------

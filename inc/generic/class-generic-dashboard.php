@@ -42,10 +42,73 @@ class Generic_Dashboard {
 	public function register(): void {
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		add_action( 'admin_init', [ $this, 'maybe_clear_cache' ] );
 		// `admin_footer` Underscore template removed when the dashboard
 		// moved from jQuery + Underscore → React/wp-components. The
 		// wizard modal is now <Modal/> from @wordpress/components,
 		// rendered inline by ImportWizard.jsx.
+	}
+
+	/**
+	 * Page-level cache wipe — visiting the importer page (standalone
+	 * OR the host theme's dashboard where the wizard is embedded)
+	 * with `?no_cache=1` deletes every importer transient before
+	 * anything renders. Wizard then fetches fresh on first paint.
+	 *
+	 * Gated to `manage_options` since the per-REST endpoint bypass
+	 * already gates on the same cap — keeping the URL-level wipe
+	 * behind the same surface so admins (and only admins) can use
+	 * either approach.
+	 *
+	 * Scope is the dashboard surfaces only — a random
+	 * `?no_cache=1` on, say, `posts.php` doesn't trigger this. The
+	 * standalone slug is `Generic_Dashboard::PAGE_SLUG`; the embed
+	 * slug comes from the active adapter's `dashboard_parent_slug()`
+	 * (Customify_Adapter returns `'customify'`, so the URL
+	 * `?page=customify&no_cache=1` works too).
+	 */
+	public function maybe_clear_cache(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only check on $_GET; the cache wipe itself is gated on manage_options below.
+		if ( empty( $_GET['no_cache'] ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		if ( '' === $page ) {
+			return;
+		}
+
+		$adapter = apply_filters( 'ft_demo_importer_active_adapter', null );
+		$embed_parent = ( $adapter && method_exists( $adapter, 'dashboard_parent_slug' ) )
+			? (string) $adapter->dashboard_parent_slug()
+			: '';
+
+		$allowed = array_values( array_filter( [ self::PAGE_SLUG, $embed_parent ] ) );
+		if ( ! in_array( $page, $allowed, true ) ) {
+			return;
+		}
+
+		self::wipe_all_transients();
+	}
+
+	/**
+	 * Delete every transient the importer plugin owns. Matches both
+	 * the value row (`_transient_<key>`) and the expiry sibling
+	 * (`_transient_timeout_<key>`) so WP's cron-based expiry sweep
+	 * has nothing left to garbage-collect.
+	 */
+	public static function wipe_all_transients(): void {
+		global $wpdb;
+		$prefix         = $wpdb->esc_like( '_transient_ft_demo_importer_' ) . '%';
+		$timeout_prefix = $wpdb->esc_like( '_transient_timeout_ft_demo_importer_' ) . '%';
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			$prefix,
+			$timeout_prefix
+		) );
 	}
 
 	public function register_menu(): void {
