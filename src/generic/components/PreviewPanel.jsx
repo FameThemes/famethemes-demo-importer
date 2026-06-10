@@ -279,7 +279,20 @@ export function PreviewPanel({ template, onClose }) {
 		),
 		[mergedPalettes, seenPresetIds, palette]
 	);
-	const fonts = useMemo(() => getFonts(), []);
+	// Prefer the template-bundled pair list. The studio's list endpoint
+	// now ships `theme_options.typography` per item — a curated set the
+	// template designer hand-picked to suit that demo's mood. Fall back
+	// to the host adapter's global list (published as
+	// `window.ftDemoImporter.fonts`, from
+	// `Customify_Adapter::curated_font_pairs()`) when a template predates
+	// the per-item field, so older studio responses keep working.
+	const fonts = useMemo(() => {
+		const list = themeOptions?.typography;
+		if (Array.isArray(list) && list.length) {
+			return list;
+		}
+		return getFonts();
+	}, [themeOptions?.typography]);
 	const currentPalette = useMemo(
 		() => (palette ? palettes.find((p) => p.id === palette) || null : null),
 		[palette, palettes]
@@ -482,33 +495,52 @@ export function PreviewPanel({ template, onClose }) {
 		setPluginsSkip(allOptionalUnchecked ? [] : optInstallable.map((p) => p.slug));
 	};
 
-	const handleStart = () => {
+	// `overrides` lets the Skip button bypass React's stale-closure
+	// problem: a `skip()` handler that calls `setX(false)` THEN
+	// `handleStart()` would still see the OLD `contentEnabled` value
+	// because the state update isn't visible until the next render.
+	// Skip passes the explicit final values here instead.
+	const handleStart = (overrides = {}) => {
+		const pick = (key, fallback) =>
+			Object.prototype.hasOwnProperty.call(overrides, key) ? overrides[key] : fallback;
+		const finalContent  = pick('import_content',  contentEnabled);
+		const finalWidgets  = pick('import_widgets',  optWidgets);
+		const finalOptions  = pick('import_options',  optCustomizer);
+		const finalPlugins  = pick('plugins_skip',    pluginsSkip);
+		const finalPalette  = pick('palette',         palette);
+		const finalFont     = pick('font',            currentFont);
 		setStartError(null);
 		setStarting(true);
 		jobs.create({
 			template_id: template.id,
-			import_content: contentEnabled,
+			import_content: finalContent,
 			// Uploads = media for the demo content. Untying these
 			// would land media in the library that has nothing
 			// pointing at it, so tie them together: opt out of
 			// content → opt out of uploads.
-			import_uploads: contentEnabled,
+			import_uploads: pick('import_uploads', finalContent),
 			// Per-layer flags — server gates each independently.
 			// `replace_settings` is the legacy roll-up the older job
 			// shape understood; kept in the payload so a pre-upgrade
 			// runner still sees a sensible master switch.
-			import_widgets: optWidgets,
-			import_options: optCustomizer,
-			replace_settings: optWidgets || optCustomizer,
-			plugins_skip: pluginsSkip,
+			import_widgets: finalWidgets,
+			import_options: finalOptions,
+			replace_settings: finalWidgets || finalOptions,
+			plugins_skip: finalPlugins,
 			// Carry the wizard's Style step selections through to the
 			// job runner. Theme adapter consumes these inside
 			// `after_phase('applying_options')` to write theme_mods
 			// (palette → 6 color slots) and install Google Fonts into
 			// the WP Font Library (typography pair).
 			style: {
-				palette: palette,
-				font:    typography,
+				palette: finalPalette,
+				// Send the resolved pair OBJECT, not just the id. Templates
+				// ship their own typography list (`theme_options.typography`),
+				// so a pair id picked here may not exist in the host adapter's
+				// curated fallback. Sending {id, heading, body, weight}
+				// lets the adapter apply it without a lookup. The adapter
+				// still accepts a bare string id for the legacy shape.
+				font:    finalFont,
 			},
 		})
 			.then((res) => {
@@ -550,11 +582,85 @@ export function PreviewPanel({ template, onClose }) {
 	};
 	const back = () => setStep((s) => Math.max(0, s - 1));
 
+	// Skip = "opt this step's effects out of the import entirely",
+	// distinct from Next which preserves whatever the user already
+	// picked/checked. Each step decides what "opt out" means; the
+	// overrides flow into handleStart when Skip is hit on the last
+	// step (state setters from THIS call wouldn't be visible to the
+	// same handler — React batches into the next render).
+	const skip = () => {
+		const overrides = {};
+		if (step === 0) {
+			// Style — no palette, no typography → adapter no-ops
+			// `after_phase('applying_options')` Style apply.
+			setPalette(null);
+			setTypography(null);
+			overrides.palette = null;
+			overrides.font    = null;
+		} else if (step === 1) {
+			// Plugins — skip EVERY slug, required included. Server-side
+			// `Plugin_Installer` deliberately honours a skip flag even
+			// for required-true entries ("user explicitly opted out —
+			// never blocks") and only force-keeps Blocksify, so this
+			// won't abort the job. Skipping the step means "don't touch
+			// plugins", which is stronger than what the checkboxes allow
+			// (required cards are locked in the UI) — that asymmetry is
+			// the point of the Skip button.
+			const allSlugs = plugins.map((p) => p.slug);
+			setPluginsSkip(allSlugs);
+			overrides.plugins_skip = allSlugs;
+		} else if (step === 2) {
+			// Content — disable every per-layer import: content,
+			// uploads (tied to content), widgets, customizer settings.
+			setContentEnabled(false);
+			setOptWidgets(false);
+			setOptCustomizer(false);
+			overrides.import_content = false;
+			overrides.import_uploads = false;
+			overrides.import_widgets = false;
+			overrides.import_options = false;
+		}
+		if (step >= STEPS.length - 1) {
+			handleStart(overrides);
+			return;
+		}
+		setStep((s) => s + 1);
+	};
+
 	const isFirst = step === 0;
 	const isLast = step === STEPS.length - 1;
 	const showSteps = !importing;
 	const showInstall = importing && !(status === 'completed');
 	const showDone = status === 'completed';
+
+	// Progress list shows only phases that will actually do work —
+	// a step the user skipped (or unchecked away) shouldn't sit in
+	// the list pretending to run. Server-side the runner still walks
+	// every phase (skipped ones are instant no-ops), so the percent
+	// ranges stay valid; the bar just jumps across hidden spans.
+	// Reading wizard state here is safe: skip() fires its setters
+	// before handleStart, and this list only renders after setJobId —
+	// at least one render later.
+	const visiblePhases = useMemo(() => PHASES.filter((p) => {
+		if (p.key === 'installing_plugins') {
+			// Hidden when the user skipped every plugin. (Blocksify is
+			// force-installed server-side regardless, but from the
+			// user's point of view the step was skipped.)
+			return !(plugins.length > 0 && plugins.every((pl) => pluginsSkip.includes(pl.slug)));
+		}
+		if (p.key === 'extracting' || p.key === 'importing_content') {
+			// Uploads are tied to content (see handleStart) — both
+			// phases vanish together.
+			return contentEnabled;
+		}
+		if (p.key === 'applying_options') {
+			// Still needed if ANY of its work remains: widgets,
+			// customizer settings, or a Style-step palette/font pick
+			// (the adapter applies style inside this phase).
+			return optWidgets || optCustomizer || palette !== null || typography !== null;
+		}
+		return true;
+	}), [plugins, pluginsSkip, contentEnabled, optWidgets, optCustomizer, palette, typography]);
 
 	const showWarning = !contentEnabled && (optWidgets || optCustomizer);
 
@@ -580,6 +686,7 @@ export function PreviewPanel({ template, onClose }) {
 										palettes={palettes}
 										palette={palette} setPalette={setPalette}
 										typography={typography} setTypography={setTypography}
+										fonts={fonts}
 									/>
 								)}
 								{step === 1 && (
@@ -615,7 +722,7 @@ export function PreviewPanel({ template, onClose }) {
 							<InstallProgress
 								status={status}
 								percent={percent}
-								phases={PHASES}
+								phases={visiblePhases}
 								message={job?.progress?.message || ''}
 								error={job?.error}
 								warnings={job?.warnings}
@@ -640,7 +747,7 @@ export function PreviewPanel({ template, onClose }) {
 									}
 								</Button>
 								<div className="fdi-step-actions__spacer" />
-								<Button variant="tertiary" onClick={next}>
+								<Button variant="tertiary" onClick={skip}>
 									{__('Skip', 'famethemes-demo-importer')}
 								</Button>
 								<Button
@@ -691,7 +798,7 @@ export function PreviewPanel({ template, onClose }) {
 
 // ── Step 0 ──────────────────────────────────────────────────────────────────
 
-function StyleStep({ palettes, palette, setPalette, typography, setTypography }) {
+function StyleStep({ palettes, palette, setPalette, typography, setTypography, fonts }) {
 	// Palettes arrive pre-merged from `PreviewPanel` (host presets +
 	// user-saved + template-bundled). Fall through to the bare host
 	// list if a stale caller passes nothing — keeps the standalone
@@ -699,7 +806,13 @@ function StyleStep({ palettes, palette, setPalette, typography, setTypography })
 	if ( ! Array.isArray( palettes ) || ! palettes.length ) {
 		palettes = getPalettes();
 	}
-	const fonts = getFonts();
+	// `fonts` arrives from `PreviewPanel` already resolved to either the
+	// template-bundled list (`theme_options.typography`) or the adapter
+	// fallback. Re-resolve here only if a stale caller mounts StyleStep
+	// without it (defensive — the standalone importer page).
+	if ( ! Array.isArray( fonts ) || ! fonts.length ) {
+		fonts = getFonts();
+	}
 
 	// Load every pair's heading + body family into the admin page so the
 	// "Ag" preview chip and the label both render in their real font.
