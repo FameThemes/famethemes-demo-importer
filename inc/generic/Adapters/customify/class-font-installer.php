@@ -63,6 +63,17 @@ class Font_Installer {
 	private $cap_grant_filter = null;
 
 	/**
+	 * Remote URL → sideloaded local URL, reset per install(). Variable
+	 * fonts reuse one physical file across many (weight, subset) face
+	 * entries — without this cache the same .woff2 would be downloaded
+	 * and sideloaded once per face, leaving -1/-2/… duplicates in the
+	 * fonts dir.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $sideloaded_by_url = [];
+
+	/**
 	 * Install one font family with every variant the catalogue carries.
 	 *
 	 * @return int|null Family CPT post id (or null on hard failure).
@@ -92,6 +103,7 @@ class Font_Installer {
 		if ( empty( $variants ) ) {
 			return null;
 		}
+		$this->sideloaded_by_url = [];
 
 		// Grant the caps the font REST routes gate on. The cron user
 		// context has no session, so without this every REST call
@@ -172,14 +184,20 @@ class Font_Installer {
 	 *                                  success, null on failure.
 	 */
 	private function install_one_face( string $family, int $family_id, array $variant ): ?array {
-		$file = $this->download_font_to_temp( $variant['url'] );
-		if ( null === $file ) {
-			return null;
-		}
-		$local_url = $this->sideload_font_to_uploads( $file );
-		if ( null === $local_url ) {
-			@unlink( $file['tmp_name'] );
-			return null;
+		$remote = (string) $variant['url'];
+		if ( isset( $this->sideloaded_by_url[ $remote ] ) ) {
+			$local_url = $this->sideloaded_by_url[ $remote ];
+		} else {
+			$file = $this->download_font_to_temp( $remote );
+			if ( null === $file ) {
+				return null;
+			}
+			$local_url = $this->sideload_font_to_uploads( $file );
+			if ( null === $local_url ) {
+				@unlink( $file['tmp_name'] );
+				return null;
+			}
+			$this->sideloaded_by_url[ $remote ] = $local_url;
 		}
 
 		$face_settings = [
@@ -188,6 +206,12 @@ class Font_Installer {
 			'fontWeight' => $variant['weight'],
 			'src'        => $local_url,
 		];
+		// Subset files (one per unicode range) MUST carry their range —
+		// without it the browser uses the partial file for all glyphs
+		// and anything outside the subset renders in the fallback font.
+		if ( ! empty( $variant['unicode_range'] ) ) {
+			$face_settings['unicodeRange'] = $variant['unicode_range'];
+		}
 		$req = new \WP_REST_Request( 'POST', "/wp/v2/font-families/{$family_id}/font-faces" );
 		$req->set_param( 'font_face_settings', wp_json_encode( $face_settings ) );
 
@@ -370,18 +394,86 @@ class Font_Installer {
 	// ─────────────────────────────────────────── VARIANT RESOLUTION
 
 	/**
-	 * @return array<int, array{url:string, weight:string, style:string}>
+	 * Primary source: WP core's bundled "google-fonts" font collection —
+	 * the exact face list the Font Library UI installs when the user
+	 * picks the family by hand. One face per (weight, style), each src a
+	 * single FULL-COVERAGE file (all unicode subsets in one .woff2), so
+	 * Noto Sans is 18 faces, not 18 × N-subsets. No `unicode-range`
+	 * bookkeeping needed.
+	 *
+	 * Fallback: the Google css2 endpoint (subset slicing + unicodeRange)
+	 * for installs where the collection isn't available — core older
+	 * than the collection API, or s.w.org unreachable from this host.
+	 *
+	 * @return array<int, array{url:string, weight:string, style:string, unicode_range?:string}>
 	 */
 	private function resolve_variants( string $family ): array {
-		$variants = $this->catalogue_variants( $family );
-		if ( empty( $variants ) ) {
+		$variants = $this->collection_variants( $family );
+		if ( ! empty( $variants ) ) {
+			return $variants;
+		}
+
+		$catalogue = $this->catalogue_variants( $family );
+		if ( empty( $catalogue ) ) {
 			return [];
 		}
-		$css = $this->fetch_google_fonts_css( $family, $variants );
+		$css = $this->fetch_google_fonts_css( $family, $catalogue );
 		if ( '' === $css ) {
 			return [];
 		}
 		return $this->parse_font_face_blocks( $css );
+	}
+
+	/**
+	 * Look the family up in core's "google-fonts" collection and map its
+	 * fontFace list to our variant shape. Empty array when the family
+	 * isn't in the collection or the collection can't load (triggers the
+	 * css2 fallback in {@see resolve_variants()}).
+	 *
+	 * The first call may fetch + cache the collection JSON from s.w.org
+	 * (core stores it in a site transient) — slow once, instant after.
+	 *
+	 * @return array<int, array{url:string, weight:string, style:string}>
+	 */
+	private function collection_variants( string $family ): array {
+		if ( ! class_exists( '\\WP_Font_Library' ) ) {
+			return [];
+		}
+		$collection = \WP_Font_Library::get_instance()->get_font_collection( 'google-fonts' );
+		if ( ! $collection instanceof \WP_Font_Collection ) {
+			return [];
+		}
+		$data = $collection->get_data();
+		if ( is_wp_error( $data ) || empty( $data['font_families'] ) || ! is_array( $data['font_families'] ) ) {
+			return [];
+		}
+
+		foreach ( $data['font_families'] as $entry ) {
+			$settings = is_array( $entry ) ? ( $entry['font_family_settings'] ?? null ) : null;
+			if ( ! is_array( $settings ) || ( $settings['name'] ?? '' ) !== $family ) {
+				continue;
+			}
+			$out = [];
+			foreach ( (array) ( $settings['fontFace'] ?? [] ) as $face ) {
+				if ( ! is_array( $face ) ) {
+					continue;
+				}
+				$src = $face['src'] ?? '';
+				if ( is_array( $src ) ) {
+					$src = reset( $src );
+				}
+				if ( ! is_string( $src ) || '' === $src ) {
+					continue;
+				}
+				$out[] = [
+					'url'    => $src,
+					'weight' => isset( $face['fontWeight'] ) ? (string) $face['fontWeight'] : '400',
+					'style'  => isset( $face['fontStyle'] ) ? (string) $face['fontStyle'] : 'normal',
+				];
+			}
+			return $out;
+		}
+		return [];
 	}
 
 	/**
@@ -446,18 +538,43 @@ class Font_Installer {
 	}
 
 	/**
-	 * Parse Google's response CSS, deduped by (weight, style) —
-	 * Google ships one `@font-face` per unicode subset, all
-	 * pointing at the same .woff2.
+	 * Parse Google's response CSS into one face entry per subset block.
 	 *
-	 * @return array<int, array{url:string, weight:string, style:string}>
+	 * CRITICAL: Google ships one `@font-face` per unicode subset and
+	 * each block points at a DIFFERENT .woff2 holding only that
+	 * subset's glyphs (cyrillic first, latin last). Keeping a single
+	 * block per (weight, style) — as an earlier revision did — stores
+	 * a Cyrillic-only file under the right family name, so Latin and
+	 * Vietnamese text silently falls back to the next font in the
+	 * stack. We must keep every wanted subset AND carry its
+	 * `unicode-range` through to the Font Library face, mirroring
+	 * exactly what the Google CDN serves.
+	 *
+	 * Subsets are limited to a filterable allowlist to bound the
+	 * download count (each subset of each variant is a separate file).
+	 *
+	 * @return array<int, array{url:string, weight:string, style:string, unicode_range:string, subset:string}>
 	 */
 	private function parse_font_face_blocks( string $css ): array {
-		$by_pair = [];
-		if ( ! preg_match_all( '/@font-face\s*\{([^}]+)\}/i', $css, $blocks ) ) {
+		$wanted = (array) apply_filters(
+			'ft_demo_importer_font_subsets',
+			[ 'latin', 'latin-ext', 'vietnamese' ]
+		);
+
+		$by_key = [];
+		// Subset name arrives as a `/* latin */` comment right before
+		// each block. Capture it together so we can filter.
+		if ( ! preg_match_all( '/(?:\/\*\s*([\w-]+)\s*\*\/\s*)?@font-face\s*\{([^}]+)\}/i', $css, $blocks, PREG_SET_ORDER ) ) {
 			return [];
 		}
-		foreach ( $blocks[1] as $block ) {
+		foreach ( $blocks as $b ) {
+			$subset = strtolower( trim( $b[1] ?? '' ) );
+			$block  = $b[2];
+			// Unlabelled blocks (no subset comment — e.g. a legacy-UA
+			// response with one full-coverage file) always pass.
+			if ( '' !== $subset && ! in_array( $subset, $wanted, true ) ) {
+				continue;
+			}
 			$weight = '400';
 			$style  = 'normal';
 			if ( preg_match( '/font-weight:\s*([0-9]+)/i', $block, $m ) ) {
@@ -466,8 +583,8 @@ class Font_Installer {
 			if ( preg_match( '/font-style:\s*(italic|normal)/i', $block, $m ) ) {
 				$style = strtolower( $m[1] );
 			}
-			$key = $weight . '|' . $style;
-			if ( isset( $by_pair[ $key ] ) ) {
+			$key = $weight . '|' . $style . '|' . $subset;
+			if ( isset( $by_key[ $key ] ) ) {
 				continue;
 			}
 			if ( ! preg_match( '/src:\s*url\(([^)]+)\)/i', $block, $m ) ) {
@@ -477,13 +594,19 @@ class Font_Installer {
 			if ( '' === $src ) {
 				continue;
 			}
-			$by_pair[ $key ] = [
-				'url'    => $src,
-				'weight' => $weight,
-				'style'  => $style,
+			$unicode_range = '';
+			if ( preg_match( '/unicode-range:\s*([^;}]+)/i', $block, $m ) ) {
+				$unicode_range = trim( $m[1] );
+			}
+			$by_key[ $key ] = [
+				'url'           => $src,
+				'weight'        => $weight,
+				'style'         => $style,
+				'unicode_range' => $unicode_range,
+				'subset'        => $subset,
 			];
 		}
-		return array_values( $by_pair );
+		return array_values( $by_key );
 	}
 
 	private function normalize_weight( string $variant_key ): string {

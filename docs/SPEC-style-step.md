@@ -92,8 +92,10 @@ Plus a marker: `set_theme_mod( 'customify_active_palette', $palette_id )` so the
 Each family → `Font_Installer::install($family)`:
 
 1. Wipe any existing CPTs + global-styles entry for the slug (clean re-install).
-2. `resolve_variants()` → variants from `themes/customify/build/fonts/google-fonts.json` catalogue → Google Fonts CSS API → deduped `(weight, style)` URL list (modern UA → woff2).
-3. `download_font_to_temp()` per variant — `wp_safe_remote_get` stream, magic-byte validation, Content-Length check, canonical-extension rename.
+2. `resolve_variants()` — two sources, tried in order:
+   - **Core "google-fonts" collection** (primary) — the exact face list the WP Font Library UI installs by hand: one face per `(weight, style)`, each src one FULL-COVERAGE file. Noto Sans = 18 faces, Playfair = 12. No `unicode-range` needed.
+   - **Google css2 fallback** — when the collection can't load (old core, s.w.org unreachable): `google-fonts.json` catalogue → css2 CSS (modern UA → woff2) → one face per `(weight, style, subset)` with `unicodeRange` carried into face settings. Subsets bounded by the `ft_demo_importer_font_subsets` filter (default latin / latin-ext / vietnamese).
+3. `download_font_to_temp()` per variant — `wp_safe_remote_get` stream, magic-byte validation, Content-Length check, canonical-extension rename. Repeated URLs (variable fonts) download once per install — `sideloaded_by_url` cache.
 4. `sideload_font_to_uploads()` — `wp_handle_sideload` with `upload_mimes` + `_wp_filter_font_directory` filters → file lands in `wp-content/fonts/` (or `wp-content/uploads/fonts/` on WP 6.5/6.6).
 5. `rest_create_family()` + REST face create per variant via `rest_do_request` — keeps CPT shape identical to UI-driven installs (auto-seeds `_wp_font_face_file` meta).
 6. `activate_in_global_styles()` — append to `wp_global_styles.settings.typography.fontFamilies.custom[]` and flush theme.json caches (`wp_clean_theme_json_cache` + `WP_Theme_JSON_Resolver::clean_cached_data`).
