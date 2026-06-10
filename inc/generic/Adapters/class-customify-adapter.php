@@ -216,20 +216,22 @@ class Customify_Adapter extends Theme_Adapter {
 			$out['palettes'] = $palettes;
 		}
 
-		// Typography pairs — Customify Pro doesn't ship curated pairs
-		// of its own, so we hand-pick 6 here covering distinct design
-		// moods. Every family is present in the theme's Google Fonts
-		// catalogue (build/fonts/google-fonts.json) so the import wires
-		// to a real font that the frontend can load.
+		// Typography pairs — FALLBACK only. The wizard prefers the
+		// template's own `theme_options.typography` list (curated per demo
+		// by the studio); these 6 generic pairs render only when a
+		// template predates that field. Families MUST exist in
+		// `build/fonts/google-fonts.json` for the import to wire up.
 		$out['fonts'] = $this->curated_font_pairs();
 
 		return $out;
 	}
 
 	/**
-	 * Curated 6-pair typography set surfaced in the importer wizard's
-	 * "Choose a style → Typography" grid. Shape mirrors what the React
-	 * StyleStep consumes:
+	 * Fallback typography pair list. The wizard prefers the template's
+	 * own `theme_options.typography` (shipped per item by the studio's
+	 * list endpoint); this 6-pair set is only used when a template
+	 * predates that field. Shape mirrors what the React StyleStep
+	 * consumes:
 	 *
 	 *     { id, heading, body, weight }
 	 *
@@ -337,18 +339,30 @@ class Customify_Adapter extends Theme_Adapter {
 		$palette_id = isset( $style['palette'] ) && is_string( $style['palette'] ) && '' !== $style['palette']
 			? $style['palette']
 			: null;
-		$font_id = isset( $style['font'] ) && is_string( $style['font'] ) && '' !== $style['font']
-			? $style['font']
-			: null;
-		if ( null === $palette_id && null === $font_id ) {
+		// `style.font` may arrive in either shape:
+		//   - string id (legacy) → adapter resolves via `find_font_pair`
+		//     against the curated fallback list
+		//   - array {id, heading, body, weight} (current) → wizard ships
+		//     the full pair when the user picks from the template's
+		//     bundled `theme_options.typography`, since those ids aren't
+		//     guaranteed to exist in the curated fallback
+		$font_input = $style['font'] ?? null;
+		if ( is_string( $font_input ) && '' === $font_input ) {
+			$font_input = null;
+		} elseif ( is_array( $font_input ) && empty( $font_input ) ) {
+			$font_input = null;
+		} elseif ( ! is_string( $font_input ) && ! is_array( $font_input ) ) {
+			$font_input = null;
+		}
+		if ( null === $palette_id && null === $font_input ) {
 			return;
 		}
 
 		if ( null !== $palette_id ) {
 			$this->apply_palette( $palette_id, $runner, (string) ( $job['id'] ?? '' ) );
 		}
-		if ( null !== $font_id ) {
-			$this->apply_typography( $font_id, $runner, (string) ( $job['id'] ?? '' ) );
+		if ( null !== $font_input ) {
+			$this->apply_typography( $font_input, $runner, (string) ( $job['id'] ?? '' ) );
 		}
 	}
 
@@ -484,8 +498,32 @@ class Customify_Adapter extends Theme_Adapter {
 	 * template's options.json are preserved, so the visual hierarchy
 	 * the template ships stays intact.
 	 */
-	private function apply_typography( string $font_id, $runner, string $job_id ): void {
-		$pair = $this->find_font_pair( $font_id );
+	/**
+	 * @param array<string,mixed>|string $font Wizard payload — either the
+	 *                                         full pair object (template-shipped
+	 *                                         typography) or a legacy id
+	 *                                         string (resolved against
+	 *                                         {@see curated_font_pairs()}).
+	 */
+	private function apply_typography( $font, $runner, string $job_id ): void {
+		$pair    = null;
+		$font_id = '';
+		if ( is_array( $font ) ) {
+			$heading = isset( $font['heading'] ) && is_string( $font['heading'] ) ? trim( $font['heading'] ) : '';
+			$body    = isset( $font['body'] ) && is_string( $font['body'] ) ? trim( $font['body'] ) : '';
+			if ( '' !== $heading && '' !== $body ) {
+				$font_id = isset( $font['id'] ) && is_string( $font['id'] ) ? $font['id'] : ( $heading . '-' . $body );
+				$pair    = array(
+					'id'      => $font_id,
+					'heading' => $heading,
+					'body'    => $body,
+					'weight'  => isset( $font['weight'] ) ? (int) $font['weight'] : 600,
+				);
+			}
+		} elseif ( is_string( $font ) && '' !== $font ) {
+			$font_id = $font;
+			$pair    = $this->find_font_pair( $font_id );
+		}
 		if ( null === $pair ) {
 			$this->log_runner( $runner, $job_id, sprintf( 'Style: font pair "%s" not found, skipped.', $font_id ) );
 			return;

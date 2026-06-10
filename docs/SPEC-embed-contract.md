@@ -66,6 +66,8 @@ public function embed_boot_filter(): ?string {
 public function boot_payload(): array {
     return [
         'palettes' => [ /* preset + user palettes */ ],
+        // FALLBACK ONLY — wizard prefers the template's own
+        // `theme_options.typography` shipped per item by the studio.
         'fonts'    => $this->curated_font_pairs(),
     ];
 }

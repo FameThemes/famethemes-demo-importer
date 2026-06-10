@@ -143,13 +143,42 @@ class Job_Controller {
 		}
 		if ( isset( $body['style'] ) && is_array( $body['style'] ) ) {
 			$style = $body['style'];
+			// `font` accepts two shapes:
+			//   - string id (legacy) → adapter resolves against its
+			//     curated fallback list
+			//   - full pair object {id, heading, body, weight} → wizard
+			//     ships this when the user picks from the template's own
+			//     `theme_options.typography` list (the studio-curated
+			//     per-template set), so the adapter can apply without
+			//     looking up an id that may not exist in the curated set
+			$font_in = $style['font'] ?? null;
+			if ( is_string( $font_in ) && '' !== $font_in ) {
+				$font_out = sanitize_key( $font_in );
+			} elseif ( is_array( $font_in ) ) {
+				$heading = isset( $font_in['heading'] ) && is_string( $font_in['heading'] )
+					? sanitize_text_field( $font_in['heading'] ) : '';
+				$body_fam = isset( $font_in['body'] ) && is_string( $font_in['body'] )
+					? sanitize_text_field( $font_in['body'] ) : '';
+				if ( '' !== $heading && '' !== $body_fam ) {
+					$font_out = [
+						'id'      => isset( $font_in['id'] ) && is_string( $font_in['id'] )
+							? sanitize_key( $font_in['id'] )
+							: sanitize_key( $heading . '-' . $body_fam ),
+						'heading' => $heading,
+						'body'    => $body_fam,
+						'weight'  => isset( $font_in['weight'] ) ? max( 100, min( 900, (int) $font_in['weight'] ) ) : 600,
+					];
+				} else {
+					$font_out = null;
+				}
+			} else {
+				$font_out = null;
+			}
 			$config['style'] = [
 				'palette' => isset( $style['palette'] ) && is_string( $style['palette'] ) && '' !== $style['palette']
 					? sanitize_key( $style['palette'] )
 					: null,
-				'font'    => isset( $style['font'] ) && is_string( $style['font'] ) && '' !== $style['font']
-					? sanitize_key( $style['font'] )
-					: null,
+				'font'    => $font_out,
 			];
 		}
 

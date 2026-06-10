@@ -134,7 +134,7 @@ What it does:
 3. **Dashboard nesting** — `dashboard_parent_slug()` returns `'customify'` so the importer surface nests under the theme's top-level menu.
 4. **Embed contract** — declares the Customify dashboard hook + boot filter. Sets `boot_payload()` to publish:
    - `palettes` — 2 presets from `customify_color_preset_palettes()` + every user palette saved in the `customify_color_palettes` theme_mod.
-   - `fonts` — 6 curated Google Fonts pairs (`curated_font_pairs()`).
+   - `fonts` — 6 curated Google Fonts pairs (`curated_font_pairs()`). **Fallback only**: the wizard prefers the template's per-item `theme_options.typography` list shipped by the studio and falls back to this set when a template predates that field.
 5. **Style step apply** — `after_phase('applying_options')` reads `$job['config']['style']` and:
    - `apply_palette()` — writes the 6 color slots via `customify_color_palette_slot_map()` + tags `customify_active_palette`.
    - `apply_typography()` — uses [`Font_Installer`](../inc/generic/Adapters/customify/class-font-installer.php) to install the pair into WP Font Library, then writes 11 typography theme_mods (9 title slots + 2 body slots).

@@ -71,13 +71,16 @@ Plus a marker: `set_theme_mod( 'customify_active_palette', $palette_id )` so the
 
 [`Customify_Adapter::apply_typography()`](../inc/generic/Adapters/class-customify-adapter.php).
 
-### Lookup
+### Source resolution
 
-`find_font_pair($id)` walks `curated_font_pairs()`:
+`style.font` arrives in one of two shapes:
+
+- **Full pair object** `{ id, heading, body, weight }` — wizard ships this when the user picks from the template's bundled list (`template.theme_options.typography`). Adapter uses it directly, no lookup.
+- **Bare id string** — legacy shape; adapter resolves via `find_font_pair($id)` against `curated_font_pairs()` (the global fallback set):
 
 | id | Title font (heading) | Text font (body) | weight |
 |---|---|---|---|
-| `inter-inter` | Inter | Inter | 600 |
+| `manrope-inter` | Manrope | Inter | 700 |
 | `playfair-lora` | Playfair Display | Lora | 700 |
 | `poppins-opensans` | Poppins | Open Sans | 700 |
 | `raleway-nunito` | Raleway | Nunito | 600 |
@@ -141,6 +144,12 @@ When the user keeps the existing palette / typography on the wizard, the React t
 ---
 
 ## Adding a new pair
+
+Two paths depending on scope:
+
+**Per-template (preferred)** — add it to the studio's template metadata under `theme_options.typography`. Shape: `[ { id, heading, body, weight }, … ]`. The wizard reads this list straight off the list_templates response — no PHP or JS change needed. Designers can curate per-demo without a plugin release.
+
+**Global fallback** — for the set surfaced when a template predates the per-item field:
 
 1. Edit `curated_font_pairs()` in [`class-customify-adapter.php`](../inc/generic/Adapters/class-customify-adapter.php).
 2. Confirm both `heading` and `body` family names exist in `themes/customify/build/fonts/google-fonts.json` — `Font_Installer::catalogue_variants()` looks up by exact family name.
