@@ -229,33 +229,37 @@ class Customify_Adapter extends Theme_Adapter {
 	/**
 	 * Fallback typography pair list. The wizard prefers the template's
 	 * own `theme_options.typography` (shipped per item by the studio's
-	 * list endpoint); this 6-pair set is only used when a template
-	 * predates that field. Shape mirrors what the React StyleStep
-	 * consumes:
+	 * list endpoint); this set is only used when a template predates
+	 * that field. Empty by default — populate via the filter:
+	 *
+	 *     add_filter( 'ft_demo_importer_curated_font_pairs', function ( $pairs ) {
+	 *         $pairs[] = array( 'id' => 'playfair-lora', 'heading' => 'Playfair Display', 'body' => 'Lora', 'weight' => 700 );
+	 *         return $pairs;
+	 *     } );
+	 *
+	 * Shape mirrors what the React StyleStep consumes:
 	 *
 	 *     { id, heading, body, weight }
 	 *
-	 * Notes for future maintainers:
+	 * Notes for filter authors:
 	 *   - `heading` / `body` strings MUST match the family name in
 	 *     `themes/customify/build/fonts/google-fonts.json` — the import
 	 *     phase writes these verbatim into the typography theme_mods,
 	 *     and Customify's font loader looks them up by exact match.
 	 *   - `weight` is the visual heading weight; bodies use 400 by
 	 *     convention (no need to encode that here).
-	 *   - Order = how they render in the grid. Keep the
-	 *     low-risk/familiar pairs first.
+	 *   - Order = how they render in the grid.
 	 *
 	 * @return array<int, array{id:string,heading:string,body:string,weight:int}>
 	 */
 	private function curated_font_pairs(): array {
-		return array(
-			array( 'id' => 'manrope-inter',        'heading' => 'Manrope',           'body' => 'Inter',         'weight' => 700 ),
-			array( 'id' => 'playfair-lora',        'heading' => 'Playfair Display',  'body' => 'Lora',          'weight' => 700 ),
-			array( 'id' => 'poppins-opensans',     'heading' => 'Poppins',           'body' => 'Open Sans',     'weight' => 700 ),
-			array( 'id' => 'raleway-nunito',       'heading' => 'Raleway',           'body' => 'Nunito',        'weight' => 600 ),
-			array( 'id' => 'montserrat-lato',      'heading' => 'Montserrat',        'body' => 'Lato',          'weight' => 600 ),
-			array( 'id' => 'dmserif-dmsans',       'heading' => 'DM Serif Display',  'body' => 'DM Sans',       'weight' => 400 ),
-		);
+		/**
+		 * Filter the fallback font pair list offered by the wizard's
+		 * Style step (and resolved by legacy string-id job payloads).
+		 *
+		 * @param array<int, array{id:string,heading:string,body:string,weight:int}> $pairs
+		 */
+		return (array) apply_filters( 'ft_demo_importer_curated_font_pairs', array() );
 	}
 
 	/**

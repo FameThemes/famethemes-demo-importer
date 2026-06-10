@@ -117,6 +117,36 @@ add_filter( 'ft_demo_importer_denied_option_keys', function ( $keys ) {
 
 Source: [`inc/generic/Steps/class-options-importer.php`](../inc/generic/Steps/class-options-importer.php).
 
+### `ft_demo_importer_curated_font_pairs`
+
+Fallback typography pair list for the wizard's Style step. The wizard prefers the template's own `theme_options.typography`; this set surfaces only when a template predates that field, and also backs `find_font_pair()` for legacy string-id job payloads. **Empty by default.**
+
+Both `heading` and `body` must match a family name in `themes/customify/build/fonts/google-fonts.json` exactly.
+
+```php
+add_filter( 'ft_demo_importer_curated_font_pairs', function ( $pairs ) {
+    $pairs[] = [ 'id' => 'playfair-lora', 'heading' => 'Playfair Display', 'body' => 'Lora', 'weight' => 700 ];
+    return $pairs;
+} );
+```
+
+Source: [`inc/generic/Adapters/class-customify-adapter.php`](../inc/generic/Adapters/class-customify-adapter.php).
+
+### `ft_demo_importer_font_subsets`
+
+Unicode subsets downloaded per font variant during Font Library install — **css2 fallback path only**. The primary source is core's "google-fonts" collection (full-coverage files, no subsets); this filter matters only when that collection can't load and the installer falls back to slicing Google's css2 response, where each subset of each variant is a separate `.woff2` carrying `unicode-range`.
+
+Default: `['latin', 'latin-ext', 'vietnamese']`.
+
+```php
+add_filter( 'ft_demo_importer_font_subsets', function ( $subsets ) {
+    $subsets[] = 'cyrillic';
+    return $subsets;
+} );
+```
+
+Source: [`inc/generic/Adapters/customify/class-font-installer.php`](../inc/generic/Adapters/customify/class-font-installer.php).
+
 ---
 
 ## REST routes
