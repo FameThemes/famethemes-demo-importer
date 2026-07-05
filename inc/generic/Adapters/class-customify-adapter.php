@@ -91,7 +91,7 @@ class Customify_Adapter extends Theme_Adapter {
 	 * filter chain still override this when set.
 	 */
 	public function studio_server_url(): ?string {
-		return 'https://design-library.pressmaximum.com/';
+		return 'https://pressmaximum.com/';
 	}
 
 	/**

@@ -3,10 +3,13 @@
  * Thin getter/setter facade over the two wp_options rows the generic
  * track persists:
  *
- *   - `ft_demo_importer_studio_url` — base URL of the Blocksify Design
- *     Studio that supplies templates (e.g. `https://studio.example.com/`).
- *   - `ft_demo_importer_studio_key` — `read`-scope API key. Never sent
- *     to the browser — only the masked prefix is exposed.
+ *   - `ft_demo_importer_studio_url` — base URL of the PM Templates server
+ *     that supplies templates (e.g. `https://design-library.example.com/`).
+ *     The plugin consumes its **public catalog** (`pm-templates/v1/public`),
+ *     which needs no authentication.
+ *   - `ft_demo_importer_studio_key` — legacy `read`-scope API key. Optional
+ *     and ignored by the public catalog; kept for backward compatibility.
+ *     Never sent to the browser — only the masked prefix is exposed.
  *
  * Option names are deliberately prefixed `ft_demo_importer_` to avoid
  * collisions with the OnePress track (which stores nothing in wp_options
@@ -31,7 +34,7 @@ class Options_Store {
 	 * fallback always reflects the current plugin version, even after
 	 * the user clears the option.
 	 */
-	public const DEFAULT_STUDIO_URL = 'https://design-library.pressmaximum.com/';
+	public const DEFAULT_STUDIO_URL = 'https://pressmaximum.com/';
 
 	/**
 	 * wp-config constants that override the wp_options values entirely.
@@ -53,7 +56,7 @@ class Options_Store {
 	 *
 	 *   1. wp-config constant `FT_DEMO_IMPORTER_STUDIO_URL` (highest)
 	 *   2. Saved `ft_demo_importer_studio_url` option
-	 *   3. Plugin default `https://design-library.pressmaximum.com/`
+	 *   3. Plugin default `https://pressmaximum.com/`
 	 *
 	 * The `ft_demo_importer_default_studio_url` filter runs last so
 	 * programmatic overrides still win — useful for tests + multisite

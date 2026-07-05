@@ -162,7 +162,7 @@ Namespace: `ft-demo-importer/v1`. All routes gate on `current_user_can('manage_o
 | `GET` | `/studio/templates/{id}` | `Studio_Proxy_Controller::get_template` | Template detail |
 | `GET` | `/studio/categories` | `Studio_Proxy_Controller::list_categories` | Category pills |
 
-Studio responses are passed through as-is. Network failures surface as `502` to the JS so the UI can show a "Studio unreachable" message instead of crashing on a malformed body.
+Upstream is the **PM Templates public catalog** (`pm-templates/v1/public`, no auth). [`Remote_Client`](../inc/generic/Studio/class-remote-client.php) normalizes catalog responses back into the legacy Studio shape these proxy routes expose, so the React UI and import Steps are unchanged. Network failures surface as `502` to the JS so the UI can show an "unreachable" message instead of crashing on a malformed body.
 
 Source: [`inc/generic/REST/class-studio-proxy-controller.php`](../inc/generic/REST/class-studio-proxy-controller.php).
 

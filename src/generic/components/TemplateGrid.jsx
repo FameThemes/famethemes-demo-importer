@@ -44,6 +44,18 @@ export function TemplateGrid({ onSelect, loadingId = null }) {
 	const [activeCat, setActiveCat] = useState('all');
 	const [search, setSearch] = useState('');
 
+	// `?no_cache=1` on the admin page URL forwards to the proxy, which clears
+	// the ENTIRE templates cache server-side before returning fresh data.
+	const noCache = useMemo(() => {
+		try {
+			return new URLSearchParams(window.location.search).get('no_cache') === '1'
+				? { no_cache: 1 }
+				: {};
+		} catch (e) {
+			return {};
+		}
+	}, []);
+
 	// Categories — one-shot fetch on mount. Failure leaves the strip
 	// empty (just the "All" pill) rather than blocking the grid.
 	//
@@ -52,7 +64,7 @@ export function TemplateGrid({ onSelect, loadingId = null }) {
 	// future Studio versions that might normalize the envelope.
 	useEffect(() => {
 		let cancelled = false;
-		studio.listCategories()
+		studio.listCategories(noCache)
 			.then((res) => {
 				if (cancelled) {
 					return;
@@ -74,7 +86,7 @@ export function TemplateGrid({ onSelect, loadingId = null }) {
 	useEffect(() => {
 		let cancelled = false;
 		setLoading(true);
-		studio.listTemplates({ per_page: -1, view_context: 'site' })
+		studio.listTemplates({ per_page: -1, view_context: 'site', ...noCache })
 			.then((res) => {
 				if (cancelled) {
 					return;

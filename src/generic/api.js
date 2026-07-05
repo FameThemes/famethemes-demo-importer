@@ -55,8 +55,15 @@ export const studio = {
 		return apiFetch( { path: `${ NS }/studio/templates/${ id }/options` } );
 	},
 
-	listCategories() {
-		return apiFetch( { path: `${ NS }/studio/categories` } );
+	listCategories( params = {} ) {
+		const qs = new URLSearchParams();
+		Object.entries( params ).forEach( ( [ k, v ] ) => {
+			if ( v !== undefined && v !== null && v !== '' ) {
+				qs.append( k, v );
+			}
+		} );
+		const suffix = qs.toString() ? `?${ qs }` : '';
+		return apiFetch( { path: `${ NS }/studio/categories${ suffix }` } );
 	},
 };
 

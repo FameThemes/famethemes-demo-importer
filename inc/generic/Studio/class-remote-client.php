@@ -1,15 +1,21 @@
 <?php
 /**
- * GET-only HTTP client for the Blocksify Design Studio's REST API
- * (`/wp-json/blocksify-design-studio/v1/...`).
+ * GET-only HTTP client for the PM Templates **public catalog** REST API
+ * (`/wp-json/pm-templates/v1/public/...`).
  *
- * Ported from `blocksify-design-importer/includes/Studio/RemoteClient.php`
- * — same architecture (same-origin in-process dispatch for dev installs,
- * `X-PMBD-Api-Key` header per request, streaming download) but rewired
- * onto FT_Demo_Importer's {@see Options_Store} for credential lookup.
+ * PM Templates is the reworked successor to Blocksify Design Studio; its
+ * public catalog serves template browse/detail/filters with NO authentication.
+ * This client keeps the legacy "Studio" method surface (`get('templates')`,
+ * `get('templates/{id}')`, `get('categories')`, `get('me')`) and normalizes
+ * every catalog response back into the old Studio shape, so the proxy, import
+ * Steps, and React UI consume it unchanged. See {@see get()} for the mapping.
  *
- * Read-only by design: the generic importer never writes back to the
- * Studio, so there's no POST/PATCH/DELETE surface here.
+ * Same-origin in-process dispatch is preserved for dev installs; the
+ * `X-PMBD-Api-Key` header is still sent when a key is configured (the public
+ * catalog ignores it — kept only for backward compatibility).
+ *
+ * Read-only by design: the importer never writes back, so there's no
+ * POST/PATCH/DELETE surface here.
  */
 
 namespace FT_Demo_Importer\Studio;
@@ -29,10 +35,178 @@ class Remote_Client {
 	}
 
 	/**
+	 * GET a studio-shaped resource. Internally this talks to the PM Templates
+	 * **public catalog** (`pm-templates/v1/public/*`, no auth) and normalizes
+	 * every response back into the legacy Studio response shape the proxy,
+	 * import Steps, and React UI still consume — so the rest of the plugin needs
+	 * no changes.
+	 *
+	 * Supported legacy paths → pm-templates public catalog:
+	 *   me               → ping /filters (connection test)
+	 *   categories       → /filters (categories facet)
+	 *   templates        → /templates (list, unwrapped-friendly)
+	 *   templates/{id}   → /templates/{id} (detail)
+	 *
 	 * @return array{status:int, body:mixed, error:?string}
 	 */
 	public function get( string $path, array $query = [] ): array {
+		$path = ltrim( $path, '/' );
+
+		// Connection test — pm-templates has no /me; ping the public catalog
+		// and synthesize a Studio-shaped `{label, scope}` body.
+		if ( 'me' === $path ) {
+			$ping = $this->request( 'GET', 'filters', [ 'query' => [] ] );
+			if ( $ping['status'] >= 200 && $ping['status'] < 300 ) {
+				return [
+					'status' => 200,
+					'body'   => [ 'label' => 'PM Templates (public catalog)', 'scope' => 'read' ],
+					'error'  => null,
+				];
+			}
+			return [
+				'status' => $ping['status'] ?: 502,
+				'body'   => null,
+				'error'  => $ping['error'] ?? __( 'PM Templates catalog unreachable.', 'famethemes-demo-importer' ),
+			];
+		}
+
+		// Category pills — pm-templates exposes facets at /filters.
+		if ( 'categories' === $path ) {
+			$res = $this->request( 'GET', 'filters', [ 'query' => [] ] );
+			if ( is_array( $res['body'] ) ) {
+				$res['body'] = $this->normalize_categories( $res['body'] );
+			}
+			return $res;
+		}
+
+		// Template list.
+		if ( 'templates' === $path ) {
+			$res = $this->request( 'GET', 'templates', [ 'query' => $this->map_list_query( $query ) ] );
+			if ( is_array( $res['body'] ) ) {
+				$res['body'] = $this->normalize_list( $res['body'] );
+			}
+			return $res;
+		}
+
+		// Template detail.
+		if ( preg_match( '#^templates/(\d+)$#', $path, $m ) ) {
+			$res = $this->request( 'GET', 'templates/' . $m[1], [ 'query' => $query ] );
+			if ( is_array( $res['body'] ) ) {
+				$res['body'] = $this->normalize_item( $res['body'] );
+			}
+			return $res;
+		}
+
+		// Unknown path — pass through untouched.
 		return $this->request( 'GET', $path, [ 'query' => $query ] );
+	}
+
+	/**
+	 * Map the legacy list query onto the public catalog's params. Drops
+	 * theme/view_context (the catalog isn't theme-scoped) and clamps the
+	 * "all" sentinel (`per_page = -1`) to the catalog's 100 max.
+	 *
+	 * @param array<string,mixed> $query
+	 * @return array<string,mixed>
+	 */
+	private function map_list_query( array $query ): array {
+		$out = [];
+		foreach ( [ 'search', 'category', 'type', 'plugin', 'page', 'orderby', 'order' ] as $k ) {
+			if ( isset( $query[ $k ] ) && '' !== $query[ $k ] ) {
+				$out[ $k ] = $query[ $k ];
+			}
+		}
+		$per_page        = (int) ( $query['per_page'] ?? 0 );
+		$out['per_page'] = ( $per_page <= 0 || $per_page > 100 ) ? 100 : $per_page;
+		return $out;
+	}
+
+	/**
+	 * Normalize a public-catalog list `{ items, pagination }` into the shape
+	 * the grid consumes: keep the `items` wrapper (the JS already unwraps it)
+	 * but map each item to the legacy card shape.
+	 *
+	 * @param array<string,mixed> $body
+	 * @return array<string,mixed>
+	 */
+	private function normalize_list( array $body ): array {
+		$items = $body['items'] ?? ( $this->is_list( $body ) ? $body : [] );
+		$items = array_map( [ $this, 'normalize_item' ], is_array( $items ) ? $items : [] );
+		return [
+			'items'      => $items,
+			'pagination' => $body['pagination'] ?? null,
+		];
+	}
+
+	/**
+	 * Map one catalog item (list card OR full detail) to the legacy Studio
+	 * shape. Detail-only fields (`assets`, `requirements`, `pages`) pass
+	 * through untouched via the merge.
+	 *
+	 * @param array<string,mixed> $item
+	 * @return array<string,mixed>
+	 */
+	private function normalize_item( array $item ): array {
+		$thumb = is_array( $item['thumbnail'] ?? null ) ? $item['thumbnail'] : null;
+		$sizes = is_array( $thumb['sizes'] ?? null ) ? $thumb['sizes'] : [];
+
+		$preview_image = null;
+		$thumb_url     = '';
+		if ( null !== $thumb && ! empty( $thumb['url'] ) ) {
+			$flat          = [ 'url' => (string) $thumb['url'] ];
+			$preview_image = [
+				'url'    => (string) $thumb['url'],
+				'full'   => $sizes['full'] ?? $flat,
+				'medium' => $sizes['medium'] ?? $flat,
+				'thumb'  => $sizes['thumb'] ?? $flat,
+			];
+			$thumb_url = (string) ( $sizes['thumb']['url'] ?? $thumb['url'] );
+		}
+
+		$categories = is_array( $item['categories'] ?? null ) ? $item['categories'] : [];
+		$cat_slugs  = [];
+		foreach ( $categories as $c ) {
+			if ( is_array( $c ) && ! empty( $c['slug'] ) ) {
+				$cat_slugs[] = (string) $c['slug'];
+			}
+		}
+
+		// `excerpt` in the catalog IS the keywords array.
+		$keywords = is_array( $item['excerpt'] ?? null ) ? $item['excerpt'] : [];
+
+		return array_merge( $item, [
+			'name'           => (string) ( $item['title'] ?? '' ),
+			'preview_image'  => $preview_image,
+			'thumb_url'      => $thumb_url,
+			'keywords'       => $keywords,
+			'category_slugs' => $cat_slugs,
+			'is_pro'         => false,
+			// Defensive: the Style step reads `theme_options.*`; provide an
+			// empty object so property access never throws when a template
+			// ships no theme options.
+			'theme_options'  => isset( $item['theme_options'] ) && is_array( $item['theme_options'] )
+				? $item['theme_options']
+				: new \stdClass(),
+		] );
+	}
+
+	/**
+	 * Extract the categories facet from a `/filters` response into the bare
+	 * `[{slug,name,count}]` array the sidebar expects.
+	 *
+	 * @param array<string,mixed> $filters
+	 * @return array<int,array<string,mixed>>
+	 */
+	private function normalize_categories( array $filters ): array {
+		$cats = $filters['categories'] ?? [];
+		return is_array( $cats ) ? array_values( $cats ) : [];
+	}
+
+	/**
+	 * @param array<mixed> $arr
+	 */
+	private function is_list( array $arr ): bool {
+		return $arr === array_values( $arr );
 	}
 
 	/**
@@ -109,22 +283,17 @@ class Remote_Client {
 			];
 		}
 
-		// Auto-attach the contributor site's active theme to every request
-		// via the `theme` query param — the Studio uses it for filtering
-		// (list endpoints) and for analytics elsewhere. Caller can override
-		// by including its own `theme` in `$extra['query']`.
+		// The public catalog is not theme-scoped, so no `theme` param is
+		// attached (the old Studio API filtered by it; pm-templates does not).
 		if ( ! isset( $extra['query'] ) || ! is_array( $extra['query'] ) ) {
 			$extra['query'] = [];
-		}
-		if ( ! array_key_exists( 'theme', $extra['query'] ) || '' === $extra['query']['theme'] ) {
-			$extra['query']['theme'] = get_stylesheet();
 		}
 
 		if ( $this->is_same_origin_studio() ) {
 			return $this->dispatch_in_process( $method, $path, $extra );
 		}
 
-		$url = trailingslashit( $this->options->studio_url() ) . 'wp-json/blocksify-design-studio/v1/' . ltrim( $path, '/' );
+		$url = trailingslashit( $this->options->studio_url() ) . 'wp-json/pm-templates/v1/public/' . ltrim( $path, '/' );
 		if ( ! empty( $extra['query'] ) ) {
 			$url = add_query_arg( $extra['query'], $url );
 		}
@@ -175,7 +344,7 @@ class Remote_Client {
 			do_action( 'rest_api_init' );
 		}
 
-		$route   = '/blocksify-design-studio/v1/' . ltrim( $path, '/' );
+		$route   = '/pm-templates/v1/public/' . ltrim( $path, '/' );
 		$request = new \WP_REST_Request( strtoupper( $method ), $route );
 		// Only set the auth header when a key is actually configured —
 		// see request() for the rationale.

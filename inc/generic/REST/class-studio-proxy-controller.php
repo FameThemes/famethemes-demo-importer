@@ -65,6 +65,47 @@ class Studio_Proxy_Controller {
 		] );
 	}
 
+	/**
+	 * Delete EVERY proxy cache — every transient this controller stores is
+	 * prefixed `ft_demo_importer_` (list / detail / options / categories), so
+	 * one LIKE sweep over `wp_options` clears the lot. Triggered by any cached
+	 * route hit with `?no_cache=1`. Returns how many transients were removed.
+	 */
+	private function flush_all_cache(): int {
+		global $wpdb;
+
+		$prefix = 'ft_demo_importer_';
+
+		// Enumerate our transient names, then clear each via delete_transient()
+		// so BOTH the wp_options rows AND the object/in-memory cache entry are
+		// removed — a bare SQL DELETE leaves the per-request object cache
+		// holding stale values, so a flush-then-read in the same request would
+		// still see the old data.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$names = (array) $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( '_transient_' . $prefix ) . '%'
+			)
+		);
+
+		$count = 0;
+		foreach ( $names as $name ) {
+			$key = substr( (string) $name, strlen( '_transient_' ) );
+			if ( '' !== $key && delete_transient( $key ) ) {
+				$count++;
+			}
+		}
+
+		// Persistent object cache: transients bypass wp_options, so the query
+		// above finds nothing — flush the object cache to clear them.
+		if ( wp_using_ext_object_cache() ) {
+			wp_cache_flush();
+		}
+
+		return $count;
+	}
+
 	public function check_permission( \WP_REST_Request $request ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new \WP_Error(
@@ -117,11 +158,11 @@ class Studio_Proxy_Controller {
 		$no_cache  = (bool) $request->get_param( 'no_cache' );
 
 		if ( $no_cache ) {
-			// Wipe + skip — wiping (vs. just skipping the read) means
-			// any subsequent visitor without the bypass flag immediately
-			// gets the freshly-fetched payload instead of the
-			// pre-bypass stale entry.
-			delete_transient( $cache_key );
+			// `?no_cache=1` clears the ENTIRE proxy cache (list + detail +
+			// options + categories), not just this one key — so a single
+			// bypassed request refreshes the whole Starter Templates view.
+			// Every route then re-fetches fresh and re-primes its cache.
+			$this->flush_all_cache();
 		} else {
 			$cached = get_transient( $cache_key );
 			if ( is_array( $cached ) && array_key_exists( 'body', $cached ) ) {
