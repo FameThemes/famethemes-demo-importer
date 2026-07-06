@@ -41,6 +41,15 @@ class Plugin_Installer {
 	private const BLOCKSIFY_SLUG = 'blocksify';
 
 	/**
+	 * Ecosystem tooling that must never be installed on a demo site, even when a
+	 * source site ran it and the manifest lists it. `pm-submitter` is the
+	 * contributor-side submit tool and `famethemes-demo-importer` is this
+	 * importer itself — neither belongs to a template's runtime. Extend via the
+	 * `ft_demo_importer_excluded_plugin_slugs` filter.
+	 */
+	private const EXCLUDED_SLUGS = [ 'pm-submitter', 'famethemes-demo-importer' ];
+
+	/**
 	 * @param string                                            $options_json_path
 	 * @param string[]                                          $plugins_skip   Slugs the wizard step asked to skip.
 	 * @param array<int, array{slug:string, name?:string, file?:string, source?:string, required?:bool}> $adapter_extra
@@ -80,6 +89,14 @@ class Plugin_Installer {
 					}
 				}
 			}
+		}
+
+		// Drop ecosystem tooling (the submitter, the importer itself) that a
+		// source site happened to run — a demo site must never install it, even
+		// when the manifest lists it. Applied BEFORE the Blocksify baseline so
+		// the exclusion can never strip Blocksify.
+		foreach ( $this->excluded_slugs() as $excluded ) {
+			unset( $plugins[ $excluded ] );
 		}
 
 		// Baseline importer dependency — Blocksify must be present + active
@@ -249,6 +266,25 @@ class Plugin_Installer {
 
 		$result['installed'][] = $slug;
 		return true;
+	}
+
+	/**
+	 * Plugin slugs the importer must never install, regardless of the manifest.
+	 * Blocksify is force-removed from this list defensively so the baseline
+	 * dependency can never be excluded by a filter.
+	 *
+	 * @return string[]
+	 */
+	private function excluded_slugs(): array {
+		/**
+		 * Filter the plugin slugs the importer refuses to install (ecosystem
+		 * tooling such as the submitter / the importer itself).
+		 *
+		 * @param string[] $slugs Default excluded slugs.
+		 */
+		$slugs = (array) apply_filters( 'ft_demo_importer_excluded_plugin_slugs', self::EXCLUDED_SLUGS );
+		$slugs = array_values( array_unique( array_filter( array_map( 'strval', $slugs ), 'strlen' ) ) );
+		return array_values( array_diff( $slugs, [ self::BLOCKSIFY_SLUG ] ) );
 	}
 
 	private function ensure_admin_loaded(): void {

@@ -202,6 +202,11 @@ const BLOCKSIFY_DESC = __(
 	'famethemes-demo-importer'
 );
 
+// Ecosystem tooling never shown as required/recommended — the submit tool and
+// this importer itself can appear in a source site's plugin manifest but must
+// not be offered for install. Mirrors Plugin_Installer::EXCLUDED_SLUGS (PHP).
+const EXCLUDED_PLUGIN_SLUGS = [ 'pm-submitter', 'famethemes-demo-importer' ];
+
 const PHASES = [
 	{ key: 'fetching', from: 0, to: 10, label: __('Fetching template assets', 'famethemes-demo-importer') },
 	{ key: 'installing_plugins', from: 10, to: 30, label: __('Installing required plugins', 'famethemes-demo-importer') },
@@ -445,7 +450,9 @@ export function PreviewPanel({ template, onClose }) {
 		// `requirements.plugins[]` now ships in the list snapshot, so we
 		// read it straight off `template` — no per-card detail fetch.
 		const list = Array.isArray(template?.requirements?.plugins)
-			? template.requirements.plugins
+			? template.requirements.plugins.filter(
+				(p) => !EXCLUDED_PLUGIN_SLUGS.includes(p?.slug)
+			)
 			: [];
 		const mapped = list.map((p) => ({
 			slug: p.slug,
