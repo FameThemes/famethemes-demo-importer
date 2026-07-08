@@ -327,10 +327,26 @@ export function PreviewPanel({ template, onClose }) {
 			return;
 		}
 		try {
+			const css = buildPreviewCss(currentPalette, currentFont);
+			// eslint-disable-next-line no-console
+			console.log(
+				'[fdi] preview-style →',
+				{
+					stylesheet:
+						(typeof window !== 'undefined' && window.ftDemoImporter
+							? window.ftDemoImporter.currentStylesheet ||
+							  window.ftDemoImporter.currentTheme
+							: null),
+					font: currentFont,
+					palette: currentPalette,
+				}
+			);
+			// eslint-disable-next-line no-console
+			console.log('[fdi] preview-style CSS:\n' + css);
 			win.postMessage(
 				{
 					type: 'fdi-preview-style',
-					css: buildPreviewCss(currentPalette, currentFont),
+					css,
 				},
 				'*'
 			);
