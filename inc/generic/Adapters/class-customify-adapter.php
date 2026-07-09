@@ -539,8 +539,15 @@ class Customify_Adapter extends Theme_Adapter {
 			? $heading_installed
 			: $installer->install( $pair['body'] );
 
-		$heading_weight = (string) ( $pair['weight'] ?? 600 );
-		$body_weight    = '400';
+		// Snap the requested weights to ones the family ACTUALLY installed.
+		// A curated pair may name a weight (e.g. 700) that a single-weight
+		// display face (Aboreto ships only 400) doesn't offer; writing
+		// font_weight:700 then leaves the heading with no matching @font-face
+		// and it silently falls back to the system font. `$heading_installed`
+		// / `$body_installed` are the wp_font_family ids Font_Installer just
+		// created (every Google variant installed + activated).
+		$heading_weight = $this->snap_weight_to_installed( (string) ( $pair['weight'] ?? 600 ), $heading_installed );
+		$body_weight    = $this->snap_weight_to_installed( '400', $body_installed );
 
 		// Title slots — all 9 Customizer settings that render title-like text.
 		$title_keys = [
@@ -577,13 +584,77 @@ class Customify_Adapter extends Theme_Adapter {
 		}
 
 		$this->log_runner( $runner, $job_id, sprintf(
-			'Style: font pair "%s" applied (Library: heading=%s body=%s, mods: %d title + %d body).',
+			'Style: font pair "%s" applied (Library: heading=%s body=%s, mods: %d title + %d body, weights: heading=%s body=%s).',
 			$font_id,
 			$heading_installed ? 'OK' : 'skip',
 			$body_installed ? 'OK' : 'skip',
 			count( $title_keys ),
-			count( $body_keys )
+			count( $body_keys ),
+			$heading_weight,
+			$body_weight
 		) );
+	}
+
+	/**
+	 * Snap a requested font weight to one that was ACTUALLY installed for the
+	 * family. Font_Installer installs every Google variant the family offers,
+	 * but a curated pair may still name a weight the family doesn't have
+	 * (Aboreto ships only 400 on Google, yet a pair may ask 700). Writing
+	 * `font_weight:700` then leaves the heading with no matching `@font-face`
+	 * and it silently falls back to the system font. Read the installed
+	 * `wp_font_face` weights and return the closest so the chosen family keeps
+	 * rendering. A variable-font face whose weight is a `min max` range that
+	 * spans the request keeps the exact requested weight.
+	 *
+	 * @param string   $wanted    Requested weight, e.g. "700".
+	 * @param int|null $family_id Installed wp_font_family id (Font_Installer return), or null.
+	 */
+	private function snap_weight_to_installed( string $wanted, ?int $family_id ): string {
+		$wanted_n = (int) $wanted;
+		if ( null === $family_id || $family_id <= 0 || $wanted_n <= 0 ) {
+			return $wanted;
+		}
+		$face_ids = get_posts( [
+			'post_type'      => 'wp_font_face',
+			'post_parent'    => $family_id,
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		] );
+		$weights = [];
+		foreach ( $face_ids as $face_id ) {
+			$face = get_post( $face_id );
+			if ( ! $face instanceof \WP_Post ) {
+				continue;
+			}
+			$settings = json_decode( (string) $face->post_content, true );
+			if ( ! is_array( $settings ) ) {
+				continue;
+			}
+			// Match against upright weights only — italics don't change weight.
+			if ( 'normal' !== (string) ( $settings['fontStyle'] ?? 'normal' ) ) {
+				continue;
+			}
+			$fw = trim( (string) ( $settings['fontWeight'] ?? '' ) );
+			if ( preg_match( '/^(\d+)\s+(\d+)$/', $fw, $m ) ) {
+				// Variable-font range face — if it spans the request, keep it.
+				if ( $wanted_n >= (int) $m[1] && $wanted_n <= (int) $m[2] ) {
+					return $wanted;
+				}
+				$weights[] = (int) $m[1];
+				$weights[] = (int) $m[2];
+			} elseif ( '' !== $fw && ctype_digit( $fw ) ) {
+				$weights[] = (int) $fw;
+			}
+		}
+		if ( empty( $weights ) || in_array( $wanted_n, $weights, true ) ) {
+			return $wanted;
+		}
+		usort( $weights, static function ( $a, $b ) use ( $wanted_n ) {
+			return abs( $a - $wanted_n ) <=> abs( $b - $wanted_n );
+		} );
+		return (string) $weights[0];
 	}
 
 	/**

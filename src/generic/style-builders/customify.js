@@ -268,18 +268,39 @@ function buildPaletteVars( palette ) {
 
 // ── Typography ────────────────────────────────────────────────────────────
 
-// The Customify theme consumes exactly TWO foundation font-family tokens
-// (see `themes/customify/docs/SPEC-typography.md` §4.2): every heading
-// shares `--customify-typo-heading-font-family` (h1–h6 inherit it via the
-// `_base.scss` shared heading rule — the per-level `h{n}` tokens carry
-// only font-size/line-height; site-title + widget-title default to the
-// same heading token), and body text reads
-// `--customify-typo-body-font-family`. The previous
-// `--customify-typo-base-*` / `--customify-typo-h{n}-font-family` names
-// exist NOWHERE in the theme, so the injected CSS was a silent no-op and
-// the typography preview never changed the font. Emit the real two.
-const TYPO_VAR_HEADING = [ '--customify-typo-heading-font-family' ];
-const TYPO_VAR_BODY    = [ '--customify-typo-body-font-family' ];
+// The live preview iframe loads the template's SOURCE site, whose Customify
+// version we don't control — and Customify changed its typography CSS-var
+// scheme across releases. So emit BOTH schemes; a given theme reads only the
+// vars it knows and ignores the rest, so there's no conflict and the preview
+// reacts on old AND new source sites:
+//   - New foundation tokens (Customify ≥ 0.4.19, per themes/customify
+//     docs/SPEC-typography.md §4.2): a single shared `--customify-typo-
+//     heading-font-family` (h1–h6 + site/widget titles all inherit it) and
+//     `--customify-typo-body-font-family`.
+//   - Legacy per-slot family vars (older Customify): `--customify-typo-base-*`
+//     and per-level `--customify-typo-h{n}-font-family`.
+const TYPO_VAR_HEADING = [
+	// New foundation token.
+	'--customify-typo-heading-font-family',
+	// Legacy per-slot vars.
+	'--customify-typo-base-heading-font-family',
+	'--customify-typo-base-widget-title-font-family',
+	'--customify-typo-site-tt-title-font-family',
+	'--customify-typo-h1-font-family',
+	'--customify-typo-h2-font-family',
+	'--customify-typo-h3-font-family',
+	'--customify-typo-h4-font-family',
+	'--customify-typo-h5-font-family',
+	'--customify-typo-h6-font-family',
+];
+
+const TYPO_VAR_BODY = [
+	// New foundation token.
+	'--customify-typo-body-font-family',
+	// Legacy per-slot vars.
+	'--customify-typo-base-p-font-family',
+	'--customify-typo-site-tt-desc-font-family',
+];
 
 const ALL_FONT_VARIANTS = [
 	'100','200','300','400','500','600','700','800','900',
