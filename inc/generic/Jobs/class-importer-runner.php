@@ -84,6 +84,41 @@ class Importer_Runner {
 		}
 		$config = (array) ( $job['config'] ?? [] );
 
+		// Dead-man switch. run() is synchronous start→finish: when it returns
+		// it has ALWAYS reached a terminal status (complete(), or fail() in the
+		// catch). So if this worker's request ends while the job is still
+		// non-terminal, it died abnormally — an UNcatchable fatal (a required
+		// plugin's activation hook fatals, memory exhaustion) or the loopback
+		// request was killed (execution-time limit). Either way the try/catch
+		// below never ran, so without this the job stays wedged in e.g.
+		// `installing_plugins` and the wizard polls a spinner forever.
+		//
+		// A shutdown function runs even after a fatal E_ERROR, so we flip the
+		// job to `failed` here and surface the real fatal detail (naming the
+		// offending plugin/file) instead of an endless load.
+		register_shutdown_function( function () use ( $job_id ) {
+			$current = $this->jobs->get( $job_id );
+			if ( null === $current ) {
+				return;
+			}
+			$status = (string) ( $current['status'] ?? '' );
+			if ( in_array( $status, [ Job_Store::STATUS_COMPLETED, Job_Store::STATUS_FAILED, Job_Store::STATUS_CANCELLED ], true ) ) {
+				return; // normal completion / caught failure already terminal.
+			}
+			$err = error_get_last();
+			if ( is_array( $err ) && in_array( (int) $err['type'], [ E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR ], true ) ) {
+				$detail = sprintf( '%s in %s:%d', $err['message'], $err['file'], (int) $err['line'] );
+			} else {
+				$detail = __( 'the worker stopped unexpectedly (execution-time limit or fatal error)', 'famethemes-demo-importer' );
+			}
+			$this->jobs->fail( $job_id, sprintf(
+				/* translators: 1: phase the import was in (e.g. installing_plugins), 2: fatal error detail */
+				__( 'Import aborted during "%1$s": %2$s', 'famethemes-demo-importer' ),
+				$status,
+				$detail
+			) );
+		} );
+
 		try {
 			$fetcher   = new Asset_Fetcher( $this->client );
 			$installer = new Plugin_Installer();

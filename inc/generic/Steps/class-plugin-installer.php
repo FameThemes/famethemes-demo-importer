@@ -125,7 +125,19 @@ class Plugin_Installer {
 		// Defensive — never honour a wizard skip flag for Blocksify.
 		unset( $skip_set[ self::BLOCKSIFY_SLUG ] );
 
-		foreach ( $plugins as $plugin ) {
+		// Keep the whole phase headless. Silent activation (below) already
+		// skips each plugin's activation hook, but a few plugins hook their
+		// "go to the setup wizard" redirect on `plugins_loaded` / `admin_init`
+		// first-run detection instead. Inside this import loopback request a
+		// `wp_safe_redirect(); exit;` would send a Location header and kill the
+		// worker mid-run — so neutralise any redirect attempt for the duration.
+		$suppress_redirect = static function () {
+			return false;
+		};
+		add_filter( 'wp_redirect', $suppress_redirect, PHP_INT_MAX );
+
+		try {
+			foreach ( $plugins as $plugin ) {
 			$slug     = (string) ( $plugin['slug']   ?? '' );
 			$name     = (string) ( $plugin['name']   ?? $slug );
 			$file     = (string) ( $plugin['file']   ?? '' );
@@ -181,6 +193,9 @@ class Plugin_Installer {
 					$this->mark_required_missing( $result, $slug, $name, $source, 'missing_no_source' );
 				}
 			}
+			}
+		} finally {
+			remove_filter( 'wp_redirect', $suppress_redirect, PHP_INT_MAX );
 		}
 
 		return $result;
@@ -209,7 +224,15 @@ class Plugin_Installer {
 	// ----------------------------------------------------------------------
 
 	private function activate( string $slug, string $file, array &$result ): bool {
-		$res = activate_plugin( $file );
+		// Silent activation ($silent = true): activate the plugin WITHOUT
+		// firing its `register_activation_hook` callback or the
+		// activate_plugin / activated_plugin actions. Those are where plugins
+		// set a "redirect to the welcome/setup wizard" transient and where
+		// some `wp_safe_redirect(); exit;` outright — behaviour that in this
+		// headless import loopback request would kill the worker and wedge the
+		// job. Silent keeps the import quiet: no redirect, no admin notices, no
+		// setup hijack. Matches TGMPA / One-Click-Demo-Import.
+		$res = activate_plugin( $file, '', false, true );
 		if ( is_wp_error( $res ) ) {
 			$result['warnings'][] = sprintf(
 				'Plugin "%s" activation failed: %s',

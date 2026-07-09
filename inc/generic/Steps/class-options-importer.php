@@ -294,23 +294,44 @@ class Options_Importer {
 		if ( array_key_exists( 'show_on_front', $core ) ) {
 			update_option( 'show_on_front', (string) $core['show_on_front'] );
 		}
-		if ( ! empty( $core['page_on_front_ref'] ) ) {
-			$id = (int) ( $ref_map[ (string) $core['page_on_front_ref'] ] ?? 0 );
-			if ( $id > 0 ) {
-				update_option( 'page_on_front', $id );
-			} else {
-				$warnings[] = __( 'core.page_on_front_ref unresolved — left untouched.', 'famethemes-demo-importer' );
-			}
-		}
-		if ( ! empty( $core['page_for_posts_ref'] ) ) {
-			$id = (int) ( $ref_map[ (string) $core['page_for_posts_ref'] ] ?? 0 );
-			if ( $id > 0 ) {
-				update_option( 'page_for_posts', $id );
-			} else {
-				$warnings[] = __( 'core.page_for_posts_ref unresolved — left untouched.', 'famethemes-demo-importer' );
-			}
-		}
+		// Front page + posts page — both map the SOURCE page id → the freshly
+		// imported LOCAL id via ref_map.
+		$this->apply_core_page( 'page_on_front', $core, $ref_map, $warnings );
+		$this->apply_core_page( 'page_for_posts', $core, $ref_map, $warnings );
 		return true;
+	}
+
+	/**
+	 * Resolve a core "page" option (`page_on_front` / `page_for_posts`) from
+	 * either wire shape and write the local id:
+	 *   - legacy studio : `{option}_ref` = "post:N"  (ref_map string lookup)
+	 *   - PM Submitter   : `{option}`    = raw source page id
+	 *
+	 * A `0` / absent value means "no page assigned" — left untouched. An
+	 * unresolved id warns rather than writing a stale source id that would
+	 * point at the wrong (or no) page locally.
+	 *
+	 * @param array<string,mixed> $core
+	 * @param array<string,int>   $ref_map
+	 */
+	private function apply_core_page( string $option, array $core, array $ref_map, array &$warnings ): void {
+		$local = 0;
+		if ( ! empty( $core[ $option . '_ref' ] ) ) {
+			$local = (int) ( $ref_map[ (string) $core[ $option . '_ref' ] ] ?? 0 );
+		} elseif ( isset( $core[ $option ] ) && (int) $core[ $option ] > 0 ) {
+			$local = (int) ( $ref_map[ 'post:' . (int) $core[ $option ] ] ?? 0 );
+		} else {
+			return;
+		}
+		if ( $local > 0 ) {
+			update_option( $option, $local );
+			return;
+		}
+		$warnings[] = sprintf(
+			/* translators: %s: core option name (page_on_front / page_for_posts) */
+			__( 'core.%s unresolved — left untouched.', 'famethemes-demo-importer' ),
+			$option
+		);
 	}
 
 	private function apply_theme_mods( array $parsed, array $ref_map, array &$warnings ): bool {
@@ -335,9 +356,52 @@ class Options_Importer {
 				);
 				continue;
 			}
+
+			// Standard WP menu-location map `{ location => nav_menu term_id }`.
+			// The term ids are source-site ids; without remapping the theme's
+			// menu locations bind to stale/foreign terms and render empty even
+			// though Content_Importer recreated the menu under a new term id.
+			if ( 'nav_menu_locations' === $resolved_key && is_array( $resolved_val ) ) {
+				$resolved_val = $this->remap_nav_menu_locations( $resolved_val, $warnings );
+			}
+
 			set_theme_mod( $resolved_key, $resolved_val );
 		}
 		return true;
+	}
+
+	/**
+	 * Remap a `nav_menu_locations` theme_mod from source term ids to the
+	 * freshly imported local menu terms (via {@see $term_pairs}). A location
+	 * whose source term never imported is dropped — binding it to a foreign
+	 * id renders an empty/wrong menu, and dropping lets the theme fall back
+	 * to "no menu assigned" cleanly.
+	 *
+	 * @param array<string,mixed> $locations
+	 * @return array<string,int>
+	 */
+	private function remap_nav_menu_locations( array $locations, array &$warnings ): array {
+		$out = [];
+		foreach ( $locations as $location => $term_id ) {
+			if ( ! is_numeric( $term_id ) || (int) $term_id <= 0 ) {
+				continue; // unassigned location.
+			}
+			$src = (int) $term_id;
+			if ( isset( $this->term_pairs[ $src ] ) ) {
+				$out[ $location ] = (int) $this->term_pairs[ $src ];
+			} elseif ( get_term( $src, 'nav_menu' ) instanceof \WP_Term ) {
+				// Source id already valid locally (unchanged on this site).
+				$out[ $location ] = $src;
+			} else {
+				$warnings[] = sprintf(
+					/* translators: 1: menu location slug, 2: source nav_menu term id */
+					__( 'Menu location "%1$s" unresolved (source menu %2$d not imported) — left unassigned.', 'famethemes-demo-importer' ),
+					(string) $location,
+					$src
+				);
+			}
+		}
+		return $out;
 	}
 
 	private function apply_customizer( array $parsed, array $ref_map, array &$warnings ): bool {
