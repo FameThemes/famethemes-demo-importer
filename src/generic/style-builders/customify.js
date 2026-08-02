@@ -2,8 +2,10 @@
  * Customify style builder.
  *
  * Emits the CSS payload the Customify theme expects on its preview
- * iframe — palette colours (6 base slots + ~16 derived tokens) and
- * typography pair (heading + body across 11 typography vars).
+ * iframe — the palette + typography vars the current Customify theme
+ * actually reads. Legacy vars (typo per-slot, container tokens,
+ * border-strong, primary-hover, accent) have been dropped: the theme
+ * no longer consumes them.
  *
  * The colour-derivation math is a 1:1 port of the theme's own
  * Customizer-preview JS in
@@ -19,11 +21,9 @@
  *         --customify-text: #...;
  *         --customify-primary: #...;
  *         --customify-secondary: #...;
- *         --customify-accent: #...;
  *         --customify-surface: #...;
  *         --customify-text-muted: #...;
  *         --customify-body-text: #...;
- *         --customify-primary-hover: #...;
  *         --customify-link: #...;
  *         --customify-link-hover: #...;
  *         --customify-heading: #...;
@@ -33,17 +33,10 @@
  *         --customify-on-secondary: #...;
  *         --customify-on-accent: #...;
  *         --customify-on-surface: #...;
- *         --customify-primary-container: #...;
- *         --customify-secondary-container: #...;
- *         --customify-accent-container: #...;
- *         --customify-on-primary-container: #...;
- *         --customify-on-secondary-container: #...;
- *         --customify-on-accent-container: #...;
- *         --customify-border-strong: #...;
- *         --customify-typo-base-heading-font-family: "...", Georgia, serif;
- *         ...8 more title-slot vars...
- *         --customify-typo-base-p-font-family: "...", system-ui, sans-serif;
- *         --customify-typo-site-tt-desc-font-family: "...", system-ui, sans-serif;
+ *         --customify-btn-on-primary: #...;
+ *         --customify-btn-on-secondary: #...;
+ *         --customify-typo-heading-font-family: "...", Georgia, serif;
+ *         --customify-typo-body-font-family: "...", system-ui, sans-serif;
  *     }
  */
 
@@ -136,91 +129,6 @@ function _pickOn( value, baseHex ) {
 		? '#FFFFFF' : '#1A1A1A';
 }
 
-function _srgbToOklab( hex ) {
-	const rgb = _hexToRgb( hex );
-	if ( ! rgb ) return [ 0, 0, 0 ];
-	const f = ( v ) => {
-		v = v / 255;
-		return v <= 0.04045 ? v / 12.92 : Math.pow( ( v + 0.055 ) / 1.055, 2.4 );
-	};
-	const rl = f( rgb[ 0 ] );
-	const gl = f( rgb[ 1 ] );
-	const bl = f( rgb[ 2 ] );
-	const l = 0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl;
-	const m = 0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl;
-	const s = 0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl;
-	const cbrt = ( x ) => ( x < 0 ? -Math.pow( -x, 1 / 3 ) : Math.pow( x, 1 / 3 ) );
-	const l_ = cbrt( l );
-	const m_ = cbrt( m );
-	const s_ = cbrt( s );
-	return [
-		0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
-		1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
-		0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
-	];
-}
-
-function _oklabToSrgb( L, a, b ) {
-	const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-	const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-	const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-	const l = l_ * l_ * l_;
-	const m = m_ * m_ * m_;
-	const s = s_ * s_ * s_;
-	const rl =  4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-	const gl = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-	const bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
-	const g = ( v ) => {
-		v = Math.max( 0, Math.min( 1, v ) );
-		return v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow( v, 1 / 2.4 ) - 0.055;
-	};
-	return _rgbToHex( [ g( rl ) * 255, g( gl ) * 255, g( bl ) * 255 ] );
-}
-
-function _oklabL( hex ) { return _srgbToOklab( hex )[ 0 ]; }
-
-function _solveContainerP( source, base ) {
-	const ls = _oklabL( source );
-	const lb = _oklabL( base );
-	const denom = ls - lb;
-	if ( Math.abs( denom ) < 1e-6 ) return 0.5;
-	const p = ( 0.93 - lb ) / denom;
-	return Math.max( 0.02, Math.min( 0.98, p ) );
-}
-
-function _chromaCap( hex, maxChroma ) {
-	const lab = _srgbToOklab( hex );
-	const L = lab[ 0 ];
-	const a = lab[ 1 ];
-	const b = lab[ 2 ];
-	const c = Math.sqrt( a * a + b * b );
-	if ( c <= maxChroma ) return hex;
-	const s = maxChroma / c;
-	return _oklabToSrgb( L, a * s, b * s );
-}
-
-function _lReduceUntilContrast( source, bg, target ) {
-	target = target || 4.5;
-	const lab = _srgbToOklab( source );
-	let L = lab[ 0 ];
-	const a = lab[ 1 ];
-	const b = lab[ 2 ];
-	while ( L > 0 ) {
-		const candidate = _oklabToSrgb( L, a, b );
-		if ( _wcagContrast( candidate, bg ) >= target ) return candidate;
-		L -= 0.02;
-	}
-	return '#1A1A1A';
-}
-
-function _solveBorderStrong( text, base ) {
-	for ( let p = 6; p <= 100; p++ ) {
-		const mix = _mixHex( text, base, p / 100 );
-		if ( _wcagContrast( mix, base ) >= 3.0 ) return mix;
-	}
-	return text;
-}
-
 function buildPaletteVars( palette ) {
 	if ( ! palette || ! Array.isArray( palette.colors ) || palette.colors.length < 6 ) {
 		return [];
@@ -232,75 +140,44 @@ function buildPaletteVars( palette ) {
 	vars.push( `--customify-text: ${ text }` );
 	vars.push( `--customify-primary: ${ primary }` );
 	vars.push( `--customify-secondary: ${ secondary }` );
-	vars.push( `--customify-accent: ${ accent }` );
 	vars.push( `--customify-surface: ${ surface }` );
 
 	vars.push( `--customify-text-muted: ${ _mixHex( text, base, 0.70 ) }` );
 	vars.push( `--customify-body-text: ${ text }` );
-	vars.push( `--customify-primary-hover: ${ _mixHex( primary, '#000000', 0.90 ) }` );
 	vars.push( `--customify-link: ${ primary }` );
 	vars.push( `--customify-link-hover: ${ primary }` );
 	vars.push( `--customify-heading: ${ text }` );
 	vars.push( `--customify-widget-title: ${ text }` );
 	vars.push( `--customify-border: ${ _mixHex( text, base, 0.09 ) }` );
 
-	vars.push( `--customify-on-primary: ${ _pickOn( primary, base ) }` );
-	vars.push( `--customify-on-secondary: ${ _pickOn( secondary, base ) }` );
+	// On-* contrast tokens — WCAG-picked black/white against each brand
+	// on the base surface. Theme reads these for `.has-{brand}-background-color`
+	// text and, aliased below, for button labels.
+	const onPrimary   = _pickOn( primary, base );
+	const onSecondary = _pickOn( secondary, base );
+	vars.push( `--customify-on-primary: ${ onPrimary }` );
+	vars.push( `--customify-on-secondary: ${ onSecondary }` );
 	vars.push( `--customify-on-accent: ${ _pickOn( accent, base ) }` );
 	vars.push( `--customify-on-surface: ${ _pickOn( surface, base ) }` );
 
-	const CHROMA_CAP = 0.04;
-	const primContainerHex = _chromaCap( _mixHex( primary,   base, _solveContainerP( primary,   base ) ), CHROMA_CAP );
-	const secContainerHex  = _chromaCap( _mixHex( secondary, base, _solveContainerP( secondary, base ) ), CHROMA_CAP );
-	const accContainerHex  = _chromaCap( _mixHex( accent,    base, _solveContainerP( accent,    base ) ), CHROMA_CAP );
-	vars.push( `--customify-primary-container: ${ primContainerHex }` );
-	vars.push( `--customify-secondary-container: ${ secContainerHex }` );
-	vars.push( `--customify-accent-container: ${ accContainerHex }` );
-
-	vars.push( `--customify-on-primary-container: ${ _lReduceUntilContrast( primary,   primContainerHex ) }` );
-	vars.push( `--customify-on-secondary-container: ${ _lReduceUntilContrast( secondary, secContainerHex ) }` );
-	vars.push( `--customify-on-accent-container: ${ _lReduceUntilContrast( accent,    accContainerHex ) }` );
-
-	vars.push( `--customify-border-strong: ${ _solveBorderStrong( text, base ) }` );
+	// Button label tokens — theme aliases these to --customify-on-* when the
+	// palette panel is opted in. Preview always opts in, so emit the resolved
+	// hex directly to avoid `var(...)` chain resolution mismatches in older
+	// preview iframes.
+	vars.push( `--customify-btn-on-primary: ${ onPrimary }` );
+	vars.push( `--customify-btn-on-secondary: ${ onSecondary }` );
 
 	return vars;
 }
 
 // ── Typography ────────────────────────────────────────────────────────────
 
-// The live preview iframe loads the template's SOURCE site, whose Customify
-// version we don't control — and Customify changed its typography CSS-var
-// scheme across releases. So emit BOTH schemes; a given theme reads only the
-// vars it knows and ignores the rest, so there's no conflict and the preview
-// reacts on old AND new source sites:
-//   - New foundation tokens (Customify ≥ 0.4.19, per themes/customify
-//     docs/SPEC-typography.md §4.2): a single shared `--customify-typo-
-//     heading-font-family` (h1–h6 + site/widget titles all inherit it) and
-//     `--customify-typo-body-font-family`.
-//   - Legacy per-slot family vars (older Customify): `--customify-typo-base-*`
-//     and per-level `--customify-typo-h{n}-font-family`.
-const TYPO_VAR_HEADING = [
-	// New foundation token.
-	'--customify-typo-heading-font-family',
-	// Legacy per-slot vars.
-	'--customify-typo-base-heading-font-family',
-	'--customify-typo-base-widget-title-font-family',
-	'--customify-typo-site-tt-title-font-family',
-	'--customify-typo-h1-font-family',
-	'--customify-typo-h2-font-family',
-	'--customify-typo-h3-font-family',
-	'--customify-typo-h4-font-family',
-	'--customify-typo-h5-font-family',
-	'--customify-typo-h6-font-family',
-];
-
-const TYPO_VAR_BODY = [
-	// New foundation token.
-	'--customify-typo-body-font-family',
-	// Legacy per-slot vars.
-	'--customify-typo-base-p-font-family',
-	'--customify-typo-site-tt-desc-font-family',
-];
+// Current Customify foundation tokens (per themes/customify/docs/SPEC-typography.md
+// §4.2): a single shared `--customify-typo-heading-font-family` cascades to
+// h1–h6 + site/widget titles, and `--customify-typo-body-font-family` drives
+// body + site description.
+const TYPO_VAR_HEADING = [ '--customify-typo-heading-font-family' ];
+const TYPO_VAR_BODY    = [ '--customify-typo-body-font-family' ];
 
 const ALL_FONT_VARIANTS = [
 	'100','200','300','400','500','600','700','800','900',
