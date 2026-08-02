@@ -225,6 +225,7 @@ class Options_Importer {
 			if ( $import_options ) {
 				$applied['theme_mods']     = $this->apply_theme_mods( $parsed, $ref_map, $warnings );
 				$applied['customizer']     = $this->apply_customizer( $parsed, $ref_map, $warnings );
+				$applied['custom_css']     = $this->apply_custom_css( $parsed, $ref_map, $warnings );
 				$applied['plugin_options'] = $this->apply_plugin_options( $parsed, $ref_map, $warnings );
 				$applied['fonts']          = $this->apply_fonts( $parsed, $ref_map, $warnings );
 			}
@@ -298,6 +299,42 @@ class Options_Importer {
 		// imported LOCAL id via ref_map.
 		$this->apply_core_page( 'page_on_front', $core, $ref_map, $warnings );
 		$this->apply_core_page( 'page_for_posts', $core, $ref_map, $warnings );
+
+		// Site icon (favicon). The theme_mod / plugin_option channels denylist
+		// `site_icon` because a stale source id paints a broken favicon — but a
+		// bundle ships the favicon attachment in content.json, so the `_ref`
+		// resolves here to the freshly imported local id.
+		$icon_ref = ! empty( $core['site_icon_ref'] )
+			? (string) $core['site_icon_ref']
+			: ( isset( $core['site_icon'] ) && (int) $core['site_icon'] > 0 ? 'post:' . (int) $core['site_icon'] : '' );
+		if ( '' !== $icon_ref ) {
+			$local = (int) ( $ref_map[ $icon_ref ] ?? 0 );
+			if ( $local > 0 ) {
+				update_option( 'site_icon', $local );
+			} else {
+				/* translators: %s: the unresolved site-icon ref (e.g. post:99) */
+				$warnings[] = sprintf( __( 'Site icon %s not found in import — skipped.', 'famethemes-demo-importer' ), $icon_ref );
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Additional CSS (Appearance → Customize → Additional CSS). The exporter
+	 * ships the raw CSS under `theme.custom_css`; write it to the active theme's
+	 * `custom_css` post. `{{SITE_URL}}` placeholders in `url()` resolve like
+	 * everywhere else. Skips (returns false) when absent or empty.
+	 */
+	private function apply_custom_css( array $parsed, array $ref_map, array &$warnings ): bool {
+		$css = $parsed['theme']['custom_css'] ?? null;
+		if ( ! is_string( $css ) || '' === trim( $css ) ) {
+			return false;
+		}
+		$css = (string) $this->resolve_refs( $css, $ref_map, $warnings );
+		if ( ! function_exists( 'wp_update_custom_css_post' ) ) {
+			require_once ABSPATH . WPINC . '/theme.php';
+		}
+		wp_update_custom_css_post( $css );
 		return true;
 	}
 
