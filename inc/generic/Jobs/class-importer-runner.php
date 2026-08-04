@@ -367,7 +367,8 @@ class Importer_Runner {
 			return false;
 		}
 
-		$added = 0;
+		$added      = 0;
+		$registered = 0;
 		foreach ( $attrs as $a ) {
 			if ( ! is_array( $a ) || empty( $a['name'] ) ) {
 				continue;
@@ -379,31 +380,58 @@ class Importer_Runner {
 			}
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$table} WHERE attribute_name = %s", $name ) );
-			if ( $exists > 0 ) {
-				continue;
+			if ( $exists <= 0 ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$wpdb->insert(
+					$table,
+					[
+						'attribute_name'    => $name,
+						'attribute_label'   => (string) ( $a['label'] ?? $name ),
+						'attribute_type'    => (string) ( $a['type'] ?? 'select' ),
+						'attribute_orderby' => (string) ( $a['orderby'] ?? 'menu_order' ),
+						'attribute_public'  => (int) ( $a['public'] ?? 0 ),
+					],
+					[ '%s', '%s', '%s', '%s', '%d' ]
+				);
+				++$added;
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			$wpdb->insert(
-				$table,
-				[
-					'attribute_name'    => $name,
-					'attribute_label'   => (string) ( $a['label'] ?? $name ),
-					'attribute_type'    => (string) ( $a['type'] ?? 'select' ),
-					'attribute_orderby' => (string) ( $a['orderby'] ?? 'menu_order' ),
-					'attribute_public'  => (int) ( $a['public'] ?? 0 ),
-				],
-				[ '%s', '%s', '%s', '%s', '%d' ]
-			);
-			++$added;
+
+			// Register the `pa_*` taxonomy NOW, for every bundle attribute (whether
+			// just inserted or pre-existing). We can't lean on re-firing init:
+			// WooCommerce's WC_Post_types::register_taxonomies() bails as soon as
+			// `product_type` exists, so it never picks up attributes added mid-request.
+			// Without this, Content_Importer's taxonomy_exists() gate silently drops
+			// every product's pa_* term. `pa_` + name is WooCommerce's own scheme
+			// (wc_attribute_taxonomy_name); minimal args are enough for term import —
+			// WooCommerce re-registers with full args on the next real request.
+			$taxonomy = function_exists( 'wc_attribute_taxonomy_name' )
+				? wc_attribute_taxonomy_name( $name )
+				: 'pa_' . $name;
+			if ( ! taxonomy_exists( $taxonomy ) ) {
+				register_taxonomy(
+					$taxonomy,
+					[ 'product', 'product_variation' ],
+					[
+						'hierarchical' => true,
+						'public'       => false,
+						'show_ui'      => false,
+						'query_var'    => true,
+						'rewrite'      => false,
+					]
+				);
+				++$registered;
+			}
 		}
 
 		if ( $added > 0 ) {
-			// WooCommerce caches the attribute list; clear it so register_taxonomies()
-			// on the re-fired init sees the new rows.
+			// WooCommerce caches the attribute list; clear it so a later real
+			// request re-reads the new rows.
 			delete_transient( 'wc_attribute_taxonomies' );
 			wp_cache_delete( 'wc_attribute_taxonomies', 'woocommerce-attributes' );
-			$this->jobs->log( $job_id, sprintf( 'WooCommerce attributes: %d created.', $added ) );
 		}
-		return $added > 0;
+		if ( $added > 0 || $registered > 0 ) {
+			$this->jobs->log( $job_id, sprintf( 'WooCommerce attributes: %d created, %d taxonomies registered.', $added, $registered ) );
+		}
+		return $added > 0 || $registered > 0;
 	}
 }
