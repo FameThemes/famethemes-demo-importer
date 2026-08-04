@@ -202,6 +202,26 @@ class Importer_Runner {
 				);
 			}
 
+			// Create WooCommerce global attribute definitions (a separate DB table,
+			// not posts/terms) BEFORE re-firing init, so WooCommerce registers their
+			// `pa_*` taxonomies from the table on init — otherwise Content_Importer's
+			// taxonomy_exists() gate drops every product's attribute term.
+			$woo_attrs_added = $this->import_woo_attributes( $paths['options'] ?? '', $job_id );
+
+			// Plugins just activated in THIS request loaded their files (so their
+			// hooks are now registered), but the `init` action — where they call
+			// register_post_type() / register_taxonomy() — already fired earlier in
+			// this request, before activation. Without re-firing it, Content_Importer's
+			// post_type_exists() gate drops every post of a freshly-activated plugin's
+			// CPT (WooCommerce `product`, Blocksify `blocksify_template`/`_styleclass`/
+			// `_form`, …) with a "post_type not registered" warning. Re-fire `init`
+			// once so those registrations — plus WooCommerce's pa_* taxonomies from the
+			// attribute table above — run before content import.
+			if ( ( ! empty( $plugin_result['activated'] ) || $woo_attrs_added ) && did_action( 'init' ) ) {
+				do_action( 'init' );
+				$this->jobs->log( $job_id, 'Re-ran init to register post types / taxonomies for imported data.' );
+			}
+
 			$this->jobs->set_progress( $job_id, 30 );
 			if ( $adapter ) { $adapter->after_phase( Job_Store::STATUS_INSTALLING_PLUGINS, (array) $this->jobs->get( $job_id ), $this ); }
 
@@ -316,5 +336,74 @@ class Importer_Runner {
 		}
 		$this->jobs->set_status( $job_id, Job_Store::STATUS_CANCELLED, __( 'Import cancelled by user.', 'famethemes-demo-importer' ) );
 		return true;
+	}
+
+	/**
+	 * Create WooCommerce global attribute definitions from `woocommerce.attributes`
+	 * in options.json. These live in the `woocommerce_attribute_taxonomies` table
+	 * (not posts/terms) and are what makes the `pa_*` taxonomies exist. Inserted
+	 * directly + cache flushed; the caller re-fires `init` so WooCommerce registers
+	 * the taxonomies before content import. Idempotent (dedupes by attribute_name).
+	 *
+	 * @return bool True if at least one attribute was created.
+	 */
+	private function import_woo_attributes( string $options_path, string $job_id ): bool {
+		if ( '' === $options_path || ! is_readable( $options_path ) ) {
+			return false;
+		}
+		$parsed = json_decode( (string) file_get_contents( $options_path ), true );
+		$attrs  = ( is_array( $parsed ) && isset( $parsed['woocommerce']['attributes'] ) && is_array( $parsed['woocommerce']['attributes'] ) )
+			? $parsed['woocommerce']['attributes']
+			: [];
+		if ( empty( $attrs ) ) {
+			return false;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'woocommerce_attribute_taxonomies';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			$this->jobs->warn( $job_id, 'WooCommerce not installed — product attributes skipped.' );
+			return false;
+		}
+
+		$added = 0;
+		foreach ( $attrs as $a ) {
+			if ( ! is_array( $a ) || empty( $a['name'] ) ) {
+				continue;
+			}
+			// WC taxonomy names are `pa_` + name and capped at 32 chars total.
+			$name = substr( sanitize_title( (string) $a['name'] ), 0, 28 );
+			if ( '' === $name ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT attribute_id FROM {$table} WHERE attribute_name = %s", $name ) );
+			if ( $exists > 0 ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->insert(
+				$table,
+				[
+					'attribute_name'    => $name,
+					'attribute_label'   => (string) ( $a['label'] ?? $name ),
+					'attribute_type'    => (string) ( $a['type'] ?? 'select' ),
+					'attribute_orderby' => (string) ( $a['orderby'] ?? 'menu_order' ),
+					'attribute_public'  => (int) ( $a['public'] ?? 0 ),
+				],
+				[ '%s', '%s', '%s', '%s', '%d' ]
+			);
+			++$added;
+		}
+
+		if ( $added > 0 ) {
+			// WooCommerce caches the attribute list; clear it so register_taxonomies()
+			// on the re-fired init sees the new rows.
+			delete_transient( 'wc_attribute_taxonomies' );
+			wp_cache_delete( 'wc_attribute_taxonomies', 'woocommerce-attributes' );
+			$this->jobs->log( $job_id, sprintf( 'WooCommerce attributes: %d created.', $added ) );
+		}
+		return $added > 0;
 	}
 }

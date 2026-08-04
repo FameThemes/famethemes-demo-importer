@@ -227,6 +227,7 @@ class Options_Importer {
 				$applied['customizer']     = $this->apply_customizer( $parsed, $ref_map, $warnings );
 				$applied['custom_css']     = $this->apply_custom_css( $parsed, $ref_map, $warnings );
 				$applied['plugin_options'] = $this->apply_plugin_options( $parsed, $ref_map, $warnings );
+				$applied['woocommerce']    = $this->apply_woocommerce( $parsed, $ref_map, $warnings );
 				$applied['fonts']          = $this->apply_fonts( $parsed, $ref_map, $warnings );
 			}
 			if ( $import_widgets ) {
@@ -317,6 +318,44 @@ class Options_Importer {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * WooCommerce store-page assignments (`woocommerce.pages`). Each value is a
+	 * `post:N` ref → the freshly imported local page id. Attribute definitions are
+	 * handled earlier by the runner (they must exist before content import); here
+	 * we only remap the page-id options, which needs the post-import ref_map.
+	 */
+	private function apply_woocommerce( array $parsed, array $ref_map, array &$warnings ): bool {
+		$pages = $parsed['woocommerce']['pages'] ?? null;
+		if ( ! is_array( $pages ) || empty( $pages ) ) {
+			return false;
+		}
+		$map = [
+			'shop'           => 'woocommerce_shop_page_id',
+			'cart'           => 'woocommerce_cart_page_id',
+			'checkout'       => 'woocommerce_checkout_page_id',
+			'myaccount'      => 'woocommerce_myaccount_page_id',
+			'terms'          => 'woocommerce_terms_page_id',
+			'refund_returns' => 'woocommerce_refund_returns_page_id',
+			'view_order'     => 'woocommerce_view_order_page_id',
+		];
+		$set = 0;
+		foreach ( $map as $key => $option ) {
+			if ( empty( $pages[ $key ] ) || ! is_string( $pages[ $key ] ) ) {
+				continue;
+			}
+			$local = (int) $this->resolve_refs( (string) $pages[ $key ], $ref_map, $warnings );
+			if ( $local > 0 ) {
+				update_option( $option, $local );
+				++$set;
+			}
+		}
+		if ( $set > 0 && function_exists( 'flush_rewrite_rules' ) ) {
+			// Shop/product permalinks depend on the shop page — refresh them.
+			flush_rewrite_rules( false );
+		}
+		return $set > 0;
 	}
 
 	/**
