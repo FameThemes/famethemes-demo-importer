@@ -123,6 +123,31 @@ class Content_Importer {
 			}
 		}
 
+		// (2.5) Term meta — applied AFTER posts/attachments so refs inside it
+		// (e.g. a product_cat `thumbnail_id` = "{{ref:post:N}}" category image)
+		// resolve against the freshly imported attachments via the now-complete
+		// ref_map. Covers product_cat images + attribute-term data (swatches, order).
+		foreach ( (array) ( $parsed['terms'] ?? [] ) as $term ) {
+			$local = (int) ( $ref_map[ (string) ( $term['ref'] ?? '' ) ] ?? 0 );
+			if ( $local <= 0 || empty( $term['meta'] ) || ! is_array( $term['meta'] ) ) {
+				continue;
+			}
+			foreach ( $term['meta'] as $mkey => $mvals ) {
+				$mkey = (string) $mkey;
+				if ( '' === $mkey ) {
+					continue;
+				}
+				delete_term_meta( $local, $mkey );
+				foreach ( (array) $mvals as $mv ) {
+					$resolved = $this->rewrite_meta_value( $mkey, $mv, $ref_map, $site_url, $warnings );
+					if ( null === $resolved ) {
+						continue;
+					}
+					add_term_meta( $local, $mkey, $resolved );
+				}
+			}
+		}
+
 		// (3) Menus
 		foreach ( (array) ( $parsed['menus'] ?? [] ) as $menu ) {
 			$applied = $this->apply_menu( $menu, $ref_map, $warnings, $site_url );
@@ -191,6 +216,7 @@ class Content_Importer {
 				'slug'        => (string) ( $t['slug'] ?? '' ),
 				'parent_ref'  => ! empty( $t['parent'] ) ? 'term:' . (int) $t['parent'] : '',
 				'description' => (string) ( $t['description'] ?? '' ),
+				'meta'        => ( isset( $t['meta'] ) && is_array( $t['meta'] ) ) ? $t['meta'] : [],
 			];
 		}
 
