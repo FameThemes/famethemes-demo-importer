@@ -3,7 +3,7 @@ Contributors: famethemes, shrimp2t
 Donate link: https://www.famethemes.com/
 Tags: starter templates, demo import, one-click import, customify, blocksify
 Requires at least: 5.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: trunk
 License: GPLv2 or later
@@ -108,6 +108,9 @@ The first request fetches the full catalog from the remote Studio (1-3 s dependi
 Yes! Issues + pull requests welcome on the [GitHub repository](https://github.com/FameThemes/famethemes-demo-importer/).
 
 == Changelog ==
+
+= 1.3.1 =
+* Compatible with WordPress 7.1. The importer UI uses core @wordpress/components, so it inherits the 7.1 editor component updates automatically.
 
 = 1.3.0 =
 * **Rebrand** to *Starter Templates* — display name only; existing installs upgrade cleanly.

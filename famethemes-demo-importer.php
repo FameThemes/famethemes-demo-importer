@@ -5,9 +5,9 @@ Plugin URI: https://github.com/FameThemes/famethemes-demo-importer
 Description: From blank install to designer-built WordPress site in one click. Browse starter templates, preview them live in your browser, and import the one you love — pages, menus, plugins, color palette and typography all in place. Stop fighting setup; start editing copy. Works with any Blocksify-compatible design library.
 Author: FameThemes
 Author URI:  http://www.famethemes.com/
-Version: 1.3.0
+Version: 1.3.1
 Requires at least: 5.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
 Text Domain: famethemes-demo-importer
 License: GPL version 2 or later - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
