@@ -1,4 +1,4 @@
-=== Starter Templates ===
+=== FameTheme Demo Importer ===
 Contributors: famethemes, shrimp2t
 Donate link: https://www.famethemes.com/
 Tags: starter templates, demo import, one-click import, customify, blocksify
